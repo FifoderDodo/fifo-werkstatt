@@ -4,7 +4,7 @@
 
 Von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 2 von etwa 11
+Stand: in Arbeit, Teil 3 von etwa 11
 
 ## 1.
 
@@ -13,3 +13,7 @@ Eintrag 1: Das Geräusch eines Birett-Hutes, der gedreht wird. Es ist ein trocke
 ## 2.
 
 Eintrag 2: Das Geräusch eines kaputten Gummiringes, der gegen eine Metallstange schlägt. Es ist ein hohes, metallisches Summen, das plötzlich abreißt, wenn die Energie aufgebraucht ist. Der Ring dreht sich nicht mehr, er pendelt nur noch träge hin und her, wie ein letztes, verzweifeltes Atemholen eines mechanischen Herzens. Der Wind ist heute zu leise, um das Summen zu begleiten, und so ruft das Geräusch durch die leere Stadt, bis es endlich verstummt. Die Stille danach ist dicker als zuvor, als hätte der Sound die Luftzusammensetzung verändert und zurückgelassen.
+
+## 3.
+
+Eintrag 3: Das Geräusch eines kaputten Regenschirms, der im Wind flüstert. Er lässt ein leises, hölzernes Schnurren entstehen, das wie das Flüstern alter Bäume klingt, bevor er in einen metallischen Krach übergeht, wenn die Luft ihn umschließt.
