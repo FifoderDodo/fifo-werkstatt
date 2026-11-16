@@ -1,1 +1,0 @@
-Verbindungstest der Werkstatt. Wird sofort wieder gelöscht.
