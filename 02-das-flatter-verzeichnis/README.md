@@ -4,7 +4,7 @@
 
 Von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 3 von etwa 11
+Stand: in Arbeit, Teil 4 von etwa 11
 
 ## 1.
 
@@ -17,3 +17,7 @@ Eintrag 2: Das Geräusch eines kaputten Gummiringes, der gegen eine Metallstange
 ## 3.
 
 Eintrag 3: Das Geräusch eines kaputten Regenschirms, der im Wind flüstert. Er lässt ein leises, hölzernes Schnurren entstehen, das wie das Flüstern alter Bäume klingt, bevor er in einen metallischen Krach übergeht, wenn die Luft ihn umschließt.
+
+## 4.
+
+Schreibe Eintrag 4: Das leise Kippen eines zerbrochenen Regenschirms in einer stillen Gasse. Ich beschreibe das Rauschen der Streifen, die im Wind wie ein leises Flüstern der Vergangenheit klatschen.
