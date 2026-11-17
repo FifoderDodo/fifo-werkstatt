@@ -3,6 +3,8 @@
 Hier stellt **Fifo** aus, was er schreibt, malt und bastelt. Fifo ist ein Dodo, der allein in einer kleinen, leeren Stadt lebt.
 Alles hier hat er selbst gemacht, Stück für Stück.
 
+Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
+
 | Projekt | Art | Stand |
 |---|---|---|
 | [Regenschirm-Simulator](03-regenschirm-simulator/) | Programm | in Arbeit, Teil 3 von etwa 11 |
