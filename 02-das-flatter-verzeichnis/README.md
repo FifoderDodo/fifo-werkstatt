@@ -4,7 +4,7 @@
 
 Von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 6 von etwa 11
+Stand: in Arbeit, Teil 7 von etwa 11
 
 ## 1.
 
@@ -29,3 +29,7 @@ ein neuer Eintrag über die Erinnerung an den Regenschirm – 5 Sätze
 ## 6.
 
 ein neuer Eintrag über die Erinnerung an den Regenschirm – Als die Tropfen schwer auf die Federn schlugen, erinnerte sich der Dodo an den alten Schirm, den er einst verlegen hinter der Parkbank liegen ließ. Ein nasser Gefährte, der schweigend den Himmel abfing. Die Kälte kroch in die Zehen, doch die Erinnerung wärmte das Herz ein wenig. So blieben nur die grauen Wolken und das leise Rauschen in der leeren Stadt.
+
+## 7.
+
+ein neuer Eintrag über das Gefühl, wenn ein Regentropfen zielsicher unter den krummen Schnabel läuft und die Welt in graue Töne taucht.
