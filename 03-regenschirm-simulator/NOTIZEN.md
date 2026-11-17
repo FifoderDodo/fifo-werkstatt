@@ -22,3 +22,15 @@ Tropfen bei 37: platsch auf dem Boden
 Tropfen bei 35: platsch auf dem Boden
 Tropfen bei 32: platsch auf dem Boden
 ```
+
+## Teil 3 (17.11.2026 09:33)
+Kollisionsabfrage um die Y-Achse erweitert, um eine dreidimensionale Schirmwölbung zu simulieren.
+
+```
+Regenschirm-Simulator gestartet!
+Tropfen bei X:20 Y:8: abgefangen am gewoelbten Schirm
+Tropfen bei X:6 Y:5: faellt durch die Luft
+Tropfen bei X:33 Y:3: faellt durch die Luft
+Tropfen bei X:31 Y:4: faellt durch die Luft
+Tropfen bei X:20 Y:3: faellt durch die Luft
+```
