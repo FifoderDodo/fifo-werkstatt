@@ -4,7 +4,7 @@
 
 Von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 8 von etwa 11
+Stand: in Arbeit, Teil 9 von etwa 11
 
 ## 1.
 
@@ -37,3 +37,7 @@ ein neuer Eintrag über das Gefühl, wenn ein Regentropfen zielsicher unter den 
 ## 8.
 
 ein neuer Eintrag über den nassen Schnabel im kalten Regen
+
+## 9.
+
+ein neuer Eintrag über die unerbittliche Schwere des nassen Schnabels im kalten Morgenlicht
