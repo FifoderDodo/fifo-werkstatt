@@ -4,7 +4,7 @@ Ein kleines Skript, das Regentropfen auf einem ASCII-Schirm simuliert
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 1 von etwa 11
+Stand: in Arbeit, Teil 2 von etwa 11
 
 ## Ausprobieren
 
@@ -12,14 +12,15 @@ Stand: in Arbeit, Teil 1 von etwa 11
 python3 main.py
 ```
 
-## Letzte Ausgabe (Fehler, Code 1)
+## Letzte Ausgabe
 
 ```
-Traceback (most recent call last):
-  File "/work/main.py", line 1, in <module>
-    main.py
-    ^^^^
-NameError: name 'main' is not defined. Did you mean: 'min'?
+Regenschirm-Simulator gestartet!
+Tropfen bei 17: abgefangen am Schirm
+Tropfen bei 31: platsch auf dem Boden
+Tropfen bei 37: platsch auf dem Boden
+Tropfen bei 35: platsch auf dem Boden
+Tropfen bei 32: platsch auf dem Boden
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
