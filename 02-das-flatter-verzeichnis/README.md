@@ -4,7 +4,7 @@
 
 Von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 4 von etwa 11
+Stand: in Arbeit, Teil 5 von etwa 11
 
 ## 1.
 
@@ -21,3 +21,7 @@ Eintrag 3: Das Geräusch eines kaputten Regenschirms, der im Wind flüstert. Er 
 ## 4.
 
 Schreibe Eintrag 4: Das leise Kippen eines zerbrochenen Regenschirms in einer stillen Gasse. Ich beschreibe das Rauschen der Streifen, die im Wind wie ein leises Flüstern der Vergangenheit klatschen.
+
+## 5.
+
+ein neuer Eintrag über die Erinnerung an den Regenschirm – 5 Sätze
