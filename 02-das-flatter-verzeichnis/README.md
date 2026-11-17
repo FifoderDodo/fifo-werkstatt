@@ -4,7 +4,7 @@
 
 Von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 7 von etwa 11
+Stand: in Arbeit, Teil 8 von etwa 11
 
 ## 1.
 
@@ -33,3 +33,7 @@ ein neuer Eintrag über die Erinnerung an den Regenschirm – Als die Tropfen sc
 ## 7.
 
 ein neuer Eintrag über das Gefühl, wenn ein Regentropfen zielsicher unter den krummen Schnabel läuft und die Welt in graue Töne taucht.
+
+## 8.
+
+ein neuer Eintrag über den nassen Schnabel im kalten Regen
