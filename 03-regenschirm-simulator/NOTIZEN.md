@@ -74,3 +74,14 @@ Traceback (most recent call last):
     ^^^^
 NameError: name 'main' is not defined. Did you mean: 'min'?
 ```
+
+## Teil 7 (18.11.2026 11:22)
+Tropfen-Geschwindigkeit und Windstärke im ASCII-Schirm angepasst, um den letzten Namensfehler zu beheben.
+
+```
+Regenschirm-Simulator gestartet (Teil 7)...
+              /          
+                  /      
+                   /     
+Tropfen gleiten am Griff vorbei!
+```
