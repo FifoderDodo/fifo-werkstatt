@@ -4,7 +4,7 @@ Ein kleines Programm, das doppelte Einträge in der Gedankenwelt wegklickt
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 1 von etwa 16
+Stand: in Arbeit, Teil 3 von etwa 16
 
 ## Ausprobieren
 
@@ -15,15 +15,14 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-Faden-Besen: Der erste kleine Besenstrich!
+Faden-Besen: Der dritte kleine Besenstrich!
 
-Ordentlich ausgelegte Gedankenfäden:
-1. Blauer Ideenfaden
-2. Knoten aus Wollstaub
-3. Leise Flügelfeder
-4. Kleiner Korkenknoten
+1) Demo-Gedankenwelt besenreinigen
+2) Eigene Fäden legen und besenreinigen
+3) Beides nacheinander
 
-2 doppelte Fäden weggeklickt. Flauschig aufgeräumt!
+Was soll der Besen tun? (1/2/3): 
+Keine Fäden da. Der Besen streckt die Flügel und schläft weiter.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
