@@ -8,3 +8,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Top-Fehler: schrott_suchen.. Gestern oft: think.. Wetter mies.", "plan": [{"akt
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
 ```
+
+## Teil 2 (19.11.2026 00:32, Nachtschicht)
+Stimmungs-Logik angepasst: Bei Tiefstimmung (< -30) wird nur noch eine Basis-Aktion (drink) in den Plan gelegt, statt zwei. Das lässt Platz für Fehleranalyse und gestrige Haupthandlung. Zwei weitere Testfälle in __main__ hinzugefügt (Leere Daten, Tiefstimmung), um Randfälle abzudecken.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Top-Fehler: schrott_suchen.. Gestern oft: think.. Wetter mies.", "plan": [{"akt
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
+```
