@@ -104,3 +104,10 @@ Vervollständigten den abgebrochenen Code: brett3 hinzugefügt, Fass, Reifen, Pl
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 16 (19.11.2026 00:56, Nachtschicht)
+Code vervollständigt: brett3 hinzugefügt, Fass mit Deckel, Reifen, Plattenstapel, unebener Boden mit Vertex-Verschiebung, 12 animierte Grashalme, Maussteuerung (Drag-Orbit + Zoom) und Animationsloop mit subtilen Bewegungen für Dach, Rohr, Tür, Bretter, Fass und Gras.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
