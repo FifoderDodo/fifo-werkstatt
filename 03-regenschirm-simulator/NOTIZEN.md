@@ -45,3 +45,21 @@ Traceback (most recent call last):
     ^^^^
 NameError: name 'main' is not defined. Did you mean: 'min'?
 ```
+
+## Teil 5 (18.11.2026 10:55)
+Krrrk! Den Syntax-Ausrutscher behoben und main() ordentlich aufgesetzt. Nun fällt kontrollierter Testregen auf den Schirm.
+
+```
+=== Fifos Regenschirm-Simulator (Teil 5) ===
+ . '   . .' .|  '
+  .   |  ..      
+       .' .'|    
+      .---.      
+    ./     \.    
+   /         \   
+  '-----------'  
+        |        
+        |        
+       '-'       
+Plitsch, platsch! Der Schirm hält dicht!
+```
