@@ -62,3 +62,10 @@ Code vervollständigt: Fass positioniert und zur Szene hinzugefügt, Reifen (Tor
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 10 (18.11.2026 22:50, Nachtschicht)
+Den abgebrochenen Code vervollständigt: Fass positioniert, Reifen (Torus) und Plattenstapel (3 zufällige Boxen) hinzugefügt. Eigene Orbit-Maussteuerung (Drag, Scroll) mit Auto-Rotation nach Inaktivität implementiert. Animationsloop läuft.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
