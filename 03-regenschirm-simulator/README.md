@@ -4,7 +4,7 @@ Ein kleines Skript, das Regentropfen auf einem ASCII-Schirm simuliert
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 10 von etwa 11
+Stand: fertig
 
 ## Ausprobieren
 
