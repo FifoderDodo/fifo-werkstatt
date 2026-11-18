@@ -14,8 +14,15 @@ def neuer_tag(daten: dict) -> dict:
         daten = {}
     gestern = daten.get("gestern", {}) or {}
     fehlschlaege = daten.get("fehlschlaege", {}) or {}
-    stimmung = daten.get("stimmung", 0)
-    wetter = daten.get("wetter", "unbekannt")
+    
+    # Stimmung robust parsen (Typ-Sicherheit + Clamping)
+    try:
+        stimmung = int(daten.get("stimmung", 0))
+    except (ValueError, TypeError):
+        stimmung = 0
+    stimmung = max(-100, min(100, stimmung))
+    
+    wetter = str(daten.get("wetter", "unbekannt")).lower()
 
     # Erlaubte Aktionen (Whitelist)
     ERLAUBT = {
@@ -44,6 +51,11 @@ def neuer_tag(daten: dict) -> dict:
             else:
                 plan.append({"aktion": "think", "text": f"Nachdenken über '{top_fehler}'"})
             notiz_teile.append(f"Top-Fehler: {top_fehler}.")
+        else:
+            # Unbekannter Fehler: notieren, generisch reagieren
+            notiz_teile.append(f"Unbekannter Top-Fehler: {top_fehler}.")
+            if len(plan) < 3:
+                plan.append({"aktion": "think", "text": f"Rätsel: {top_fehler} klären"})
 
     # 3. Gestern häufiges wiederholen oder fortsetzen (max 1 Slot, wenn Platz)
     if gestern and len(plan) < 3:
@@ -56,13 +68,15 @@ def neuer_tag(daten: dict) -> dict:
             else:
                 plan.append({"aktion": top_gestern, "text": f"Routine: {top_gestern}"})
             notiz_teile.append(f"Gestern oft: {top_gestern}.")
+        elif top_gestern not in ERLAUBT:
+            notiz_teile.append(f"Unbekannte Top-Aktion gestern: {top_gestern}.")
 
     # 4. Wetter-Reaktion (falls Platz)
     if len(plan) < 3:
-        if "regen" in wetter.lower() or "sturm" in wetter.lower():
+        if "regen" in wetter or "sturm" in wetter:
             plan.append({"aktion": "sitzen", "text": "Drinnen bleiben, Tee, Projekt"})
             notiz_teile.append("Wetter mies.")
-        elif "sonne" in wetter.lower() or "klar" in wetter.lower():
+        elif "sonne" in wetter or "klar" in wetter:
             plan.append({"aktion": "spazieren", "text": "Raus, Licht tanken, 20 Min."})
             notiz_teile.append("Wetter gut.")
 
@@ -116,3 +130,13 @@ if __name__ == "__main__":
     }
     print("\n--- Test 3 (Tiefstimmung) ---")
     print(json.dumps(neuer_tag(test_daten_3), ensure_ascii=False, indent=2))
+
+    # Test 4: Kaputte Typen (String-Stimmung, None-Wetter, unbekannte Aktionen)
+    test_daten_4 = {
+        "gestern": {"schuppen_ausmisten": 5, "think": 2},
+        "fehlschlaege": {"kaputt_machen": 3},
+        "stimmung": "sehr_schlecht",
+        "wetter": None
+    }
+    print("\n--- Test 4 (Robustheit) ---")
+    print(json.dumps(neuer_tag(test_daten_4), ensure_ascii=False, indent=2))
