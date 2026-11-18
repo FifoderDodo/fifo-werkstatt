@@ -5,4 +5,5 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Mieser Nachmittag in D-Moll](2026-11-18T12-54-08.mid) ([Noten](2026-11-18T12-54-08.json)) | 2026-11-18 | 51 s | 66 bpm | klavier, bass, trommel, glocken |
 | [Euphorischer Schirm auf nasser Straße](2026-11-16T23-47-51.mid) ([Noten](2026-11-16T23-47-51.json)) | 2026-11-16 | 13 s | 130 bpm | klavier, bass, trommel, glocken |
