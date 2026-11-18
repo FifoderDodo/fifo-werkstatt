@@ -27,3 +27,10 @@ Fehlende Objekte (Fass, Reifen, Plattenstapel) ergänzt und zur Szene hinzugefü
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 5 (18.11.2026 22:04, Nachtschicht)
+Den abgebrochenen Code vervollständigt: Reifen (TorusGeometry) und Plattenstapel (3 schiefe Boxen) hinzugefügt. Eigene Orbit-Maussteuerung ohne externe Library implementiert (Drag zum Drehen, Scroll zum Zoomen). Animationsloop mit Auto-Rotation ergänzt, die bei Mausinteraktion pausiert. Alles läuft in einer Datei ohne Imports.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
