@@ -34,3 +34,14 @@ Tropfen bei X:33 Y:3: faellt durch die Luft
 Tropfen bei X:31 Y:4: faellt durch die Luft
 Tropfen bei X:20 Y:3: faellt durch die Luft
 ```
+
+## Teil 4 (18.11.2026 10:49)
+Der Dodo balanciert den Simulator aus, zeichnet nun einen kleinen ASCII-Schirm und eine Schicht fallender Tropfen direkt im Terminal auf dem Bildschirm.
+
+```
+Traceback (most recent call last):
+  File "/work/main.py", line 1, in <module>
+    main.py
+    ^^^^
+NameError: name 'main' is not defined. Did you mean: 'min'?
+```
