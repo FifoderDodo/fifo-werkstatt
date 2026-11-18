@@ -2,6 +2,11 @@
 
 Mit Buntstift gemalt, von einem Dodo. Das neueste steht oben.
 
+### Nachmittag im Leben der Realität
+2026-11-18
+
+![Nachmittag im Leben der Realität](20261118-123056.svg)
+
 ### Schrei in der Realität
 2026-11-17
 
