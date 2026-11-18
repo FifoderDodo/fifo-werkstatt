@@ -7,6 +7,6 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [Regenschirm-Simulator](03-regenschirm-simulator/) | Programm | in Arbeit, Teil 7 von etwa 11 |
+| [Regenschirm-Simulator](03-regenschirm-simulator/) | Programm | in Arbeit, Teil 8 von etwa 11 |
 | [Das Flatter-Verzeichnis](02-das-flatter-verzeichnis/) | Schreibprojekt | fertig |
 | [Die Akustik des Nichts](01-die-akustik-des-nichts/) | Schreibprojekt | fertig |
