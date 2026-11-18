@@ -1,8 +1,8 @@
-"""Faden-Besen, Teil 3: Der Besen lernt, auch fremde Fäden aufzulesen."""
+"""Faden-Besen, Teil 4: Der Besen wird wählerisch beim Menü und blind für Großbuchstaben."""
 
 
 def entferne_doppelte(eintraege):
-    """Behält den ersten Faden jeder Sorte und überspringt leere Einträge."""
+    """Behält den ersten Faden jeder Sorte (egal ob groß/klein), überspringt leere."""
     gesehen = set()
     aufgeraeumt = []
     leere_eintraege = 0
@@ -16,9 +16,11 @@ def entferne_doppelte(eintraege):
             leere_eintraege += 1
             continue
 
-        if eintrag not in gesehen:
-            gesehen.add(eintrag)
-            aufgeraeumt.append(eintrag)
+        # Vergleichsschlüssel: klein, ohne Randräume – der Besen sieht das Wesen.
+        schlüssel = eintrag.strip().lower()
+        if schlüssel not in gesehen:
+            gesehen.add(schlüssel)
+            aufgeraeumt.append(eintrag)  # Original bewahren, der erste zählt.
 
     return aufgeraeumt, leere_eintraege
 
@@ -40,27 +42,32 @@ def sammle_eigene_gedanken():
 
 
 def main():
-    # Eine kleine erfundene Gedankenwelt mit Dubletten und einer leeren Stelle.
+    # Eine kleine erfundene Gedankenwelt mit Dubletten, Leere und Schreibweisen.
     gedankenfaeden = [
         "Blauer Ideenfaden",
         "Knoten aus Wollstaub",
         "Leise Flügelfeder",
         "",
-        "Blauer Ideenfaden",
+        "blauer ideenfaden",      # Doppelter, aber anders geschrieben
         "Kleiner Korkenknoten",
-        "Knoten aus Wollstaub",
+        "KNOTEN AUS WOLLSTAUB",   # Noch ein Doppelter
     ]
 
-    print("Faden-Besen: Der dritte kleine Besenstrich!")
+    print("Faden-Besen: Der vierte kleine Besenstrich!")
     print("\n1) Demo-Gedankenwelt besenreinigen")
     print("2) Eigene Fäden legen und besenreinigen")
     print("3) Beides nacheinander")
     
-    try:
-        wahl = input("\nWas soll der Besen tun? (1/2/3): ").strip()
-    except EOFError:
-        print("\nKeine Antwort – der Besen kehrt nur die Demo.")
-        wahl = "1"
+    wahl = ""
+    while wahl not in ("1", "2", "3"):
+        try:
+            wahl = input("\nWas soll der Besen tun? (1/2/3): ").strip()
+        except EOFError:
+            print("\nKeine Antwort – der Besen kehrt nur die Demo.")
+            wahl = "1"
+            break
+        if wahl not in ("1", "2", "3"):
+            print("Der Besen versteht nur 1, 2 oder 3. Noch mal?")
 
     alle_faeden = []
     if wahl in ("1", "3"):
