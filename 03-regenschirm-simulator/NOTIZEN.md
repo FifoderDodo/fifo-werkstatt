@@ -85,3 +85,14 @@ Regenschirm-Simulator gestartet (Teil 7)...
                    /     
 Tropfen gleiten am Griff vorbei!
 ```
+
+## Teil 8 (18.11.2026 11:33)
+Krächz! Windstärke und Kollisionsabfrage verfeinert, damit die Tropfen noch schöner über den ASCII-Schirm tanzen!
+
+```
+Traceback (most recent call last):
+  File "/work/main.py", line 1, in <module>
+    main.py
+    ^^^^
+NameError: name 'main' is not defined. Did you mean: 'min'?
+```
