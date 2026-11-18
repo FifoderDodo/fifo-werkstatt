@@ -2,7 +2,7 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
   <meta charset="UTF-8">
-  <title>Der nutzlose Schuppen – Teil 12</title>
+  <title>Der nutzlose Schuppen – Teil 13</title>
   <style>
     body { margin: 0; background: #2a2a4a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: monospace; }
     canvas { border: 2px solid #e94560; border-radius: 4px; box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <div id="info">Fifo der Dodo bastelt: Der nutzlose Schuppen – Teil 12</div>
+  <div id="info">Fifo der Dodo bastelt: Der nutzlose Schuppen – Teil 13</div>
   <script type="module">
     // Fifo der Dodo hier. Endspurt. Der Schuppen steht, das Gerümpel liegt. Noch ein paar Krümel, dann ist Feierabend.
 
@@ -162,119 +162,152 @@
     brett3.rotation.y = 0.5;
     scene.add(brett3);
 
-    // FASS – rostig, steht schief rum
+    // FASS – rostig, steht schief in der Ecke
     const fass = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.45, 0.5, 0.9, 8),
+      new THREE.CylinderGeometry(0.4, 0.35, 0.9, 8),
       matFass
     );
-    fass.position.set(-1.8, 0.45, -1.2);
+    fass.position.set(-1.8, 0.45, -0.8);
     fass.rotation.z = 0.15;
-    fass.rotation.x = -0.1;
     scene.add(fass);
 
-    // REIFEN – platt, liegt faul
+    // REIFEN – platt, liegt nur rum
     const reifen = new THREE.Mesh(
-      new THREE.TorusGeometry(0.35, 0.12, 6, 12),
+      new THREE.TorusGeometry(0.35, 0.12, 4, 12),
       matReifen
     );
-    reifen.position.set(1.8, 0.12, 1.3);
+    reifen.position.set(1.6, 0.12, 0.9);
     reifen.rotation.x = Math.PI / 2;
-    reifen.rotation.z = 0.3;
+    reifen.rotation.z = 0.2;
     scene.add(reifen);
 
-    // PLATTENSTAPEL – windschief gestapelt
-    const platteGeo = new THREE.BoxGeometry(1.5, 0.06, 1);
-    for (let i = 0; i < 5; i++) {
+    // PLATTENSTAPEL – drei Stück, krumm und schief
+    const platteGeo = new THREE.BoxGeometry(1.5, 0.06, 1.2);
+    for (let i = 0; i < 3; i++) {
       const platte = new THREE.Mesh(platteGeo, matPlatte);
-      platte.position.set(2.2, 0.3 + i * 0.07, -0.8);
-      platte.rotation.z = (Math.random() - 0.5) * 0.2;
-      platte.rotation.x = (Math.random() - 0.5) * 0.15;
+      platte.position.set(0.5 + i * 0.15, 0.2 + i * 0.07, -1.3 + i * 0.1);
+      platte.rotation.x = 0.05 - i * 0.02;
+      platte.rotation.z = -0.03 + i * 0.01;
       scene.add(platte);
     }
 
-    // BODEN – uneben, vertex-verschoben
-    const bodenGeo = new THREE.PlaneGeometry(12, 12, 30, 30);
+    // UNEBENER BODEN – Plane mit Vertex-Verschiebung
+    const bodenGeo = new THREE.PlaneGeometry(10, 10, 20, 20);
     const pos = bodenGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const z = pos.getZ(i);
-      const noise = Math.sin(x * 0.8) * Math.cos(z * 0.7) * 0.04 + Math.sin(x * 2.3 + z * 1.7) * 0.02;
-      pos.setY(i, noise);
+      // etwas Noise
+      pos.setY(i, Math.sin(x * 0.8) * Math.cos(z * 0.7) * 0.05 + (Math.random() - 0.5) * 0.03);
     }
     bodenGeo.computeVertexNormals();
     const boden = new THREE.Mesh(bodenGeo, matBoden);
     boden.rotation.x = -Math.PI / 2;
+    boden.position.y = -0.01; // leicht unter 0, damit keine Z-Fighting
     scene.add(boden);
 
-    // GRASHALME – zwölf Stück, klein und frech
-    const grasGeo = new THREE.ConeGeometry(0.02, 0.15, 3);
+    // GRASHALME – 12 Stück, zufällig verteilt, leicht animiert
+    const grasHalme = [];
+    const grasGeo = new THREE.ConeGeometry(0.04, 0.3, 3);
     for (let i = 0; i < 12; i++) {
       const halm = new THREE.Mesh(grasGeo, matGras);
       const angle = Math.random() * Math.PI * 2;
-      const radius = 2 + Math.random() * 4;
-      halm.position.set(Math.cos(angle) * radius, 0.02, Math.sin(angle) * radius);
-      halm.rotation.x = (Math.random() - 0.5) * 0.4;
-      halm.rotation.z = (Math.random() - 0.5) * 0.4;
-      halm.scale.setScalar(0.7 + Math.random() * 0.6);
+      const radius = 2.5 + Math.random() * 2.5;
+      halm.position.set(Math.cos(angle) * radius, 0.15, Math.sin(angle) * radius);
+      halm.rotation.x = (Math.random() - 0.5) * 0.3;
+      halm.rotation.z = (Math.random() - 0.5) * 0.3;
+      halm.userData = { baseRotX: halm.rotation.x, baseRotZ: halm.rotation.z, phase: Math.random() * Math.PI * 2 };
       scene.add(halm);
+      grasHalme.push(halm);
     }
 
-    // MAUSSTEUERUNG – drehen, zoomen, schieben
-    let isDragging = false;
-    let lastX = 0, lastY = 0;
-    let targetRotY = 0, targetRotX = 0;
-    let currentRotY = 0, currentRotX = 0;
-    let distance = 8.5;
-    const minDist = 4, maxDist = 18;
+    // MAUSSTEUERUNG – Drehen, Zoomen, Schieben
+    let target = new THREE.Vector3(0, 1.5, 0);
+    let distance = 8;
+    let azimuth = Math.PI / 4;
+    let polar = Math.PI / 3;
+    let isMouseDown = false;
+    let lastMouse = { x: 0, y: 0 };
 
-    canvas.addEventListener('mousedown', e => {
-      isDragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
+    function updateCamera() {
+      camera.position.set(
+        target.x + distance * Math.sin(polar) * Math.cos(azimuth),
+        target.y + distance * Math.cos(polar),
+        target.z + distance * Math.sin(polar) * Math.sin(azimuth)
+      );
+      camera.lookAt(target);
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isMouseDown = true;
+      lastMouse = { x: e.clientX, y: e.clientY };
     });
-    window.addEventListener('mouseup', () => isDragging = false);
-    window.addEventListener('mousemove', e => {
-      if (!isDragging) return;
-      const dx = e.clientX - lastX;
-      const dy = e.clientY - lastY;
+
+    window.addEventListener('mouseup', () => {
+      isMouseDown = false;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isMouseDown) return;
+      const dx = e.clientX - lastMouse.x;
+      const dy = e.clientY - lastMouse.y;
       if (e.shiftKey) {
-        // schieben
-        const right = new THREE.Vector3();
-        camera.getWorldDirection(right);
-        right.cross(camera.up).normalize();
+        // Schieben
+        const right = new THREE.Vector3().crossVectors(camera.up, camera.getDirection(new THREE.Vector3())).normalize();
         const up = camera.up.clone();
-        camera.position.addScaledVector(right, -dx * 0.01 * distance);
-        camera.position.addScaledVector(up, dy * 0.01 * distance);
+        target.addScaledVector(right, -dx * 0.01 * distance);
+        target.addScaledVector(up, dy * 0.01 * distance);
       } else {
-        // drehen
-        targetRotY -= dx * 0.005;
-        targetRotX = THREE.MathUtils.clamp(targetRotX - dy * 0.005, -Math.PI / 2 + 0.1, Math.PI / 2 - 0.1);
+        // Drehen
+        azimuth -= dx * 0.005;
+        polar = THREE.MathUtils.clamp(polar - dy * 0.005, 0.1, Math.PI - 0.1);
       }
-      lastX = e.clientX;
-      lastY = e.clientY;
+      lastMouse = { x: e.clientX, y: e.clientY };
     });
-    canvas.addEventListener('wheel', e => {
+
+    canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
-      distance = THREE.MathUtils.clamp(distance + e.deltaY * 0.01, minDist, maxDist);
+      distance = THREE.MathUtils.clamp(distance + e.deltaY * 0.01, 3, 20);
     }, { passive: false });
 
-    // ANIMATIONSLOOP
+    // TASTATUR – Pfeile für Drehen, Leertaste für Reset
+    window.addEventListener('keydown', (e) => {
+      switch (e.code) {
+        case 'ArrowLeft': azimuth += 0.05; break;
+        case 'ArrowRight': azimuth -= 0.05; break;
+        case 'ArrowUp': polar = THREE.MathUtils.clamp(polar - 0.05, 0.1, Math.PI - 0.1); break;
+        case 'ArrowDown': polar = THREE.MathUtils.clamp(polar + 0.05, 0.1, Math.PI - 0.1); break;
+        case 'Space':
+          azimuth = Math.PI / 4;
+          polar = Math.PI / 3;
+          distance = 8;
+          target.set(0, 1.5, 0);
+          break;
+      }
+    });
+
+    // ANIMATIONSLOOP – sanfte Kameranachführung + Gras schwanken
+    const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
 
-      // sanftes Nachführen der Rotation
-      currentRotY += (targetRotY - currentRotY) * 0.08;
-      currentRotX += (targetRotX - currentRotX) * 0.08;
+      // Kamera lerpt zum Ziel (wenn per Maus bewegt)
+      camera.position.lerp(
+        new THREE.Vector3(
+          target.x + distance * Math.sin(polar) * Math.cos(azimuth),
+          target.y + distance * Math.cos(polar),
+          target.z + distance * Math.sin(polar) * Math.sin(azimuth)
+        ),
+        0.1
+      );
+      camera.lookAt(target.lerp(target, 0.1)); // target bleibt, aber für Sanftheit
 
-      // Kamera um Zentrum kreisen lassen
-      const center = new THREE.Vector3(0, 1.5, 0);
-      camera.position.x = center.x + distance * Math.sin(currentRotY) * Math.cos(currentRotX);
-      camera.position.y = center.y + distance * Math.sin(currentRotX);
-      camera.position.z = center.z + distance * Math.cos(currentRotY) * Math.cos(currentRotX);
-      camera.lookAt(center);
-
-      // Rohr ganz leise wackeln
-      rohr.rotation.y += 0.002;
+      // Gras schwanken lassen
+      grasHalme.forEach((halm, i) => {
+        halm.rotation.x = halm.userData.baseRotX + Math.sin(t * 1.2 + halm.userData.phase) * 0.08;
+        halm.rotation.z = halm.userData.baseRotZ + Math.cos(t * 0.9 + halm.userData.phase) * 0.05;
+      });
 
       renderer.render(scene, camera);
     }
