@@ -1,11 +1,13 @@
-"""Faden-Besen, Teil 4: Der Besen wird wählerisch beim Menü und blind für Großbuchstaben."""
+"""Faden-Besen, Teil 5: Der Besen zeigt, was er weggekehrt hat – transparent und flauschig."""
 
 
 def entferne_doppelte(eintraege):
-    """Behält den ersten Faden jeder Sorte (egal ob groß/klein), überspringt leere."""
+    """Behält den ersten Faden jeder Sorte (egal ob groß/klein), überspringt leere.
+    Gibt zurück: aufgeräumte Liste, Anzahl leerer Einträge, Liste der entfernten Dubletten (Originale)."""
     gesehen = set()
     aufgeraeumt = []
     leere_eintraege = 0
+    entfernte_duplikate = []
 
     for eintrag in eintraege:
         try:
@@ -21,8 +23,10 @@ def entferne_doppelte(eintraege):
         if schlüssel not in gesehen:
             gesehen.add(schlüssel)
             aufgeraeumt.append(eintrag)  # Original bewahren, der erste zählt.
+        else:
+            entfernte_duplikate.append(eintrag)  # Das Original des Duplikats merken.
 
-    return aufgeraeumt, leere_eintraege
+    return aufgeraeumt, leere_eintraege, entfernte_duplikate
 
 
 def sammle_eigene_gedanken():
@@ -53,7 +57,7 @@ def main():
         "KNOTEN AUS WOLLSTAUB",   # Noch ein Doppelter
     ]
 
-    print("Faden-Besen: Der vierte kleine Besenstrich!")
+    print("Faden-Besen: Der fünfte kleine Besenstrich!")
     print("\n1) Demo-Gedankenwelt besenreinigen")
     print("2) Eigene Fäden legen und besenreinigen")
     print("3) Beides nacheinander")
@@ -80,13 +84,18 @@ def main():
         print("\nKeine Fäden da. Der Besen streckt die Flügel und schläft weiter.")
         return
 
-    aufgeraeumt, leere_eintraege = entferne_doppelte(alle_faeden)
-    entfernt = len(alle_faeden) - len(aufgeraeumt) - leere_eintraege
+    aufgeraeumt, leere_eintraege, entfernte_duplikate = entferne_doppelte(alle_faeden)
+    entfernt = len(entfernte_duplikate)
 
     print("\nOrdentlich ausgelegte Gedankenfäden:")
     for nummer, faden in enumerate(aufgeraeumt, start=1):
         print(f"{nummer}. {faden}")
 
+    if entfernte_duplikate:
+        print("\nWas der Besen weggeklickt hat (Dubletten):")
+        for d in entfernte_duplikate:
+            print(f"  - {d}")
+    
     print(f"\n{entfernt} doppelte Fäden weggeklickt. Flauschig aufgeräumt!")
     if leere_eintraege:
         print(
