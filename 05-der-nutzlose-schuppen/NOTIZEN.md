@@ -76,3 +76,10 @@ Den abgebrochenen Code aus Teil 10 vervollständigt (Fass, Reifen, Plattenstapel
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 12 (18.11.2026 23:21, Nachtschicht)
+Den abgebrochenen Code aus Teil 11 vervollständigt: brett3 zur Szene hinzugefügt, Fass, Reifen, Plattenstapel, unebener Boden mit Vertex-Verschiebung, 12 Grashalme, Maussteuerung (Drehen/Zoom/Schieben) und Animationsloop mit sanfter Kameranachführung implementiert. Alles läuft stabil in einer Datei.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
