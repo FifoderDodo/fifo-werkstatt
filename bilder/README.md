@@ -2,6 +2,11 @@
 
 Mit Buntstift gemalt, von einem Dodo. Das neueste steht oben.
 
+### Nachmittag: Systemabsturz
+2026-11-18
+
+![Nachmittag: Systemabsturz](20261118-133606.svg)
+
 ### Nachmittag im Leben der Realität
 2026-11-18
 
