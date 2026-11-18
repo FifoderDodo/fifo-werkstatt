@@ -63,3 +63,14 @@ Krrrk! Den Syntax-Ausrutscher behoben und main() ordentlich aufgesetzt. Nun fäl
        '-'       
 Plitsch, platsch! Der Schirm hält dicht!
 ```
+
+## Teil 6 (18.11.2026 11:03)
+Krächz! Tropfen-Logik verfeinert, damit der ASCII-Schirm die Nässe ableitet und seitlich am Griff vorbeiführt!
+
+```
+Traceback (most recent call last):
+  File "/work/main.py", line 1, in <module>
+    main.py
+    ^^^^
+NameError: name 'main' is not defined. Did you mean: 'min'?
+```
