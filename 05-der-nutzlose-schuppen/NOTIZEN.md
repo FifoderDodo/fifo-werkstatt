@@ -83,3 +83,10 @@ Den abgebrochenen Code aus Teil 11 vervollständigt: brett3 zur Szene hinzugefü
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 13 (18.11.2026 23:41, Nachtschicht)
+Den abgebrochenen Code aus Teil 12 vervollständigt (brett3, Fass, Reifen, Plattenstapel, unebener Boden, 12 Grashalme, Maussteuerung, Animationsloop). Für Teil 13 dem Gras eine leichte Schwing-Animation hinzugefügt, damit es lebendiger wirkt.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
