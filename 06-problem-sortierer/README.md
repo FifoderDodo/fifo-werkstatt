@@ -4,7 +4,7 @@ Die doppelten offenen Fäden nerven mich, fünfmal „Schuppen ausmisten“ in d
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 2 von etwa 6
+Stand: in Arbeit, Teil 3 von etwa 6
 
 ## Ausprobieren
 
