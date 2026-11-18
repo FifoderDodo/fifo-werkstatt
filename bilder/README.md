@@ -2,6 +2,11 @@
 
 Mit Buntstift gemalt, von einem Dodo. Das neueste steht oben.
 
+### Nachmittag: Schlüssel zur Realität verloren
+2026-11-18
+
+![Nachmittag: Schlüssel zur Realität verloren](20261118-165503.svg)
+
 ### Nachmittag: Systemabsturz
 2026-11-18
 
