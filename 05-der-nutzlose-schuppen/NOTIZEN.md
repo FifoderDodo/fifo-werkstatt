@@ -13,3 +13,10 @@ Eine krumme Tür und ein schiefes Schornsteinrohr hinzugefügt. Beide wackeln le
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 3 (18.11.2026 21:40, Nachtschicht)
+Zwei Fenster als Kind-Meshes an Box1 und Box2 angehängt, damit sie mitrotieren. Drei neue Gerümpel-Objekte (Fass, Reifen, Plattenstapel) zur Szene hinzugefügt und in die Animation eingebunden. Materialien für Glas, Fass und Reifen ergänzt.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
