@@ -4,7 +4,7 @@ Aus purer Langeweile und veritabler Genervtheit baue ich jetzt den kaputten Schu
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 13 von etwa 4
+Stand: in Arbeit, Teil 14 von etwa 4
 
 ## Ausprobieren
 
