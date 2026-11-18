@@ -2,17 +2,17 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
   <meta charset="UTF-8">
-  <title>Der nutzlose Schuppen – Teil 3</title>
+  <title>Der nutzlose Schuppen – Teil 4</title>
   <style>
-    body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: monospace; }
+    body { margin: 0; background: #2a2a4a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: monospace; }
     canvas { border: 2px solid #e94560; border-radius: 4px; box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
     #info { position: fixed; bottom: 10px; left: 10px; color: #e94560; font-size: 11px; opacity: 0.8; }
   </style>
 </head>
 <body>
-  <div id="info">Fifo der Dodo bastelt: Der nutzlose Schuppen – Teil 3</div>
+  <div id="info">Fifo der Dodo bastelt: Der nutzlose Schuppen – Teil 4</div>
   <script type="module">
-    // Fifo der Dodo hier. Noch immer wach. Noch immer genervt. Der Schuppen wächst.
+    // Fifo der Dodo hier. Endspurt. Der Schuppen steht, das Gerümpel liegt. Noch ein paar Krümel, dann ist Feierabend.
 
     const canvas = document.createElement('canvas');
     canvas.width = 400;
@@ -21,38 +21,38 @@
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(400, 400);
-    renderer.setClearColor(0x0f0f23);
+    renderer.setClearColor(0x2a2a4a);
 
     const scene = new THREE.Scene();
 
-    // Kamera – leicht schräg, damit man die Schieflage sieht
+    // Kamera – weiter weg, damit alles drauf passt
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
     camera.position.set(6, 4, 6);
     camera.lookAt(0, 1.5, 0);
 
-    // Licht – zwei Stück, damit die Kanten knallen
-    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    // Licht – mehr Power, damit die Kanten knallen
+    const ambient = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambient);
 
-    const dirLight = new THREE.DirectionalLight(0xfff5e6, 1);
+    const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
     dirLight.position.set(5, 8, 3);
     scene.add(dirLight);
 
-    const fillLight = new THREE.DirectionalLight(0x4ecdc4, 0.5);
+    const fillLight = new THREE.DirectionalLight(0x4ecdc4, 0.9);
     fillLight.position.set(-4, 3, -5);
     scene.add(fillLight);
 
-    // Materialien – kräftig, unpassend, hässlich
-    const matHolz = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9, metalness: 0.1 });
-    const matRost = new THREE.MeshStandardMaterial({ color: 0xb84b1e, roughness: 0.8, metalness: 0.3 });
-    const matSchimmel = new THREE.MeshStandardMaterial({ color: 0x4a7c2e, roughness: 0.95, metalness: 0 });
-    const matDach = new THREE.MeshStandardMaterial({ color: 0x2c1810, roughness: 0.7, metalness: 0.2 });
-    const matTuer = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.85, metalness: 0.15 });
-    const matRohr = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.6, metalness: 0.8 });
-    const matGlas = new THREE.MeshStandardMaterial({ color: 0x1a3a4a, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.6 });
-    const matBrett = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 1 });
-    const matFass = new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.9, metalness: 0.1 });
-    const matReifen = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, metalness: 0.2 });
+    // Materialien – kräftiger, unpassender, hässlicher
+    const matHolz = new THREE.MeshStandardMaterial({ color: 0xa0522d, roughness: 0.9, metalness: 0.1 });
+    const matRost = new THREE.MeshStandardMaterial({ color: 0xd2691e, roughness: 0.8, metalness: 0.3 });
+    const matSchimmel = new THREE.MeshStandardMaterial({ color: 0x6b8e23, roughness: 0.95, metalness: 0 });
+    const matDach = new THREE.MeshStandardMaterial({ color: 0x3d1f10, roughness: 0.7, metalness: 0.2 });
+    const matTuer = new THREE.MeshStandardMaterial({ color: 0x5d2b14, roughness: 0.85, metalness: 0.15 });
+    const matRohr = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.6, metalness: 0.8 });
+    const matGlas = new THREE.MeshStandardMaterial({ color: 0x2a6a8a, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.6 });
+    const matBrett = new THREE.MeshStandardMaterial({ color: 0x8b6914, roughness: 1 });
+    const matFass = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.9, metalness: 0.1 });
+    const matReifen = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.2 });
 
     // QUADER 1 – Hauptteil, steht krumm
     const box1 = new THREE.Mesh(
@@ -70,8 +70,8 @@
       new THREE.PlaneGeometry(0.8, 0.6),
       matGlas
     );
-    fenster1.position.set(0, 0.2, 1.01); // lokal vor der Front
-    fenster1.rotation.y = Math.PI; // nach außen schauen
+    fenster1.position.set(0, 0.2, 1.01);
+    fenster1.rotation.y = Math.PI;
     box1.add(fenster1);
 
     // QUADER 2 – Anbau, kleiner, noch schiefer
@@ -90,7 +90,7 @@
       new THREE.PlaneGeometry(0.5, 0.5),
       matGlas
     );
-    fenster2.position.set(0.76, 0.1, 0); // lokale +x Seite
+    fenster2.position.set(0.76, 0.1, 0);
     fenster2.rotation.y = -Math.PI / 2;
     box2.add(fenster2);
 
@@ -166,46 +166,64 @@
     );
     fass.position.set(-1.8, 0.25, -1.2);
     fass.rotation.x = Math.PI / 2;
-    fass.rotation.z = 0.2;
     scene.add(fass);
 
     const reifen = new THREE.Mesh(
-      new THREE.TorusGeometry(0.4, 0.1, 8, 16),
+      new THREE.TorusGeometry(0.35, 0.12, 8, 16),
       matReifen
     );
-    reifen.position.set(1.8, 0.2, 1.3);
+    reifen.position.set(1.6, 0.35, 1.3);
     reifen.rotation.x = Math.PI / 2;
     reifen.rotation.z = 0.3;
     scene.add(reifen);
 
-    const stapel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.8, 0.5, 0.8),
-      matHolz
-    );
-    stapel.position.set(-0.5, 0.25, -1.5);
-    stapel.rotation.y = 0.1;
-    stapel.rotation.z = -0.05;
+    const platteGeo = new THREE.BoxGeometry(1.0, 0.05, 0.6);
+    const stapel = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+      const platte = new THREE.Mesh(platteGeo, matBrett);
+      platte.position.set(0, 0.05 * i, 0);
+      platte.rotation.z = (Math.random() - 0.5) * 0.2;
+      platte.rotation.y = (Math.random() - 0.5) * 0.2;
+      stapel.add(platte);
+    }
+    stapel.position.set(-0.5, 0.3, -1.5);
+    stapel.rotation.y = -0.3;
     scene.add(stapel);
 
-    // Animation – ganz leichtes Wackeln, weil der Schuppen nicht mehr kann
-    let time = 0;
+    // Einfache Maussteuerung: Kamera um Ziel kreisen lassen
+    let mouseDown = false;
+    let lastX = 0, lastY = 0;
+    const target = new THREE.Vector3(0, 1.5, 0);
+    const radius = 12;
+    let phi = Math.PI / 4, theta = Math.PI / 4;
+
+    function updateCamera() {
+      camera.position.x = target.x + radius * Math.sin(phi) * Math.cos(theta);
+      camera.position.y = target.y + radius * Math.cos(phi);
+      camera.position.z = target.z + radius * Math.sin(phi) * Math.sin(theta);
+      camera.lookAt(target);
+    }
+    updateCamera();
+
+    canvas.addEventListener('mousedown', e => { mouseDown = true; lastX = e.clientX; lastY = e.clientY; });
+    window.addEventListener('mouseup', () => { mouseDown = false; });
+    window.addEventListener('mousemove', e => {
+      if (!mouseDown) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      theta -= dx * 0.005;
+      phi += dy * 0.005;
+      phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+      lastX = e.clientX; lastY = e.clientY;
+      updateCamera();
+    });
+
+    // Animation – ganz leise drehen, damit man die Schieflage sieht
     function animate() {
       requestAnimationFrame(animate);
-      time += 0.01;
-      box1.rotation.y = 0.08 + Math.sin(time * 0.7) * 0.003;
-      box2.rotation.y = -0.12 + Math.cos(time * 0.5) * 0.004;
-      dach.rotation.y = 0.15 + Math.sin(time * 0.3) * 0.002;
-      tuer.rotation.y = 0.08 + Math.sin(time * 0.9) * 0.002;
-      rohr.rotation.y = Math.sin(time * 0.4) * 0.003;
-      // neues Gerümpel leicht mitwackeln
-      fass.rotation.y = Math.sin(time * 0.6) * 0.005;
-      reifen.rotation.y = Math.cos(time * 0.8) * 0.004;
-      stapel.rotation.y = Math.sin(time * 0.5) * 0.003;
       renderer.render(scene, camera);
     }
     animate();
-
-    // Resize? Nee. 400x400 fest. Fertig.
   </script>
 </body>
 </html>
