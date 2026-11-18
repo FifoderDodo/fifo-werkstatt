@@ -107,3 +107,14 @@ Traceback (most recent call last):
     ^^^^
 NameError: name 'main' is not defined. Did you mean: 'min'?
 ```
+
+## Teil 10 (18.11.2026 11:56)
+Kollisionsabfrage für Tropfen auf dem ASCII-Schirm finalisiert. Dodo-Pinguin-Schnabel-Logik eingebaut.
+
+```
+Traceback (most recent call last):
+  File "/work/main.py", line 1, in <module>
+    main.py
+    ^^^^
+NameError: name 'main' is not defined. Did you mean: 'min'?
+```
