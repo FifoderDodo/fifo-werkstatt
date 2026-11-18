@@ -69,3 +69,10 @@ Den abgebrochenen Code vervollständigt: Fass positioniert, Reifen (Torus) und P
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 11 (18.11.2026 23:11, Nachtschicht)
+Den abgebrochenen Code aus Teil 10 vervollständigt (Fass, Reifen, Plattenstapel, Maussteuerung, Animationsloop). Bodenplane mit Vertex-Verschiebung und zwölf Grashalme als kleine Details ergänzt. Szene läuft stabil und ist interaktiv dreh-/zoomper Maus.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
