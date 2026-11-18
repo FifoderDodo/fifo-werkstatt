@@ -20,3 +20,10 @@ Zwei Fenster als Kind-Meshes an Box1 und Box2 angehängt, damit sie mitrotieren.
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 4 (18.11.2026 21:48, Nachtschicht)
+Fehlende Objekte (Fass, Reifen, Plattenstapel) ergänzt und zur Szene hinzugefügt. Maussteuerung (Orbit um Ziel) implementiert. Animationsloop vervollständigt. Szene läuft nun rund. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
