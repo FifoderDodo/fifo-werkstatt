@@ -41,3 +41,10 @@ Den abgebrochenen Code vervollständigt: Fass positioniert, Reifen (TorusGeometr
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 7 (18.11.2026 22:06, Nachtschicht)
+Code vervollständigt: Fass positioniert, Reifen (TorusGeometry) und Plattenstapel (3 zufällig geneigte Boxen) hinzugefügt. Eigene Orbit-Maussteuerung implementiert (Drag zum Drehen, Scroll zum Zoomen, Auto-Rotation pausiert bei Interaktion). Animationsloop läuft sauber.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
