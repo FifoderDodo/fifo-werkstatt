@@ -28,31 +28,27 @@ def neuer_tag(daten: dict) -> dict:
     plan = []
     notiz_teile = []
 
-    # 1. Stimmung prüfen: Wenn mies, erst mal Basis versorgen
+    # 1. Stimmung prüfen: Wenn mies, erst mal Basis versorgen (nur 1 Slot!)
     if stimmung < -30:
-        plan.append({"aktion": "drink", "text": "Wasser trinken, Kopf klar kriegen"})
-        plan.append({"aktion": "eat", "text": "Was Essbares suchen, nicht verhungern"})
+        plan.append({"aktion": "drink", "text": "Wasser trinken, Basis checken"})
         notiz_teile.append("Stimmung tief. Basis first.")
     elif stimmung > 70:
         notiz_teile.append("Guter Start. Nutzen.")
 
     # 2. Fehlschläge analysieren: häufigste -> Gegenmaßnahme
     if fehlschlaege:
-        # Aktion mit höchster Fehlschlagzahl
         top_fehler = max(fehlschlaege.items(), key=lambda x: x[1])[0]
         if top_fehler in ERLAUBT:
-            # Einfache Heuristik: bei Fehlschlag "nachsehen" oder "think"
             if top_fehler in {"schrott_suchen", "aufheben", "verkaufen", "einlagern"}:
                 plan.append({"aktion": "nachsehen", "text": f"Checken, warum '{top_fehler}' schiefging"})
             else:
                 plan.append({"aktion": "think", "text": f"Nachdenken über '{top_fehler}'"})
             notiz_teile.append(f"Top-Fehler: {top_fehler}.")
 
-    # 3. Gestern häufiges wiederholen oder fortsetzen (max 1 Slot)
+    # 3. Gestern häufiges wiederholen oder fortsetzen (max 1 Slot, wenn Platz)
     if gestern and len(plan) < 3:
         top_gestern = max(gestern.items(), key=lambda x: x[1])[0]
         if top_gestern in ERLAUBT and top_gestern not in [p["aktion"] for p in plan]:
-            # Nicht stur wiederholen, aber dranbleiben
             if top_gestern == "am_projekt_arbeiten":
                 plan.append({"aktion": "am_projekt_arbeiten", "text": "Projekt weitertreiben, ein Schritt"})
             elif top_gestern in {"malen", "komponieren"}:
@@ -89,12 +85,34 @@ def neuer_tag(daten: dict) -> dict:
 
 # Kleiner Selbsttest beim direkten Aufruf
 if __name__ == "__main__":
-    test_daten = {
+    import json
+    
+    # Test 1: Normaler Tag mit Daten
+    test_daten_1 = {
         "gestern": {"am_projekt_arbeiten": 3, "schrott_suchen": 2, "spazieren": 1},
         "fehlschlaege": {"schrott_suchen": 2, "verkaufen": 1},
         "stimmung": 15,
         "wetter": "sonnig"
     }
-    ergebnis = neuer_tag(test_daten)
-    import json
-    print(json.dumps(ergebnis, ensure_ascii=False, indent=2))
+    print("--- Test 1 ---")
+    print(json.dumps(neuer_tag(test_daten_1), ensure_ascii=False, indent=2))
+
+    # Test 2: Leere Daten (Randfall)
+    test_daten_2 = {
+        "gestern": {},
+        "fehlschlaege": {},
+        "stimmung": 30,
+        "wetter": ""
+    }
+    print("\n--- Test 2 ---")
+    print(json.dumps(neuer_tag(test_daten_2), ensure_ascii=False, indent=2))
+
+    # Test 3: Schlechte Stimmung (Prüfen ob nur 1 Basis-Aktion kommt)
+    test_daten_3 = {
+        "gestern": {"think": 5},
+        "fehlschlaege": {},
+        "stimmung": -50,
+        "wetter": "regen"
+    }
+    print("\n--- Test 3 (Tiefstimmung) ---")
+    print(json.dumps(neuer_tag(test_daten_3), ensure_ascii=False, indent=2))
