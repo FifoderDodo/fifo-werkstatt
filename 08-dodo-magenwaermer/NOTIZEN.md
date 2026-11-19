@@ -63,3 +63,54 @@ Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
 
 Simulation beendet. Fifo nickt zufrieden.
 ```
+
+## Teil 3 (19.11.2026 22:12)
+Hinzugefügt: ASCII-Dodo mit wechselnden Gesichtern je nach Hungerlevel, Terminal-Beep (\a) bei Alarm, und kleine Statistik am Spielende (Runden, gefütterte Menge, Alarm-Anzahl).
+
+```
+ Magenstand: 85%
+  🦤  (★_★)  Glücklich!
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -5% Sättigung.
+
+Runde  2 | [92m[################....][0m 80% | Magenstand: 80%
+  🦤  (★_★)  Glücklich!
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -13% Sättigung.
+
+Runde  3 | [92m[#############.......][0m 67% | Magenstand: 67%
+  🦤  (^_^)  Satt!
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -5% Sättigung.
+
+Runde  4 | [92m[############........][0m 62% | Magenstand: 62%
+  🦤  (^_^)  Satt!
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -11% Sättigung.
+
+Runde  5 | [92m[##########..........][0m 51% | Magenstand: 51%
+  🦤  (^_^)  Satt!
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -8% Sättigung.
+
+Runde  6 | [92m[########............][0m 43% | Magenstand: 43%
+  🦤  (o_o)  Mhh...
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -10% Sättigung.
+
+Runde  7 | [92m[######..............][0m 33% | Magenstand: 33%
+  🦤  (o_o)  Mhh...
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -6% Sättigung.
+
+Runde  8 | [92m[#####...............][0m 27% | Magenstand: 27%
+  🦤  (o_o)  Mhh...
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -14% Sättigung.
+
+Runde  9 | [91m[##..................][0m 13% | 🚨 ALARM: Magenstand: 13%
+  🦤  (>_<)  Knurr!
+   >>> Der Magen knurrt laut! Füttern nicht vergessen. <<<
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -14% Sättigung.
+
+   ☠️ Der Magen ist ganz leer. Fifo wird ohnmächtig... Spielende.
+
+--- Fifos Tagesbilanz ---
+Runden überlebt:   10
+Gesamt gefüttert:  0%
+Alarm-Auslöser:    1
+
+Simulation beendet. Fifo nickt zufrieden.
+```
