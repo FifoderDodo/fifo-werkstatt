@@ -24,73 +24,91 @@ def neuer_tag(daten: dict) -> dict:
     
     wetter = str(daten.get("wetter", "unbekannt")).lower()
 
-    # Erlaubte Aktionen (Whitelist)
+    # Erlaubte Aktionen (Whitelist) - Schuppen ausmisten endlich offiziell
     ERLAUBT = {
         "think", "eat", "drink", "walk_to", "sitzen", "spazieren",
         "schrott_suchen", "aufheben", "verkaufen", "einlagern",
         "malen", "komponieren", "read_news", "muenze_werfen",
-        "nachsehen", "am_projekt_arbeiten"
+        "nachsehen", "am_projekt_arbeiten", "schuppen_ausmisten"
     }
+
+    # Physische Aktionen, die 'nachsehen' als Reparatur brauchen
+    PHYSISCH = {"schrott_suchen", "aufheben", "verkaufen", "einlagern", "schuppen_ausmisten"}
 
     plan = []
     notiz_teile = []
 
+    # Helper: Fügt Aktion hinzu, wenn Platz und nicht schon drin
+    def add_aktion(aktion: str, text: str, notiz: str = "") -> bool:
+        if len(plan) >= 3:
+            return False
+        if aktion not in ERLAUBT:
+            return False
+        if any(p["aktion"] == aktion for p in plan):
+            return False
+        plan.append({"aktion": aktion, "text": text})
+        if notiz:
+            notiz_teile.append(notiz)
+        return True
+
     # 1. Stimmung prüfen: Wenn mies, erst mal Basis versorgen (nur 1 Slot!)
     if stimmung < -30:
-        plan.append({"aktion": "drink", "text": "Wasser trinken, Basis checken"})
-        notiz_teile.append("Stimmung tief. Basis first.")
+        add_aktion("drink", "Wasser trinken, Basis checken", "Stimmung tief. Basis first.")
     elif stimmung > 70:
         notiz_teile.append("Guter Start. Nutzen.")
 
-    # 2. Fehlschläge analysieren: häufigste -> Gegenmaßnahme
-    if fehlschlaege:
-        top_fehler = max(fehlschlaege.items(), key=lambda x: x[1])[0]
-        if top_fehler in ERLAUBT:
-            if top_fehler in {"schrott_suchen", "aufheben", "verkaufen", "einlagern"}:
-                plan.append({"aktion": "nachsehen", "text": f"Checken, warum '{top_fehler}' schiefging"})
+    # 2. Fehlschläge analysieren: Top 2 häufigste -> Gegenmaßnahme (reparieren first!)
+    if fehlschlaege and len(plan) < 3:
+        # Sortiert absteigend nach Anzahl
+        sortiert_fehler = sorted(fehlschlaege.items(), key=lambda x: x[1], reverse=True)
+        for fehler_aktion, anzahl in sortiert_fehler[:2]:  # Max top 2 Fehler ansehen
+            if len(plan) >= 3:
+                break
+            if fehler_aktion in ERLAUBT:
+                if fehler_aktion in PHYSISCH:
+                    add_aktion("nachsehen", f"Checken, warum '{fehler_aktion}' ({anzahl}x) schiefging", f"Reparatur: {fehler_aktion} ({anzahl}x).")
+                else:
+                    add_aktion("think", f"Nachdenken über '{fehler_aktion}' ({anzahl}x)", f"Top-Fehler: {fehler_aktion} ({anzahl}x).")
             else:
-                plan.append({"aktion": "think", "text": f"Nachdenken über '{top_fehler}'"})
-            notiz_teile.append(f"Top-Fehler: {top_fehler}.")
-        else:
-            # Unbekannter Fehler: notieren, generisch reagieren
-            notiz_teile.append(f"Unbekannter Top-Fehler: {top_fehler}.")
-            if len(plan) < 3:
-                plan.append({"aktion": "think", "text": f"Rätsel: {top_fehler} klären"})
+                notiz_teile.append(f"Unbekannter Fehler: {fehler_aktion} ({anzahl}x).")
+                if len(plan) < 3:
+                    add_aktion("think", f"Rätsel: {fehler_aktion} klären", f"Unbekannt: {fehler_aktion}.")
 
-    # 3. Gestern häufiges wiederholen oder fortsetzen (max 1 Slot, wenn Platz)
+    # 3. Gestern häufiges wiederholen oder fortsetzen (Top 2, wenn Platz)
     if gestern and len(plan) < 3:
-        top_gestern = max(gestern.items(), key=lambda x: x[1])[0]
-        if top_gestern in ERLAUBT and top_gestern not in [p["aktion"] for p in plan]:
-            if top_gestern == "am_projekt_arbeiten":
-                plan.append({"aktion": "am_projekt_arbeiten", "text": "Projekt weitertreiben, ein Schritt"})
-            elif top_gestern in {"malen", "komponieren"}:
-                plan.append({"aktion": top_gestern, "text": f"Kreativ weitermachen: {top_gestern}"})
-            else:
-                plan.append({"aktion": top_gestern, "text": f"Routine: {top_gestern}"})
-            notiz_teile.append(f"Gestern oft: {top_gestern}.")
-        elif top_gestern not in ERLAUBT:
-            notiz_teile.append(f"Unbekannte Top-Aktion gestern: {top_gestern}.")
+        sortiert_gestern = sorted(gestern.items(), key=lambda x: x[1], reverse=True)
+        for aktion, anzahl in sortiert_gestern[:2]:
+            if len(plan) >= 3:
+                break
+            if aktion in ERLAUBT and not any(p["aktion"] == aktion for p in plan):
+                if aktion == "am_projekt_arbeiten":
+                    add_aktion(aktion, "Projekt weitertreiben, ein Schritt", f"Gestern oft: {aktion} ({anzahl}x).")
+                elif aktion in {"malen", "komponieren"}:
+                    add_aktion(aktion, f"Kreativ weitermachen: {aktion}", f"Gestern oft: {aktion} ({anzahl}x).")
+                elif aktion in PHYSISCH:
+                    add_aktion(aktion, f"Routine: {aktion} fortsetzen", f"Gestern oft: {aktion} ({anzahl}x).")
+                else:
+                    add_aktion(aktion, f"Routine: {aktion}", f"Gestern oft: {aktion} ({anzahl}x).")
+            elif aktion not in ERLAUBT:
+                notiz_teile.append(f"Unbekannte Top-Aktion gestern: {aktion} ({anzahl}x).")
 
     # 4. Wetter-Reaktion (falls Platz)
     if len(plan) < 3:
         if "regen" in wetter or "sturm" in wetter:
-            plan.append({"aktion": "sitzen", "text": "Drinnen bleiben, Tee, Projekt"})
-            notiz_teile.append("Wetter mies.")
+            add_aktion("sitzen", "Drinnen bleiben, Tee, Projekt", "Wetter mies.")
         elif "sonne" in wetter or "klar" in wetter:
-            plan.append({"aktion": "spazieren", "text": "Raus, Licht tanken, 20 Min."})
-            notiz_teile.append("Wetter gut.")
+            add_aktion("spazieren", "Raus, Licht tanken, 20 Min.", "Wetter gut.")
 
     # 5. Fallback: Wenn Plan leer, Minimalprogramm
     if not plan:
-        plan.append({"aktion": "think", "text": "Erst mal sortieren, was ansteht"})
-        plan.append({"aktion": "drink", "text": "Wasser"})
-        notiz_teile.append("Leere Daten. Standard-Start.")
+        add_aktion("think", "Erst mal sortieren, was ansteht", "Leere Daten. Standard-Start.")
+        add_aktion("drink", "Wasser", "")
 
-    # Plan auf max 3 kürzen
+    # Plan auf max 3 kürzen (Sicherheit)
     plan = plan[:3]
 
     # Notiz zusammenbauen, max 200 Zeichen
-    notiz = ". ".join(notiz_teile)
+    notiz = ". ".join(filter(None, notiz_teile))
     if len(notiz) > 200:
         notiz = notiz[:197] + "..."
 
@@ -140,3 +158,13 @@ if __name__ == "__main__":
     }
     print("\n--- Test 4 (Robustheit) ---")
     print(json.dumps(neuer_tag(test_daten_4), ensure_ascii=False, indent=2))
+
+    # Test 5: Viele Fehler + viele Gestern-Aktionen (Prüfen Top-2 Logik & Slot-Limit)
+    test_daten_5 = {
+        "gestern": {"schuppen_ausmisten": 5, "am_projekt_arbeiten": 4, "malen": 3},
+        "fehlschlaege": {"verkaufen": 4, "schrott_suchen": 3, "einlagern": 2},
+        "stimmung": 10,
+        "wetter": "bewölkt"
+    }
+    print("\n--- Test 5 (Viele Fäden) ---")
+    print(json.dumps(neuer_tag(test_daten_5), ensure_ascii=False, indent=2))
