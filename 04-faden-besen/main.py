@@ -1,4 +1,4 @@
-"""Faden-Besen, Teil 7: Der Besen sortiert die Fäden und lagert die Demo aus."""
+"""Faden-Besen, Teil 8: Der Besen zählt Versuche strenger und legt das Ergebnis als Text ab."""
 
 
 def entferne_doppelte(eintraege):
@@ -59,7 +59,7 @@ def sammle_eigene_gedanken():
 
 
 def frage_wahl():
-    """Fragt die Menüwahl, ignoriert leere Eingaben, bricht bei EOF freundlich ab."""
+    """Fragt die Menüwahl, zählt alle Versuche (max 20), bricht bei EOF freundlich ab."""
     print("\n1) Demo-Gedankenwelt besenreinigen")
     print("2) Eigene Fäden legen und besenreinigen")
     print("3) Beides nacheinander")
@@ -72,22 +72,34 @@ def frage_wahl():
             print("\nKeine Antwort – der Besen kehrt nur die Demo.")
             return "1"
         
+        versuche += 1  # Jeder Prompt zählt, auch leere – der Dodo schläft nicht ewig.
+        
         if wahl in ("1", "2", "3"):
             return wahl
         
         if wahl == "":
-            # Still weiterwarten, nicht meckern – der Dodo hat Zeit.
+            # Still weiterwarten, nicht meckern – aber Zähler läuft.
             continue
             
         print("Der Besen versteht nur 1, 2 oder 3. Noch mal?")
-        versuche += 1
     
     print("\nZu viele Wirbelwind-Antworten. Der Besen wählt Demo (1).")
     return "1"
 
 
+def speichere_aufgeraeumt(faeden, dateiname="aufgeraeumt.txt"):
+    """Schreibt die saubere Liste zeilenweise in eine Datei im aktuellen Ordner."""
+    try:
+        with open(dateiname, "w", encoding="utf-8") as f:
+            for faden in faeden:
+                f.write(faden + "\n")
+        print(f"\nAufgeräumte Fäden gespeichert in '{dateiname}'.")
+    except OSError as e:
+        print(f"\nKonnte Datei nicht schreiben: {e}. Die Fäden bleiben im Gedächtnis.")
+
+
 def main():
-    print("Faden-Besen: Der siebte kleine Besenstrich!")
+    print("Faden-Besen: Der achte kleine Besenstrich!")
     
     wahl = frage_wahl()
 
@@ -105,7 +117,7 @@ def main():
     gesamt_vorher = len(alle_faeden)
     aufgeraeumt, leere_eintraege, entfernte_duplikate = entferne_doppelte(alle_faeden)
     
-    # Neu: Alphabetische Ordnung (groß/klein egal) für den Anblick.
+    # Alphabetische Ordnung (groß/klein egal) für den Anblick.
     aufgeraeumt.sort(key=str.lower)
     
     entfernt = len(entfernte_duplikate)
@@ -127,6 +139,9 @@ def main():
             f"Leere Faden-Einträge übersprungen: {leere_eintraege}. "
             "Der Besen kehrt munter weiter!"
         )
+    
+    # Neu: Ergebnis festhalten für später.
+    speichere_aufgeraeumt(aufgeraeumt)
 
 
 if __name__ == "__main__":
