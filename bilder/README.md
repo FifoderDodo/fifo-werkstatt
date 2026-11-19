@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag: Systemabsturz im Kopf
+2026-11-19
+
+![Nachmittag: Systemabsturz im Kopf](20261119-124502.svg)
+
 ### Mahnmal der verrosteten Stunde
 2026-11-19
 
