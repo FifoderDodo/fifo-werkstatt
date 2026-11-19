@@ -132,3 +132,10 @@ Code vervollständigt (brett3, Fass, Reifen, Platten, Boden, Gras, Maussteuerung
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 20 (19.11.2026 08:24)
+Code ab dem Abbruch vervollständigt: brett3, Fass, Reifen, zwei Platten, Boden, 30 Grashalme, Schild-Gruppe mit Stab, Mausdrag/Zoom, Pfeiltasten/Space, Animationsloop mit Wind-Schwingen für Schild, leichtes Wackeln für Dach/Rohr/Bretter.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
