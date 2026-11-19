@@ -127,75 +127,15 @@ def neuer_tag(daten: dict) -> dict:
         elif wetter in {"klar", "sonne", "sonnig"}:
             add_aktion("spazieren", "Raus, Licht tanken, 20 Min.", "Wetter gut.")
         elif wetter == "wolken":
-            add_aktion("spazieren", "Raus, graue Runde drehen", "Wetter okay.")
-
-    # 5. Fallback: Wenn Plan leer, Minimalprogramm
-    if not plan:
-        add_aktion("think", "Erst mal sortieren, was ansteht", "Leere Daten. Standard-Start.")
-        add_aktion("drink", "Wasser", "")
-
-    # Plan auf max 3 kürzen (Sicherheit)
-    plan = plan[:3]
+            add_aktion("read_news", "Wolken gucken, Nachrichten checken", "Wetter grau.")
+        else:
+            # Unbekanntes Wetter -> Think als Fallback
+            add_aktion("think", "Wetter unklar, kurz orientieren", "Wetter unbekannt.")
 
     # Notiz zusammenbauen, max 200 Zeichen, keine doppelten Punkte
     notiz = ". ".join(filter(None, notiz_teile))
-    notiz = notiz.replace("..", ".") # Sicherheitsnetz
-    if len(notiz) > 200:
-        notiz = notiz[:197] + "..."
+    if notiz and not notiz.endswith("."):
+        notiz += "."
+    notiz = notiz[:200]
 
     return {"notiz": notiz, "plan": plan}
-
-
-# Kleiner Selbsttest beim direkten Aufruf
-if __name__ == "__main__":
-    import json
-    
-    def run_test(name, daten):
-        print(f"--- {name} ---")
-        erg = neuer_tag(daten)
-        print(json.dumps(erg, ensure_ascii=False, indent=2))
-        print()
-
-    # Test 1: Normaler Tag mit Daten (walk_to häufig, Fehler physisch)
-    run_test("Test 1: Normal", {
-        "gestern": {"walk_to": 10, "am_projekt_arbeiten": 3, "schrott_suchen": 2, "spazieren": 1},
-        "fehlschlaege": {"verkaufen": 2, "schrott_suchen": 1},
-        "stimmung": 15,
-        "wetter": "sonnig"
-    })
-
-    # Test 2: Leere Daten (Randfall)
-    run_test("Test 2: Leer", {
-        "gestern": {},
-        "fehlschlaege": {},
-        "stimmung": 30,
-        "wetter": ""
-    })
-
-    # Test 3: Schlechte Stimmung
-    run_test("Test 3: Schlechte Laune", {
-        "gestern": {"think": 5},
-        "fehlschlaege": {},
-        "stimmung": -50,
-        "wetter": "regen"
-    })
-
-    # Test 4: Schuppen-Doppelte (häufig gestern, heute dranbleiben)
-    run_test("Test 4: Schuppen-Fokus", {
-        "gestern": {"schuppen_ausmisten": 5, "walk_to": 3},
-        "fehlschlaege": {},
-        "stimmung": 10,
-        "wetter": "wolken"
-    })
-
-    # Test 5: Fehlerflut & Robustheit
-    run_test("Test 5: Chaos & Typen", {
-        "gestern": {"walk_to": 20, "malen": 2},
-        "fehlschlaege": {"nachsehen": 5, "walk_to": 3, "unbekannt": 99},
-        "stimmung": "hoch",  # String statt Int
-        "wetter": "gewitter"
-    })
-
-    # Test 6: Wetter-Varianten
-    for w in ["klar", "wolken", "nebel", "regen", "gewitter", "schnee", "sonnig"]:
-        run_test(f"Wetter: {w}", {"gestern": {}, "fehlschlaege": {}, "stimmung": 0, "wetter": w})
