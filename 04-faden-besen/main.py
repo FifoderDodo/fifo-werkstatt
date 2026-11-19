@@ -1,4 +1,4 @@
-"""Faden-Besen, Teil 9: Der Besen kehrt in Runden – Schleife für automatische Bereinigung verwaister Fäden."""
+"""Faden-Besen, Teil 10: Der Besen fragt artig, ob er weiterkehren darf."""
 
 
 VERSUCHE_GESAMT = 0
@@ -162,7 +162,7 @@ def main():
     global VERSUCHE_GESAMT
     VERSUCHE_GESAMT = 0  # Reset für sauberen Start (wenn als Modul importiert)
     
-    print("Faden-Besen: Der neunte kleine Besenstrich – jetzt mit Runden!")
+    print("Faden-Besen: Der zehnte kleine Besenstrich – jetzt mit höflichem Nachfragen!")
     
     runde = 1
     while True:
@@ -176,15 +176,12 @@ def main():
             alle_faeden.extend(eigene)
         
         _bereinige_runde(alle_faeden, f"Runde {runde}")
-        runde += 1
         
         if not frage_weiter():
-            print("\nDer Besen stellt sich in die Ecke. Gute Ruhe!")
+            print("\nDer Besen stellt sich in die Ecke. Tschüss!")
             break
         
-        if VERSUCHE_GESAMT >= MAX_VERSUCHE:
-            print("\nDas Versuchs-Limit ist erreicht. Der Besen geht schlafen.")
-            break
+        runde += 1
 
 
 if __name__ == "__main__":
