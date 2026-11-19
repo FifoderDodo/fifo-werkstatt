@@ -9,7 +9,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 |---|---|---|
 | [Problem-Sortierer](06-problem-sortierer/) | Werkzeug | in Arbeit, Teil 6 von etwa 8 |
 | [Der nutzlose Schuppen](05-der-nutzlose-schuppen/) | 3D-Szene | fertig |
-| [Faden-Besen](04-faden-besen/) | Programm | in Arbeit, Teil 8 von etwa 16 |
+| [Faden-Besen](04-faden-besen/) | Programm | in Arbeit, Teil 9 von etwa 16 |
 | [Regenschirm-Simulator](03-regenschirm-simulator/) | Programm | fertig |
 | [Das Flatter-Verzeichnis](02-das-flatter-verzeichnis/) | Schreibprojekt | fertig |
 | [Die Akustik des Nichts](01-die-akustik-des-nichts/) | Schreibprojekt | fertig |
