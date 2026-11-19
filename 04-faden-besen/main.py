@@ -1,4 +1,4 @@
-"""Faden-Besen, Teil 14: Der Besen kehrt in ordentlichen Runden, fragt artig nach Weiterarbeit und verabschiedet sich sauber. Schleife getestet, Runden gezählt, Ende fein."""
+"""Faden-Besen, Teil 15: Der Besen merkt sich den letzten Modus und bietet Enter als Wiederholung an. Hauptschleuse gestrafft, Rhythmus gebrochen, Code aufgeräumt."""
 
 
 VERSUCHE_GESAMT = 0
@@ -25,10 +25,9 @@ def _sichere_eingabe(prompt: str, gueltige_antworten: tuple = None) -> str | Non
         return None
     
     if gueltige_antworten is not None and antwort not in gueltige_antworten:
-        # Ungültige Antwort: Nicht meckern bei Leere, sonst kurz hinweisen.
         if antwort != "":
             print(f"Der Besen versteht nur {', '.join(gueltige_antworten)}. Noch mal?")
-        return ""  # Leerer String signalisiert: noch mal fragen, aber Versuch wurde gezahlt.
+        return ""
     
     return antwort
 
@@ -49,9 +48,9 @@ def entferne_doppelte(eintraege):
             leere_eintraege += 1
             continue
 
-        schlüssel = eintrag.strip().lower()
-        if schlüssel not in gesehen:
-            gesehen.add(schlüssel)
+        schluessel = eintrag.strip().lower()
+        if schluessel not in gesehen:
+            gesehen.add(schluessel)
             aufgeraeumt.append(eintrag)
         else:
             entfernte_duplikate.append(eintrag)
@@ -78,28 +77,39 @@ def sammle_eigene_gedanken():
     eigene = []
     while True:
         faden = _sichere_eingabe("Faden: ")
-        if faden is None:  # EOF oder Limit
+        if faden is None:
             break
         if faden == "":
-            # Leere Eingabe beim Faden-Sammeln = Ende der Eingabephase
             break
         eigene.append(faden)
     return eigene
 
 
-def frage_wahl():
-    """Fragt die Menüwahl (1/2/3)."""
+def frage_wahl(letzte_wahl: str | None = None) -> str:
+    """Fragt die Menüwahl (1/2/3). Enter übernimmt letzte Wahl."""
     print("\n1) Demo-Gedankenwelt besenreinigen")
     print("2) Eigene Fäden legen und besenreinigen")
     print("3) Beides nacheinander")
     
+    hinweis = ""
+    if letzte_wahl:
+        hinweis = f" (Enter=wie zuletzt [{letzte_wahl}])"
+    
     while True:
-        wahl = _sichere_eingabe("\nWas soll der Besen tun? (1/2/3): ", ("1", "2", "3"))
+        prompt = f"\nWas soll der Besen tun? (1/2/3{hinweis}): "
+        # Erlaube Enter nur wenn letzte_wahl existiert
+        gueltig = ("1", "2", "3")
+        if letzte_wahl:
+            gueltig += ("",)
+        
+        wahl = _sichere_eingabe(prompt, gueltig)
         if wahl is None:
-            return "1"  # Default bei Abbruch
+            return "1"
+        if wahl == "" and letzte_wahl:
+            return letzte_wahl
         if wahl:
             return wahl
-        # bei leerer Antwort (_sichere_eingabe gibt "" zurück) einfach weiterloop
+        # leer ohne letzte_wahl oder ungültig -> weiterloop
 
 
 def frage_weiter() -> bool:
@@ -112,7 +122,6 @@ def frage_weiter() -> bool:
             return True
         if antwort in ("n", "nein"):
             return False
-        # leer -> weiterfragen
 
 
 def speichere_aufgeraeumt(faeden, dateiname="aufgeraeumt.txt"):
@@ -158,30 +167,38 @@ def _bereinige_runde(faeden: list, runden_name: str):
     speichere_aufgeraeumt(aufgeraeumt)
 
 
+def _sammle_faeden_fuer_wahl(wahl: str) -> list:
+    """Sammelt die Fäden passend zur gewählten Option. Gibt Liste zurück."""
+    alle_faeden = []
+    if wahl in ("1", "3"):
+        alle_faeden.extend(lade_demo_gedanken())
+    if wahl in ("2", "3"):
+        eigene = sammle_eigene_gedanken()
+        alle_faeden.extend(eigene)
+    return alle_faeden
+
+
 def main():
     global VERSUCHE_GESAMT
-    VERSUCHE_GESAMT = 0  # Reset für sauberen Start (wenn als Modul importiert)
+    VERSUCHE_GESAMT = 0
     
-    print("Faden-Besen: Der vierzehnte kleine Besenstrich – Schleife getestet, Runden gezählt, Ende fein!")
+    print("Faden-Besen: Der fünfzehnte kleine Besenstrich – Schleife gestrafft, Rhythmus gebrochen, Enter merkt sich den Modus!")
     
     runde = 1
+    letzte_wahl = None
+    
     while True:
-        wahl = frage_wahl()
+        wahl = frage_wahl(letzte_wahl)
+        letzte_wahl = wahl  # Merken für nächste Runde
         
-        alle_faeden = []
-        if wahl in ("1", "3"):
-            alle_faeden.extend(lade_demo_gedanken())
-        if wahl in ("2", "3"):
-            eigene = sammle_eigene_gedanken()
-            alle_faeden.extend(eigene)
-        
+        alle_faeden = _sammle_faeden_fuer_wahl(wahl)
         _bereinige_runde(alle_faeden, f"Runde {runde}")
         
         if not frage_weiter():
             break
         runde += 1
     
-    print(f"\nDer Besen hat {runde} Runde(n) gewischt. Federn glättet, Schnabel zu – bis zum nächsten Mal!")
+    print(f"\nDer Besen hat {runde} Runde{'n' if runde > 1 else ''} gedreht. Alles flauschig sauber. Tschüss!")
 
 
 if __name__ == "__main__":
