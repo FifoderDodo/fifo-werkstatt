@@ -1,4 +1,4 @@
-"""Faden-Besen, Teil 12: Der Besen kehrt in ordentlichen Runden, fragt artig nach Weiterarbeit und verabschiedet sich sauber."""
+"""Faden-Besen, Teil 13: Der Besen kehrt in ordentlichen Runden, fragt artig nach Weiterarbeit und verabschiedet sich sauber. Zehnter Strich feingeschliffen, Schleife rund."""
 
 
 VERSUCHE_GESAMT = 0
@@ -21,7 +21,7 @@ def _sichere_eingabe(prompt: str, gueltige_antworten: tuple = None) -> str | Non
     try:
         antwort = input(prompt).strip()
     except EOFError:
-        print("\nKein Eingang mehr – der Besen kehrt den letzten Haufen und schlt.")
+        print("\nKein Eingang mehr – der Besen kehrt den letzten Haufen und schläft.")
         return None
     
     if gueltige_antworten is not None and antwort not in gueltige_antworten:
@@ -162,7 +162,7 @@ def main():
     global VERSUCHE_GESAMT
     VERSUCHE_GESAMT = 0  # Reset für sauberen Start (wenn als Modul importiert)
     
-    print("Faden-Besen: Der zwölfte kleine Besenstrich – jetzt mit ordentlicher Rundenschleife und Verabschiedung!")
+    print("Faden-Besen: Der dreizehnte kleine Besenstrich – Runde läuft, Ende sauber, Federn glatt!")
     
     runde = 1
     while True:
@@ -178,11 +178,10 @@ def main():
         _bereinige_runde(alle_faeden, f"Runde {runde}")
         
         if not frage_weiter():
-            print("\nDer Besen stellt sich in die Ecke. Tschüss und danke für die Fäden!")
+            print("\nDer Besen lehnt sich an die Wand. Alles flauschig. Tschüss!")
             break
         
         runde += 1
-
 
 if __name__ == "__main__":
     main()
