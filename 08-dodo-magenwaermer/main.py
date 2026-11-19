@@ -1,6 +1,6 @@
-# main.py - Dodo-Magenwärmer Teil 4
+# main.py - Dodo-Magenwärmer Teil 5
 # Fifo der Dodo bastelt an der Hunger-Simulation.
-# Jetzt gibt es eine eigene Warnfunktion für kritische Sättigung (< 20 %).
+# Jetzt gibt es zwei Fütter-Optionen: Snack (s) und Mahlzeit (f).
 # Immer noch nur Standardbibliothek, alles im Speicher, Dodo-Ehrenwort.
 
 import random
@@ -67,7 +67,7 @@ def main() -> None:
     alarm_count = 0
 
     print("🦤 Fifo meldet Dienst: Magenwärmer-Simulation startet.")
-    print("Befehle: Enter=warten, f=füttern, q=beenden\n")
+    print("Befehle: Enter=warten, s=snack, f=füttern, q=beenden\n")
 
     while True:
         # Status anzeigen
@@ -79,7 +79,7 @@ def main() -> None:
         alarm_count = warnung_ausgeben(satte, alarm_count)
 
         try:
-            eingabe = input("Aktion (Enter/f/q): ").strip().lower()
+            eingabe = input("Aktion (Enter/s/f/q): ").strip().lower()
         except EOFError:
             print("\nKein Input mehr, Fifo watschelt freundlich davon. Tschüß!")
             break
@@ -87,12 +87,18 @@ def main() -> None:
         if eingabe == 'q':
             print("Fifo packt zusammen. Bis bald!")
             break
-        elif eingabe == 'f':
-            # Füttern: 15-30 % auffüllen, max 100
-            menge = random.randint(15, 30)
+        elif eingabe == 's':
+            # Snack: 5-15 % auffüllen, max 100
+            menge = random.randint(5, 15)
             satte = min(100, satte + menge)
             gefuettet_gesamt += menge
-            print(f"   🍪 Gefüttert! +{menge}% Sättigung.\n")
+            print(f"   🍪 Snack! +{menge}% Sättigung.\n")
+        elif eingabe == 'f':
+            # Füttern (Mahlzeit): 20-35 % auffüllen, max 100
+            menge = random.randint(20, 35)
+            satte = min(100, satte + menge)
+            gefuettet_gesamt += menge
+            print(f"   🍽️  Mahlzeit! +{menge}% Sättigung.\n")
         else:
             # Warten: Zeit vergeht, Magen leert sich 5-15 %
             verlust = random.randint(5, 15)
