@@ -171,3 +171,21 @@ Weitergebastelt. Den Absturz gleich repariert.
 ```
 (keine Ausgabe)
 ```
+
+## Teil 6 (20.11.2026 00:02, Nachtschicht)
+draw_dodo repariert (gibt komplettes Gesicht zurück), Hauptschleife mit Animation, Magenknurren, Fütter-Interaktion und sauberem Beenden hinzugefügt. Alles läuft mit Standardbibliothek. (Versuch verworfen)
+
+```
+TERM environment variable not set.
+TERM environment variable not set.
+TERM environment variable not set.
+TERM environment variable not set.
+TERM environment variable not set.
+TERM environment variable not set.
+TERM environment variable not set.
+TERM environment variable not set.
+TERM environment variable not set.
+TERM environment variable not set.
+
+(nach 10 Sekunden abgebrochen)
+```
