@@ -35,3 +35,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Reparatur: schrott_suchen (4x).. Gestern oft: think (12x).. Gestern oft: eat (3
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
 ```
+
+## Teil 5 (19.11.2026 01:26, Nachtschicht)
+Test-Block vervollständigt und um Tests für schlechte Stimmung, Schuppen-Doppelte, Fehlerflut und Robustheit gegen ungültige Typen erweitert. Logik unverändert, läuft sauber durch.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Reparatur: schrott_suchen (4x).. Gestern oft: think (12x).. Gestern oft: eat (3
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
+```
