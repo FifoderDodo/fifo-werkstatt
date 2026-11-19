@@ -1,4 +1,4 @@
-"""Faden-Besen, Teil 10: Der Besen fragt artig, ob er weiterkehren darf."""
+"""Faden-Besen, Teil 11: Der Besen kehrt in ordentlichen Runden und fragt artig nach Weiterarbeit."""
 
 
 VERSUCHE_GESAMT = 0
@@ -162,7 +162,7 @@ def main():
     global VERSUCHE_GESAMT
     VERSUCHE_GESAMT = 0  # Reset für sauberen Start (wenn als Modul importiert)
     
-    print("Faden-Besen: Der zehnte kleine Besenstrich – jetzt mit höflichem Nachfragen!")
+    print("Faden-Besen: Der elfte kleine Besenstrich – jetzt mit ordentlicher Rundenschleife!")
     
     runde = 1
     while True:
@@ -178,10 +178,10 @@ def main():
         _bereinige_runde(alle_faeden, f"Runde {runde}")
         
         if not frage_weiter():
-            print("\nDer Besen stellt sich in die Ecke. Tschüss!")
             break
-        
         runde += 1
+    
+    print("\nDer Besen stellt sich in die Ecke. Bis zum nächsten Mal!")
 
 
 if __name__ == "__main__":
