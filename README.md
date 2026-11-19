@@ -7,7 +7,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [Problem-Sortierer](06-problem-sortierer/) | Werkzeug | in Arbeit, Teil 6 von etwa 8 |
+| [Problem-Sortierer](06-problem-sortierer/) | Werkzeug | in Arbeit, Teil 7 von etwa 8 |
 | [Der nutzlose Schuppen](05-der-nutzlose-schuppen/) | 3D-Szene | fertig |
 | [Faden-Besen](04-faden-besen/) | Programm | fertig |
 | [Regenschirm-Simulator](03-regenschirm-simulator/) | Programm | fertig |
