@@ -302,3 +302,110 @@ Schritt 17 | Hunger: 10%
 ⚠️  Magen knurrt! Füttern? (Enter = füttern, q = quittieren)
 > Bis zum nächsten Traum!
 ```
+
+## Teil 8 (20.11.2026 00:30, Nachtschicht)
+Statistik (Schritte, Zeit, Fütterungen) hinzugefügt. Magen-Alarm piept jetzt per ASCII Bell (\a). draw_stomach neu implementiert: dynamisches Füllen der ASCII-Zeilen für saubereren Look ohne harte Templates. Game-Over-Bildschirm zeigt Zusammenfassung.
+
+```
+um Beenden.
+>   \       //
+   \     //
+    \   //
+     \ //
+      \V/
+       \/
+
+[########.................]  35%
+
+   -.-
+   (._.)
+
+Schritt 12 | Hunger: 35% | Fütterungen: 0
+
+Alles gut. Enter für nächsten Schritt, q zum Beenden.
+>   \       //
+   \     //
+    \   //
+     \ //
+      \V/
+       \/
+
+[#######..................]  31%
+
+   o.o
+   (._.)
+
+Schritt 13 | Hunger: 31% | Fütterungen: 0
+
+Alles gut. Enter für nächsten Schritt, q zum Beenden.
+>   \       //
+   \     //
+    \   //
+     \ //
+      \V/
+       \/
+
+[######...................]  27%
+
+   o.o
+   (._.)
+
+Schritt 14 | Hunger: 27% | Fütterungen: 0
+
+Alles gut. Enter für nächsten Schritt, q zum Beenden.
+>   \       //
+   \     //
+    \   //
+     \ //
+      \V/
+       \/
+
+[#####....................]  21%
+
+   o.o
+   (._.)
+
+Schritt 15 | Hunger: 21% | Fütterungen: 0
+
+Alles gut. Enter für nächsten Schritt, q zum Beenden.
+>   \       //
+   \     //
+    \   //
+     \ //
+      \V/
+       \/
+
+[####.....................]  16%
+
+   o.o
+   (>_<)
+
+Schritt 16 | Hunger: 16% | Fütterungen: 0
+
+⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
+>   \       //
+   \     //
+    \   //
+     \ //
+      \V/
+       \/
+
+[###......................]  12%
+
+   o.o
+   (>_<)
+
+Schritt 17 | Hunger: 12% | Fütterungen: 0
+
+⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
+> Bis zum nächsten Traum!
+   -.-
+   (>_<)
+
+🦤 Dodo watschelt zufrieden weg. Gute Nacht.
+
+--- Statistik ---
+Überlebt: 17 Schritte
+Dauer: 5.8 Sekunden
+Fütterungen: 0
+```
