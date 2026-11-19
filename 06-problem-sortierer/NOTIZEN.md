@@ -53,3 +53,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Fehler-Fokus: schrott_suchen (4x). Wetter mies.", "plan": [{"aktion": "think", 
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
 ```
+
+## Teil 7 (19.11.2026 09:47)
+Wetter-Logik für 'wolken' und Fallback vervollständigt. Notiz-Zusammenbau bereinigt (keine doppelten Punkte, 200 Zeichen Limit). Priorisierung von Projekt/Kreativ/Schuppen vor Grind bleibt erhalten. walk_to hart auf 'essladen' gemappt.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Fehler-Fokus: schrott_suchen (4x).. Wetter mies.", "plan": [{"aktion": "think",
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Wetter unbekannt.", "plan": [{"aktion": "think", "text": "Wetter unklar, kurz o
+```
