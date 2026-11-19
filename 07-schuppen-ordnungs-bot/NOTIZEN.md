@@ -17,3 +17,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 3 (19.11.2026 20:25)
+Syntaxfehler im Testblock repariert (abgeschnittenes Dict). MetallSortierer um gewicht_test-Methode aufgeräumt, Dichte-Berechnung zentralisiert. Testdaten für MetallSortierer vervollständigt und um Edge-Cases (fehlendes Volumen, Nicht-Dict) erweitert. Logik für Kupfer/Messing/Edelstahl/Alu über Dichte/Farbe verfeinert.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
