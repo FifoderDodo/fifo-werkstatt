@@ -1,4 +1,4 @@
-"""Faden-Besen, Teil 15: Der Besen merkt sich den letzten Modus und bietet Enter als Wiederholung an. Hauptschleuse gestrafft, Rhythmus gebrochen, Code aufgeräumt."""
+"""Faden-Besen, Teil 16: Der Besen stellt die Arbeit ein – Projekt abgeschlossen, letzte Runde gedreht, Flügel gefaltet."""
 
 
 VERSUCHE_GESAMT = 0
@@ -182,23 +182,23 @@ def main():
     global VERSUCHE_GESAMT
     VERSUCHE_GESAMT = 0
     
-    print("Faden-Besen: Der fünfzehnte kleine Besenstrich – Schleife gestrafft, Rhythmus gebrochen, Enter merkt sich den Modus!")
+    print("Faden-Besen: Der sechzehnte kleine Besenstrich – Projekt abgeschlossen, Besen ruht sich aus!")
     
-    runde = 1
     letzte_wahl = None
+    runden_zaehler = 0
     
     while True:
         wahl = frage_wahl(letzte_wahl)
-        letzte_wahl = wahl  # Merken für nächste Runde
+        letzte_wahl = wahl
         
-        alle_faeden = _sammle_faeden_fuer_wahl(wahl)
-        _bereinige_runde(alle_faeden, f"Runde {runde}")
+        faeden = _sammle_faeden_fuer_wahl(wahl)
+        runden_zaehler += 1
+        _bereinige_runde(faeden, f"Runde {runden_zaehler}")
         
         if not frage_weiter():
             break
-        runde += 1
     
-    print(f"\nDer Besen hat {runde} Runde{'n' if runde > 1 else ''} gedreht. Alles flauschig sauber. Tschüss!")
+    print(f"\n{runden_zaehler} Runde{'n' if runden_zaehler != 1 else ''} gekehrt. Der Besen stellt sich in die Ecke und nickt zufrieden.")
 
 
 if __name__ == "__main__":
