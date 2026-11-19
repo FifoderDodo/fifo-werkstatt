@@ -78,17 +78,18 @@ class MetallSortierer:
     
     def funken_test(self, teil):
         """Simuliert Funkenbild-Test (Grobe Klassifikation)."""
-        # Platzhalter
+        # Platzhalter für spätere Expansion
         return "unbekannt"
     
     def gewicht_test(self, teil):
-        """Dichte-Abschätzung über Gewicht/Volumen."""
-        # Platzhalter
-        return 0.0
+        """Dichte-Abschätzung über Gewicht/Volumen. Gibt Dichte in g/cm³ zurück."""
+        gewicht = teil.get("gewicht_g", 0)
+        volumen = teil.get("volumen_cm3", 1)
+        return gewicht / volumen if volumen > 0 else 0.0
     
     def sortiere_metall(self, teile_liste):
         """Hauptlogik: Iteriert Teile, sortiert in Kategorien."""
-        # Reset
+        # Reset Kategorien für neuen Durchlauf
         for k in self.kategorien:
             self.kategorien[k] = []
             
@@ -98,34 +99,32 @@ class MetallSortierer:
                 continue
             
             name = teil.get("name", "Unbekannt")
+            farbe = teil.get("farbe", "").lower()
+            dichte = self.gewicht_test(teil)
             
             # 1. Magnet-Test
             if self.magnet_test(teil):
-                # Könnte Edelstahl (austenitisch) sein -> nicht magnetisch, aber hier magnetisch -> Eisen/Stahl
-                # Unterscheidung Edelstahl/Stahl später durch Funken/Chemie
+                # Magnetisch -> Eisen/Stahl (oder ferritischer Edelstahl, aber egal, Schrottplatz zahlt nach Magnet)
                 self.kategorien["eisenhaltig"].append(teil)
                 continue
             
-            # 2. Nicht magnetisch -> Alu, Kupfer, Messing, Edelstahl (V2A/V4A)
-            # Einfache Heuristik über Farbe/Gewicht (Platzhalter)
-            farbe = teil.get("farbe", "").lower()
-            gewicht = teil.get("gewicht_g", 0)
-            volumen = teil.get("volumen_cm3", 1)
-            dichte = gewicht / volumen if volumen > 0 else 0
-            
-            if dichte > 8.0: # Kupfer ~8.9, Messing ~8.4-8.7
-                if "rot" in farbe or "orange" in farbe:
+            # 2. Nicht magnetisch -> Alu, Kupfer, Messing, Edelstahl (austenitisch V2A/V4A)
+            # Entscheidung über Dichte & Farbe
+            if dichte > 8.0:  # Kupfer ~8.9, Messing ~8.4-8.7
+                if "rot" in farbe or "orange" in farbe or "rosa" in farbe:
                     self.kategorien["kupfer"].append(teil)
                 elif "gelb" in farbe or "gold" in farbe:
                     self.kategorien["messing"].append(teil)
                 else:
-                    self.kategorien["kupfer"].append(teil) # Default schwer
-            elif dichte > 2.5 and dichte < 3.0: # Alu ~2.7
+                    self.kategorien["kupfer"].append(teil)  # Default schwer & nicht magnetisch
+            elif dichte > 2.5 and dichte < 3.0:  # Alu ~2.7
                 self.kategorien["aluminium"].append(teil)
-            elif dichte > 7.5: # Edelstahl ~7.9
+            elif dichte > 7.5:  # Edelstahl ~7.9 (schwer, nicht magnetisch)
                 self.kategorien["edelstahl"].append(teil)
-            else:
+            elif dichte > 0:
                 self.kategorien["sonstiges"].append(teil)
+            else:
+                self.kategorien["schrott"].append({"objekt": teil, "grund": "Keine Masse/Dichte"})
         
         return self.kategorien
 
@@ -146,10 +145,12 @@ if __name__ == "__main__":
     test_teile = [
         {"name": "Schraube M10", "material": "Stahl", "farbe": "silber", "gewicht_g": 50, "volumen_cm3": 6.4},
         {"name": "Kupferrohr", "material": "Kupfer", "farbe": "rot", "gewicht_g": 200, "volumen_cm3": 22.5},
-        {"name": "Alu-Profil", "material": "Aluminium", "farbe": "silber", "gewicht_g": 100, "volumen_cm3": 37},
-        {"name": "Messingschraube", "material": "Messing", "farbe": "gelb", "gewicht_g": 20, "volumen_cm3": 2.3},
-        {"name": "Rostiger Nagel", "material": "Eisen", "farbe": "braun", "gewicht_g": 10, "volumen_cm3": 1.3},
-        "Kein Dict",
+        {"name": "Alu-Profil", "material": "Aluminium", "farbe": "silber", "gewicht_g": 135, "volumen_cm3": 50.0},
+        {"name": "Edelstahl-Schraube V2A", "material": "Edelstahl", "farbe": "silber", "gewicht_g": 30, "volumen_cm3": 3.8},
+        {"name": "Messing-Verschraubung", "material": "Messing", "farbe": "gold", "gewicht_g": 80, "volumen_cm3": 9.5},
+        {"name": "Plastikteil", "material": "Kunststoff", "farbe": "schwarz", "gewicht_g": 10, "volumen_cm3": 20.0},
+        "kein_dict_objekt",
+        {"name": "Defektes Teil", "material": "Stahl", "farbe": "rost", "gewicht_g": 100}  # volumen fehlt
     ]
     ergebnis = sorter.sortiere_metall(test_teile)
     for kat, teile in ergebnis.items():
