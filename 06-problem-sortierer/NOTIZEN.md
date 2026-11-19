@@ -44,3 +44,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Reparatur: schrott_suchen (4x).. Gestern oft: think (12x).. Gestern oft: eat (3
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
 ```
+
+## Teil 6 (19.11.2026 01:59, Nachtschicht)
+walk_to bekommt festes Ziel 'essladen'. nachsehen als Fehler-Reparatur entfernt (braucht Event), stattdessen think. Gestern-Logik priorisiert Projekt/Kreativ/Schuppen/Bewegung vor Grind. Wetter-Erkennung auf echte Typen erweitert (klar, wolken, nebel, regen, gewitter, schnee). Doppelte Punkte in Notiz bereinigt.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Fehler-Fokus: schrott_suchen (4x). Wetter mies.", "plan": [{"aktion": "think", 
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
+```
