@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 4 von etwa 15
+Stand: in Arbeit, Teil 5 von etwa 15
 
 ## Ausprobieren
 
@@ -15,48 +15,49 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
- (Enter/f/q):    ⏳ Zeit vergeht... -12% Sättigung.
+t... -10% Sättigung.
 
-Runde  1 | [92m[#################...][0m 88% | Magenstand: 88%
+Runde  2 | [92m[################....][0m 81% | Magenstand: 81%
   🦤  (★_★)  Glücklich!
-Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
+Aktion (Enter/s/f/q):    ⏳ Zeit vergeht... -12% Sättigung.
 
-Runde  2 | [92m[##############......][0m 73% | Magenstand: 73%
+Runde  3 | [92m[#############.......][0m 69% | Magenstand: 69%
   🦤  (^_^)  Satt!
-Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
+Aktion (Enter/s/f/q):    ⏳ Zeit vergeht... -7% Sättigung.
 
-Runde  3 | [92m[###########.........][0m 58% | Magenstand: 58%
+Runde  4 | [92m[############........][0m 62% | Magenstand: 62%
   🦤  (^_^)  Satt!
-Aktion (Enter/f/q):    ⏳ Zeit vergeht... -13% Sättigung.
+Aktion (Enter/s/f/q):    ⏳ Zeit vergeht... -13% Sättigung.
 
-Runde  4 | [92m[#########...........][0m 45% | Magenstand: 45%
+Runde  5 | [92m[#########...........][0m 49% | Magenstand: 49%
   🦤  (o_o)  Mhh...
-Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
+Aktion (Enter/s/f/q):    ⏳ Zeit vergeht... -11% Sättigung.
 
-Runde  5 | [92m[######..............][0m 30% | Magenstand: 30%
+Runde  6 | [92m[#######.............][0m 38% | Magenstand: 38%
   🦤  (o_o)  Mhh...
-Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
+Aktion (Enter/s/f/q):    ⏳ Zeit vergeht... -8% Sättigung.
 
-Runde  6 | [91m[###.................][0m 15% | 🚨 ALARM: Magenstand: 15%
+Runde  7 | [92m[######..............][0m 30% | Magenstand: 30%
+  🦤  (o_o)  Mhh...
+Aktion (Enter/s/f/q):    ⏳ Zeit vergeht... -10% Sättigung.
+
+Runde  8 | [92m[####................][0m 20% | Magenstand: 20%
+  🦤  (o_o)  Mhh...
+Aktion (Enter/s/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
+
+Runde  9 | [91m[#...................][0m 5% | 🚨 ALARM: Magenstand: 5%
   🦤  (>_<)  Knurr!
    ╔══════════════════════════════════╗
-   ║  🚨 KRITISCH: Magen nur 15%!  ║
+   ║  🚨 KRITISCH: Magen nur  5%!  ║
    ╚══════════════════════════════════╝
-Aktion (Enter/f/q):    ⏳ Zeit vergeht... -7% Sättigung.
-
-Runde  7 | [91m[#...................][0m 8% | 🚨 ALARM: Magenstand: 8%
-  🦤  (>_<)  Knurr!
-   ╔══════════════════════════════════╗
-   ║  🚨 KRITISCH: Magen nur  8%!  ║
-   ╚══════════════════════════════════╝
-Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
+Aktion (Enter/s/f/q):    ⏳ Zeit vergeht... -13% Sättigung.
 
    ☠️ Der Magen ist ganz leer. Fifo wird ohnmächtig... Spielende.
 
 --- Fifos Tagesbilanz ---
-Runden überlebt:   8
+Runden überlebt:   10
 Gesamt gefüttert:  0%
-Alarm-Auslöser:    2
+Alarm-Auslöser:    1
 
 Simulation beendet. Fifo nickt zufrieden.
 ```
