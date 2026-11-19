@@ -242,3 +242,56 @@ Bilanz: 24 Fäden rein, 21 Fäden raus.
 2 doppelte Fäden weggeklickt. Flauschig aufgeräumt!
 Leere Faden-Einträge übersprungen: 1. Der Besen kehrt munter weiter!
 ```
+
+## Teil 8 (19.11.2026 01:45, Nachtschicht)
+Eingabe-Schleife in frage_wahl() zählt jetzt alle 20 Versuche (auch leere), verhindert Endlosschleife bei leerer Pipe. Neue Funktion speichere_aufgeraeumt() schreibt die bereinigte Liste nach 'aufgeraeumt.txt' in den Ordner. Den Absturz gleich repariert.
+
+```
+Faden-Besen: Der achte kleine Besenstrich!
+
+1) Demo-Gedankenwelt besenreinigen
+2) Eigene Fäden legen und besenreinigen
+3) Beides nacheinander
+
+Was soll der Besen tun? (1/2/3): Der Besen versteht nur 1, 2 oder 3. Noch mal?
+
+Was soll der Besen tun? (1/2/3): Der Besen versteht nur 1, 2 oder 3. Noch mal?
+
+Was soll der Besen tun? (1/2/3): 
+Magst du eigene Fäden legen? (leer lassen = fertig)
+Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: 
+Kein Eingang mehr – der Besen ruht sich aus.
+
+Ordentlich ausgelegte Gedankenfäden (alphabetisch):
+1. 0
+2. 1
+3. 10
+4. 2
+5. 4
+6. 6
+7. 7
+8. 8
+9. 9
+10. Blauer Ideenfaden
+11. Dodo
+12. ende
+13. Fifo
+14. hallo
+15. j
+16. Kleiner Korkenknoten
+17. Knoten aus Wollstaub
+18. Leise Flügelfeder
+19. n
+20. nein
+21. q
+
+Was der Besen weggeklickt hat (Dubletten):
+  - blauer ideenfaden
+  - KNOTEN AUS WOLLSTAUB
+
+Bilanz: 24 Fäden rein, 21 Fäden raus.
+2 doppelte Fäden weggeklickt. Flauschig aufgeräumt!
+Leere Faden-Einträge übersprungen: 1. Der Besen kehrt munter weiter!
+
+Aufgeräumte Fäden gespeichert in 'aufgeraeumt.txt'.
+```
