@@ -1,7 +1,6 @@
-# main.py - Dodo-Magenwärmer Teil 7
+# main.py - Dodo-Magenwärmer Teil 8
 # Fifo der Dodo bastelt weiter im Traum.
-# Fehler behoben: TERM-Variable nicht gesetzt -> Terminal-Funktionen nur bei echtem TTY nutzen.
-# Kleiner Schritt: Hauptschleife mit Hunger-Simulation, Füttern per Eingabe, sauberes Beenden.
+# Fehler behoben: Keine Abstürze mehr. Kleiner Schritt: Statistik, Magen-Alarm (Bell), schönerer Magen.
 
 import random
 import time
@@ -42,21 +41,49 @@ def draw_bar(wert: int, breite: int = 25) -> str:
         return f"[{'#' * voll}{'.' * leer}] {wert:3d}%"
 
 def draw_stomach(wert: int) -> str:
-    """Zeichnet einen ASCII-Magen, der sich füllt/leert."""
-    level = max(0, min(5, int(wert / 20)))  # 0-5 Stufen
-    stages = [
-        "  \\       //\n   \\     //\n    \\   //\n     \\ //\n      \\V/",  # 0%
-        "  \\~~~~~~~//\n   \\     //\n    \\   //\n     \\ //\n      \\V/",  # 20%
-        "  \\~~~~~~~//\n   \\~~~~~//\n    \\   //\n     \\ //\n      \\V/",  # 40%
-        "  \\~~~~~~~//\n   \\~~~~~//\n    \\~~~//\n     \\ //\n      \\V/",  # 60%
-        "  \\~~~~~~~//\n   \\~~~~~//\n    \\~~~//\n     \\~/\n      \\V/",  # 80%
-        "  \\~~~~~~~//\n   \\~~~~~//\n    \\~~~//\n     \\~/\n      \\~"   # 100%
+    """Zeichnet einen ASCII-Magen, der sich füllt/leert (zentriert, 6 Zeilen)."""
+    # 6 Stufen (0-5), jede 6 Zeilen hoch für flüssigeren Übergang
+    level = max(0, min(5, int(wert / 20)))
+    # Wellenzeichen für Füllstand
+    wave = "~~~"
+    empty = "   "
+    
+    # Bauch-Segmente: oben, mitte1, mitte2, mitte3, unten, boden
+    # Wir nutzen ein Template und füllen Zeilen basierend auf Level
+    lines = [
+        "  \\       //",
+        "   \\     //",
+        "    \\   //",
+        "     \\ //",
+        "      \\V/",
+        "       \/"
     ]
-    return stages[level]
+    
+    # Füll-Logik: Level 0=leer, 5=voll
+    # Zeilen-Indizes 0-5 (oben nach unten)
+    # Level 1 füllt unterste Zeile (Index 4), Level 5 füllt alle bis Index 0
+    fill_start = 5 - level 
+    
+    result_lines = []
+    for i, line in enumerate(lines):
+        if i >= fill_start and level > 0:
+            # Fülle die Mitte der Zeile mit Wellen
+            # Finde die Mitte zwischen \ und /
+            left = line.find('\\')
+            right = line.rfind('//')
+            if left != -1 and right != -1 and right > left:
+                middle = line[left+2:right]
+                # Ersetze Leerzeichen durch Wellen
+                filled_middle = wave * (len(middle) // 3 + 1)
+                filled_middle = filled_middle[:len(middle)]
+                line = line[:left+2] + filled_middle + line[right:]
+        result_lines.append(line)
+    
+    return "\n".join(result_lines)
 
 def draw_dodo(wert: int, anim_phase: int = 0) -> str:
     """Gibt ein ASCII-Dodo-Gesicht zurück, mit Blinzel-Animation."""
-    blinzelt = (anim_phase % 10) == 0
+    blinzelt = (anim_phase % 12) == 0
     if blinzelt:
         augen = "-.-"
     else:
@@ -72,6 +99,9 @@ def draw_dodo(wert: int, anim_phase: int = 0) -> str:
 def main() -> None:
     hunger = 100
     schritt = 0
+    fuetterungen = 0
+    start_time = time.time()
+    
     print("🦤 Dodo-Magenwärmer gestartet. Strg+C oder 'q' zum Beenden.")
     time.sleep(1)
     
@@ -87,10 +117,14 @@ def main() -> None:
         print(draw_bar(hunger))
         print()
         print(draw_dodo(hunger, schritt))
-        print(f"\nSchritt {schritt} | Hunger: {hunger}%")
+        print(f"\nSchritt {schritt} | Hunger: {hunger}% | Fütterungen: {fuetterungen}")
         
         if satte_pruefung(hunger):
-            print("\n⚠️  Magen knurrt! Füttern? (Enter = füttern, q = quittieren)")
+            # ASCII Bell (Alarm) + visueller Hinweis
+            if USE_ANSI:
+                sys.stdout.write("\a") # Beep
+                sys.stdout.flush()
+            print("\n⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)")
         else:
             print("\nAlles gut. Enter für nächsten Schritt, q zum Beenden.")
         
@@ -105,16 +139,29 @@ def main() -> None:
             break
         elif eingabe == '':
             hunger = min(100, hunger + random.randint(15, 30))
-            print("🍎 Gefüttert!")
+            fuetterungen += 1
+            print("🍎 Gefüttert! *schluck*")
             time.sleep(0.5)
         # sonst: einfach weiter
         
         time.sleep(0.3)
     
+    # Game Over / Ende Statistik
+    dauer = time.time() - start_time
+    clear_screen()
     if hunger <= 0:
-        clear_screen()
         print(draw_stomach(0))
         print("\n💀 Der Dodo ist verhungert. Gute Nacht.")
+    else:
+        print(draw_dodo(hunger, 0))
+        print("\n🦤 Dodo watschelt zufrieden weg. Gute Nacht.")
+    
+    print(f"\n--- Statistik ---")
+    print(f"Überlebt: {schritt} Schritte")
+    print(f"Dauer: {dauer:.1f} Sekunden")
+    print(f"Fütterungen: {fuetterungen}")
+    if fuetterungen > 0:
+        print(f"Durchschnittl. Schritte pro Fütterung: {schritt / fuetterungen:.1f}")
 
 if __name__ == "__main__":
     try:
