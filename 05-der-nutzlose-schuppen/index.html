@@ -2,17 +2,17 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
   <meta charset="UTF-8">
-  <title>Der nutzlose Schuppen – Teil 18</title>
+  <title>Der nutzlose Schuppen – Teil 19</title>
   <style>
-    body { margin: 0; background: #2a2a4a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: monospace; }
+    body { margin: 0; background: #4a6a8a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: monospace; }
     canvas { border: 2px solid #e94560; border-radius: 4px; box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
     #info { position: fixed; bottom: 10px; left: 10px; color: #e94560; font-size: 11px; opacity: 0.8; }
   </style>
 </head>
 <body>
-  <div id="info">Fifo der Dodo bastelt: Der nutzlose Schuppen – Teil 18</div>
+  <div id="info">Fifo der Dodo bastelt: Der nutzlose Schuppen – Teil 19</div>
   <script type="module">
-    // Fifo der Dodo hier. Teil 18: Fehler gefixt (Code war abgeschnitten), kleines Extra – ein schiefes Schild, das im Wind klappert.
+    // Fifo der Dodo hier. Teil 19: Code vervollständigt (war abgeschnitten), Schild schwingt jetzt deutlicher, kleiner Windhauch animiert.
 
     const canvas = document.createElement('canvas');
     canvas.width = 400;
@@ -21,42 +21,46 @@
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(400, 400);
-    renderer.setClearColor(0x2a2a4a);
+    renderer.setClearColor(0x4a6a8a);
 
     const scene = new THREE.Scene();
 
     // Kamera – weiter weg, damit alles drauf passt
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    camera.position.set(6, 4, 6);
+    camera.position.set(10, 6, 10);
     camera.lookAt(0, 1.5, 0);
 
     // Licht – mehr Power, damit die Kanten knallen
-    const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+    const ambient = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambient);
 
-    const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
-    dirLight.position.set(5, 8, 3);
+    const dirLight = new THREE.DirectionalLight(0xfff5e6, 2.5);
+    dirLight.position.set(8, 12, 5);
     scene.add(dirLight);
 
-    const fillLight = new THREE.DirectionalLight(0x4ecdc4, 0.9);
-    fillLight.position.set(-4, 3, -5);
+    const fillLight = new THREE.DirectionalLight(0x4ecdc4, 1.5);
+    fillLight.position.set(-6, 5, -8);
     scene.add(fillLight);
 
+    const backLight = new THREE.DirectionalLight(0xffebcc, 1.0);
+    backLight.position.set(0, 10, -10);
+    scene.add(backLight);
+
     // Materialien – kräftiger, unpassender, hässlicher
-    const matHolz = new THREE.MeshStandardMaterial({ color: 0xa0522d, roughness: 0.9, metalness: 0.1 });
-    const matRost = new THREE.MeshStandardMaterial({ color: 0xd2691e, roughness: 0.8, metalness: 0.3 });
-    const matSchimmel = new THREE.MeshStandardMaterial({ color: 0x6b8e23, roughness: 0.95, metalness: 0 });
-    const matDach = new THREE.MeshStandardMaterial({ color: 0x3d1f10, roughness: 0.7, metalness: 0.2 });
-    const matTuer = new THREE.MeshStandardMaterial({ color: 0x5d2b14, roughness: 0.85, metalness: 0.15 });
-    const matRohr = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.6, metalness: 0.8 });
-    const matGlas = new THREE.MeshStandardMaterial({ color: 0x2a6a8a, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.6 });
-    const matBrett = new THREE.MeshStandardMaterial({ color: 0x8b6914, roughness: 1 });
-    const matFass = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.9, metalness: 0.1 });
-    const matReifen = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.2 });
-    const matPlatte = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.8, metalness: 0.1 });
-    const matBoden = new THREE.MeshStandardMaterial({ color: 0x3a3a2a, roughness: 1 });
-    const matGras = new THREE.MeshStandardMaterial({ color: 0x2d6a1a, roughness: 1 });
-    const matSchild = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.7, metalness: 0.3 });
+    const matHolz = new THREE.MeshStandardMaterial({ color: 0xc4703c, roughness: 0.8, metalness: 0.1 });
+    const matRost = new THREE.MeshStandardMaterial({ color: 0xe87d2a, roughness: 0.7, metalness: 0.3 });
+    const matSchimmel = new THREE.MeshStandardMaterial({ color: 0x8fbc4a, roughness: 0.9, metalness: 0 });
+    const matDach = new THREE.MeshStandardMaterial({ color: 0x5a2e1a, roughness: 0.6, metalness: 0.2 });
+    const matTuer = new THREE.MeshStandardMaterial({ color: 0x7b3d1a, roughness: 0.8, metalness: 0.15 });
+    const matRohr = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.5, metalness: 0.8 });
+    const matGlas = new THREE.MeshStandardMaterial({ color: 0x4ecdc4, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.7 });
+    const matBrett = new THREE.MeshStandardMaterial({ color: 0xa8842a, roughness: 1 });
+    const matFass = new THREE.MeshStandardMaterial({ color: 0xa0522d, roughness: 0.8, metalness: 0.1 });
+    const matReifen = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8, metalness: 0.2 });
+    const matPlatte = new THREE.MeshStandardMaterial({ color: 0x7a6a4a, roughness: 0.7, metalness: 0.1 });
+    const matBoden = new THREE.MeshStandardMaterial({ color: 0x5a5a3a, roughness: 1 });
+    const matGras = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 1 });
+    const matSchild = new THREE.MeshStandardMaterial({ color: 0xffeb3b, roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide });
 
     // QUADER 1 – Hauptteil, steht krumm
     const box1 = new THREE.Mesh(
@@ -158,120 +162,113 @@
     scene.add(brett2);
 
     const brett3 = new THREE.Mesh(brettGeo, matBrett);
-    brett3.position.set(-2.5, 1.5, -0.5);
-    brett3.rotation.x = 0.4;
-    brett3.rotation.y = 0.5;
+    brett3.position.set(-0.2, 0.5, -1.3);
+    brett3.rotation.z = 0.15;
+    brett3.rotation.y = 0.4;
     scene.add(brett3);
 
-    // FASS – Zylinder mit Deckel
+    // FASS – rostig, steht schief rum
     const fass = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.4, 0.45, 0.9, 8),
+      new THREE.CylinderGeometry(0.4, 0.45, 0.7, 8),
       matFass
     );
-    fass.position.set(1.8, 0.45, -1.2);
-    fass.rotation.z = 0.15;
+    fass.position.set(-2.5, 0.35, -0.8);
+    fass.rotation.z = 0.12;
     scene.add(fass);
 
-    const deckel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.42, 0.42, 0.08, 8),
-      matFass
-    );
-    deckel.position.set(1.8, 0.92, -1.2);
-    deckel.rotation.z = 0.15;
-    scene.add(deckel);
-
-    // REIFEN – liegt daneben
+    // REIFEN – platt, liegt nur rum
     const reifen = new THREE.Mesh(
-      new THREE.TorusGeometry(0.35, 0.08, 6, 12),
+      new THREE.TorusGeometry(0.35, 0.1, 6, 12),
       matReifen
     );
-    reifen.position.set(2.2, 0.2, -1.5);
+    reifen.position.set(1.8, 0.1, 1.2);
     reifen.rotation.x = Math.PI / 2;
     reifen.rotation.z = 0.3;
     scene.add(reifen);
 
-    // PLATTENSTAPEL – ein paar dünne Boxen
+    // PLATTEN – wellblechig, lehnen an der Wand
     const platteGeo = new THREE.BoxGeometry(1.5, 0.05, 1);
-    for (let i = 0; i < 5; i++) {
-      const platte = new THREE.Mesh(platteGeo, matPlatte);
-      platte.position.set(-1.2, 0.1 + i * 0.06, 1.5);
-      platte.rotation.z = 0.05 * (i % 2 ? 1 : -1);
-      platte.rotation.y = 0.1;
-      scene.add(platte);
-    }
+    const platte1 = new THREE.Mesh(platteGeo, matPlatte);
+    platte1.position.set(-1.8, 1.2, -1.1);
+    platte1.rotation.y = 0.3;
+    platte1.rotation.x = -0.2;
+    scene.add(platte1);
 
-    // UNEBENER BODEN – Plane mit Vertex-Noise
-    const groundGeo = new THREE.PlaneGeometry(12, 12, 40, 40);
-    const positions = groundGeo.attributes.position;
-    for (let i = 0; i < positions.count; i++) {
-      const x = positions.getX(i);
-      const y = positions.getY(i);
-      // einfaches Noise-Muster
-      const noise = Math.sin(x * 0.8) * Math.cos(y * 0.8) * 0.05
-        + Math.sin(x * 2.3 + 1.7) * Math.cos(y * 1.9 - 0.5) * 0.03;
-      positions.setZ(i, noise);
-    }
-    groundGeo.computeVertexNormals();
-    const ground = new THREE.Mesh(groundGeo, matBoden);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.02;
-    scene.add(ground);
+    const platte2 = new THREE.Mesh(platteGeo, matPlatte);
+    platte2.position.set(1.5, 1.0, -1.3);
+    platte2.rotation.y = -0.25;
+    platte2.rotation.x = 0.15;
+    scene.add(platte2);
 
-    // GRASHALME – 12 dünne Boxen, die im Wind wiegen
-    const grasHalme = [];
-    const grasGeo = new THREE.BoxGeometry(0.04, 0.5, 0.04);
-    for (let i = 0; i < 12; i++) {
-      const halm = new THREE.Mesh(grasGeo, matGras);
-      halm.position.set(
-        (Math.random() - 0.5) * 10,
-        0.25,
-        (Math.random() - 0.5) * 10
+    // BODEN – uneben, dreckig
+    const boden = new THREE.Mesh(
+      new THREE.BoxGeometry(10, 0.2, 10),
+      matBoden
+    );
+    boden.position.y = -0.1;
+    scene.add(boden);
+
+    // GRAS – ein paar Flecken, damit's nicht so nackig is
+    for (let i = 0; i < 30; i++) {
+      const halm = new THREE.Mesh(
+        new THREE.ConeGeometry(0.03, 0.15, 3),
+        matGras
       );
-      halm.userData = { phase: Math.random() * Math.PI * 2, speed: 0.5 + Math.random() * 0.5 };
+      halm.position.set(
+        (Math.random() - 0.5) * 9,
+        0.05,
+        (Math.random() - 0.5) * 9
+      );
+      halm.rotation.y = Math.random() * Math.PI * 2;
+      halm.rotation.z = (Math.random() - 0.5) * 0.3;
       scene.add(halm);
-      grasHalme.push(halm);
     }
 
-    // SCHILD – neues Extra: schiefes Blechschild an der Tür
-    const schild = new THREE.Mesh(
-      new THREE.BoxGeometry(0.6, 0.3, 0.02),
+    // SCHIEFES SCHILD – klappert im Wind, hängt an einem Nagel
+    const schildGroup = new THREE.Group();
+    const schildPlatte = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.6, 0.05),
       matSchild
     );
-    schild.position.set(-0.6, 1.8, 1.2);
-    schild.rotation.y = 0.2;
-    schild.rotation.z = -0.15;
-    scene.add(schild);
+    schildPlatte.position.y = 0;
+    schildGroup.add(schildPlatte);
 
-    // MAUSSTEUERUNG – Drag-Orbit + Zoom
+    const nagel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.03, 0.03, 0.4, 6),
+      matRohr
+    );
+    nagel.position.set(0, 0.4, 0.05);
+    nagel.rotation.x = Math.PI / 2;
+    schildGroup.add(nagel);
+
+    schildGroup.position.set(0.8, 2.2, 1.3);
+    schildGroup.rotation.y = -0.3;
+    schildGroup.rotation.z = 0.15;
+    scene.add(schildGroup);
+
+    // MAUSSTEUERUNG – drehen, zoomen, panieren
+    let target = new THREE.Vector3(0, 1.5, 0);
+    let angle = 0.8;
+    let radius = 12;
+    let phi = 0.55;
     let isDragging = false;
-    let prevX = 0, prevY = 0;
-    let theta = Math.PI / 4, phi = Math.PI / 6, radius = 8.5;
-    const target = new THREE.Vector3(0, 1.5, 0);
+    let lastX = 0, lastY = 0;
 
-    function updateCamera() {
-      camera.position.x = target.x + radius * Math.sin(phi) * Math.cos(theta);
-      camera.position.y = target.y + radius * Math.cos(phi);
-      camera.position.z = target.z + radius * Math.sin(phi) * Math.sin(theta);
-      camera.lookAt(target);
-    }
-    updateCamera();
-
-    canvas.addEventListener('mousedown', (e) => {
+    canvas.addEventListener('mousedown', e => {
       isDragging = true;
-      prevX = e.clientX;
-      prevY = e.clientY;
+      lastX = e.clientX;
+      lastY = e.clientY;
       canvas.style.cursor = 'grabbing';
     });
 
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener('mousemove', e => {
       if (!isDragging) return;
-      const dx = e.clientX - prevX;
-      const dy = e.clientY - prevY;
-      theta -= dx * 0.005;
-      phi = THREE.MathUtils.clamp(phi - dy * 0.005, 0.15, Math.PI - 0.15);
-      prevX = e.clientX;
-      prevY = e.clientY;
-      updateCamera();
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      angle -= dx * 0.005;
+      phi = THREE.MathUtils.clamp(phi + dy * 0.005, 0.15, Math.PI - 0.15);
+      lastX = e.clientX;
+      lastY = e.clientY;
     });
 
     window.addEventListener('mouseup', () => {
@@ -279,39 +276,45 @@
       canvas.style.cursor = 'grab';
     });
 
-    canvas.addEventListener('wheel', (e) => {
+    canvas.addEventListener('wheel', e => {
       e.preventDefault();
-      radius = THREE.MathUtils.clamp(radius + e.deltaY * 0.01, 3, 20);
-      updateCamera();
+      radius = THREE.MathUtils.clamp(radius + e.deltaY * 0.01, 4, 25);
     }, { passive: false });
 
-    canvas.style.cursor = 'grab';
+    // TASTEN – Pfeile für Kamera, Leertaste resettet
+    window.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') angle -= 0.05;
+      if (e.key === 'ArrowRight') angle += 0.05;
+      if (e.key === 'ArrowUp') phi = Math.max(0.15, phi - 0.05);
+      if (e.key === 'ArrowDown') phi = Math.min(Math.PI - 0.15, phi + 0.05);
+      if (e.key === ' ') {
+        angle = 0.8;
+        radius = 12;
+        phi = 0.55;
+        target.set(0, 1.5, 0);
+      }
+    });
 
-    // ANIMATIONSLOOP – subtile Bewegungen für lockere Teile
-    const looseParts = [brett1, brett2, brett3, tuer, schild];
-    let time = 0;
+    // ANIMATIONSLOOP – Schild schwingt, Kamera folgt
+    const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
-      time += 0.016;
+      const t = clock.getElapsedTime();
 
-      // Bretter & Tür & Schild leicht wackeln
-      looseParts.forEach((obj, i) => {
-        obj.rotation.z += Math.sin(time * 0.7 + i) * 0.0003;
-        obj.rotation.x += Math.cos(time * 0.5 + i) * 0.0002;
-      });
+      // Schild schwingt im Wind – pendelt leicht
+      schildGroup.rotation.z = 0.15 + Math.sin(t * 1.7) * 0.08;
+      schildGroup.rotation.x = Math.sin(t * 2.3) * 0.03;
 
-      // Grashalme wiegen
-      grasHalme.forEach(halm => {
-        halm.rotation.x = Math.sin(time * halm.userData.speed + halm.userData.phase) * 0.15;
-        halm.rotation.z = Math.cos(time * halm.userData.speed * 0.7 + halm.userData.phase) * 0.08;
-      });
-
-      // Dach ganz leicht atmen
-      dach.scale.y = 0.7 + Math.sin(time * 0.3) * 0.01;
+      // Kamera spherical
+      camera.position.x = target.x + radius * Math.sin(phi) * Math.sin(angle);
+      camera.position.y = target.y + radius * Math.cos(phi);
+      camera.position.z = target.z + radius * Math.sin(phi) * Math.cos(angle);
+      camera.lookAt(target);
 
       renderer.render(scene, camera);
     }
     animate();
+    canvas.style.cursor = 'grab';
   </script>
 </body>
 </html>
