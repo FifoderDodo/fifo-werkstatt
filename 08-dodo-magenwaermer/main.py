@@ -1,25 +1,43 @@
-# main.py - Dodo-Magenwärmer Teil 1
-# Fifo der Dodo bastelt an der Hunger-Logik.
-# Wenn der Magen knurrt (< 20%), soll später die Anzeige blinken.
-# Heute: nur die Abfrage bauen, schön sauber und mit Beispieldaten.
+# main.py - Dodo-Magenwärmer Teil 2
+# Fifo der Dodo bastelt an der Hunger-Simulation.
+# Jetzt läuft der Magen in Runden: Warten lässt den Pegel sinken, Füttern hebt ihn.
+# Immer noch nur Standardbibliothek, alles im Speicher, Dodo-Ehrenwort.
+
+import random
+import time
 
 def satte_pruefung(aktueller_wert: int) -> bool:
     """Prüft, ob Sättigung unter 20 % gefallen ist."""
     return aktueller_wert < 20
 
 
+def draw_bar(wert: int, breite: int = 20) -> str:
+    """Baut einen kleinen ASCII-Balken für die optische Anzeige."""
+    voll = int(wert / 100 * breite)
+    leer = breite - voll
+    farbe = "\033[91m" if wert < 20 else "\033[92m"  # Rot bei Alarm, sonst Grün
+    reset = "\033[0m"
+    return f"{farbe}[{'#' * voll}{'.' * leer}]{reset} {wert}%"
+
+
 def main() -> None:
-    # Kleiner Vorrat an Beispieldaten, damit wir nicht nur eine Zahl testen.
-    beispiel_werte = [100, 55, 19, 0, 20, 21]
-    index = 0
+    satte = 100
+    runde = 0
 
-    print("🦤 Fifo meldet Dienst: Magenwärmer-Logik startet.")
-    print("Drück Enter für nächsten Testwert oder 'q' zum Beenden.")
+    print("🦤 Fifo meldet Dienst: Magenwärmer-Simulation startet.")
+    print("Befehle: Enter=warten, f=füttern, q=beenden\n")
 
-    while index < len(beispiel_werte):
+    while True:
+        # Status anzeigen
+        alarm = satte_pruefung(satte)
+        prefix = "🚨 ALARM: " if alarm else ""
+        print(f"Runde {runde:2d} | {draw_bar(satte)} | {prefix}Magenstand: {satte}%")
+
+        if alarm:
+            print("   >>> Der Magen knurrt laut! Füttern nicht vergessen. <<<")
+
         try:
-            # Im Browser kann der Zuschauer tippen, im Test kommen Beispiel-Antworten.
-            eingabe = input(f"Testwert {beispiel_werte[index]}% – Enter für Prüfen, 'q' für Ende: ").strip().lower()
+            eingabe = input("Aktion (Enter/f/q): ").strip().lower()
         except EOFError:
             print("\nKein Input mehr, Fifo watschelt freundlich davon. Tschüß!")
             break
@@ -27,15 +45,23 @@ def main() -> None:
         if eingabe == 'q':
             print("Fifo packt zusammen. Bis bald!")
             break
+        elif eingabe == 'f':
+            # Füttern: 15-30 % auffüllen, max 100
+            menge = random.randint(15, 30)
+            satte = min(100, satte + menge)
+            print(f"   🍪 Gefüttert! +{menge}% Sättigung.\n")
+        else:
+            # Warten: Zeit vergeht, Magen leert sich 5-15 %
+            verlust = random.randint(5, 15)
+            satte = max(0, satte - verlust)
+            print(f"   ⏳ Zeit vergeht... -{verlust}% Sättigung.\n")
 
-        wert = beispiel_werte[index]
-        alarm = satte_pruefung(wert)
-        status = "🚨 ALARM: Magen knurrt!" if alarm else "✅ Alles im grünen Bereich."
-        print(f"Sättigung: {wert}% -> {status}\n")
-        index += 1
+        runde += 1
+        if satte <= 0:
+            print("   ☠️ Der Magen ist ganz leer. Fifo wird ohnmächtig... Spielende.")
+            break
 
-    if index >= len(beispiel_werte):
-        print("Alle Beispieldurchläufe erledigt. Fifo nickt zufrieden.")
+    print("\nSimulation beendet. Fifo nickt zufrieden.")
 
 
 if __name__ == "__main__":
