@@ -1,6 +1,6 @@
-# main.py - Dodo-Magenwärmer Teil 3
+# main.py - Dodo-Magenwärmer Teil 4
 # Fifo der Dodo bastelt an der Hunger-Simulation.
-# Jetzt piept der PC bei Alarm und Fifo zeigt Gesichter.
+# Jetzt gibt es eine eigene Warnfunktion für kritische Sättigung (< 20 %).
 # Immer noch nur Standardbibliothek, alles im Speicher, Dodo-Ehrenwort.
 
 import random
@@ -41,6 +41,25 @@ def beep() -> None:
     sys.stdout.flush()
 
 
+def warnung_ausgeben(satte: int, alarm_count: int) -> int:
+    """
+    Prüft kritischen Sättigungsstand (<20 %).
+    Gibt grafische Warnung aus, piept dreimal und erhöht Zähler.
+    Gibt neuen alarm_count zurück.
+    """
+    if satte_pruefung(satte):
+        # Doppelte Warnzeile für mehr Aufmerksamkeit
+        print("   ╔══════════════════════════════════╗")
+        print(f"   ║  🚨 KRITISCH: Magen nur {satte:2d}%!  ║")
+        print("   ╚══════════════════════════════════╝")
+        # Dreimal piepen mit kleiner Pause
+        for _ in range(3):
+            beep()
+            time.sleep(0.15)
+        alarm_count += 1
+    return alarm_count
+
+
 def main() -> None:
     satte = 100
     runde = 0
@@ -52,15 +71,12 @@ def main() -> None:
 
     while True:
         # Status anzeigen
-        alarm = satte_pruefung(satte)
-        prefix = "🚨 ALARM: " if alarm else ""
+        prefix = "🚨 ALARM: " if satte_pruefung(satte) else ""
         print(f"Runde {runde:2d} | {draw_bar(satte)} | {prefix}Magenstand: {satte}%")
         print(draw_dodo(satte))
 
-        if alarm:
-            print("   >>> Der Magen knurrt laut! Füttern nicht vergessen. <<<")
-            beep()  # Piep beim Alarm
-            alarm_count += 1
+        # Neue zentrale Warnfunktion
+        alarm_count = warnung_ausgeben(satte, alarm_count)
 
         try:
             eingabe = input("Aktion (Enter/f/q): ").strip().lower()
