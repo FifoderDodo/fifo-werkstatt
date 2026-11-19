@@ -1,4 +1,4 @@
-"""Faden-Besen, Teil 6: Der Besen fragt geduldiger und zeigt die Bilanz."""
+"""Faden-Besen, Teil 7: Der Besen sortiert die Fäden und lagert die Demo aus."""
 
 
 def entferne_doppelte(eintraege):
@@ -27,6 +27,19 @@ def entferne_doppelte(eintraege):
             entfernte_duplikate.append(eintrag)  # Das Original des Duplikats merken.
 
     return aufgeraeumt, leere_eintraege, entfernte_duplikate
+
+
+def lade_demo_gedanken():
+    """Liefert die kleine erfundene Gedankenwelt für die Demo."""
+    return [
+        "Blauer Ideenfaden",
+        "Knoten aus Wollstaub",
+        "Leise Flügelfeder",
+        "",
+        "blauer ideenfaden",      # Doppelter, aber anders geschrieben
+        "Kleiner Korkenknoten",
+        "KNOTEN AUS WOLLSTAUB",   # Noch ein Doppelter
+    ]
 
 
 def sammle_eigene_gedanken():
@@ -74,24 +87,13 @@ def frage_wahl():
 
 
 def main():
-    # Eine kleine erfundene Gedankenwelt mit Dubletten, Leere und Schreibweisen.
-    gedankenfaeden = [
-        "Blauer Ideenfaden",
-        "Knoten aus Wollstaub",
-        "Leise Flügelfeder",
-        "",
-        "blauer ideenfaden",      # Doppelter, aber anders geschrieben
-        "Kleiner Korkenknoten",
-        "KNOTEN AUS WOLLSTAUB",   # Noch ein Doppelter
-    ]
-
-    print("Faden-Besen: Der sechste kleine Besenstrich!")
+    print("Faden-Besen: Der siebte kleine Besenstrich!")
     
     wahl = frage_wahl()
 
     alle_faeden = []
     if wahl in ("1", "3"):
-        alle_faeden.extend(gedankenfaeden)
+        alle_faeden.extend(lade_demo_gedanken())
     if wahl in ("2", "3"):
         eigene = sammle_eigene_gedanken()
         alle_faeden.extend(eigene)
@@ -102,10 +104,14 @@ def main():
 
     gesamt_vorher = len(alle_faeden)
     aufgeraeumt, leere_eintraege, entfernte_duplikate = entferne_doppelte(alle_faeden)
+    
+    # Neu: Alphabetische Ordnung (groß/klein egal) für den Anblick.
+    aufgeraeumt.sort(key=str.lower)
+    
     entfernt = len(entfernte_duplikate)
     gesamt_nachher = len(aufgeraeumt)
 
-    print("\nOrdentlich ausgelegte Gedankenfäden:")
+    print("\nOrdentlich ausgelegte Gedankenfäden (alphabetisch):")
     for nummer, faden in enumerate(aufgeraeumt, start=1):
         print(f"{nummer}. {faden}")
 
