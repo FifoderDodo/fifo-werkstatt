@@ -2,7 +2,7 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
   <meta charset="UTF-8">
-  <title>Der nutzlose Schuppen – Teil 19</title>
+  <title>Der nutzlose Schuppen – Teil 20</title>
   <style>
     body { margin: 0; background: #4a6a8a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: monospace; }
     canvas { border: 2px solid #e94560; border-radius: 4px; box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
@@ -10,9 +10,9 @@
   </style>
 </head>
 <body>
-  <div id="info">Fifo der Dodo bastelt: Der nutzlose Schuppen – Teil 19</div>
+  <div id="info">Fifo der Dodo bastelt: Der nutzlose Schuppen – Teil 20</div>
   <script type="module">
-    // Fifo der Dodo hier. Teil 19: Code vervollständigt (war abgeschnitten), Schild schwingt jetzt deutlicher, kleiner Windhauch animiert.
+    // Fifo der Dodo hier. Teil 20: Code vervollständigt, Schild schwingt im Wind, Maussteuerung läuft, alles rund.
 
     const canvas = document.createElement('canvas');
     canvas.width = 400;
@@ -156,119 +156,119 @@
     scene.add(brett1);
 
     const brett2 = new THREE.Mesh(brettGeo, matBrett);
-    brett2.position.set(1.3, 0.4, -1.1);
+    brett2.position.set(1.2, 0.4, -1.1);
     brett2.rotation.z = -0.2;
     brett2.rotation.y = -0.15;
     scene.add(brett2);
 
     const brett3 = new THREE.Mesh(brettGeo, matBrett);
-    brett3.position.set(-0.2, 0.5, -1.3);
-    brett3.rotation.z = 0.15;
+    brett3.position.set(-0.5, 0.2, -1.3);
+    brett3.rotation.z = 0.1;
     brett3.rotation.y = 0.4;
     scene.add(brett3);
 
     // FASS – rostig, steht schief rum
     const fass = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.4, 0.45, 0.7, 8),
+      new THREE.CylinderGeometry(0.5, 0.5, 0.8, 8),
       matFass
     );
-    fass.position.set(-2.5, 0.35, -0.8);
-    fass.rotation.z = 0.12;
+    fass.position.set(-2.5, 0.4, -0.8);
+    fass.rotation.z = 0.15;
     scene.add(fass);
 
     // REIFEN – platt, liegt nur rum
     const reifen = new THREE.Mesh(
-      new THREE.TorusGeometry(0.35, 0.1, 6, 12),
+      new THREE.TorusGeometry(0.4, 0.12, 6, 12),
       matReifen
     );
-    reifen.position.set(1.8, 0.1, 1.2);
+    reifen.position.set(2.2, 0.12, 0.5);
     reifen.rotation.x = Math.PI / 2;
     reifen.rotation.z = 0.3;
     scene.add(reifen);
 
-    // PLATTEN – wellblechig, lehnen an der Wand
-    const platteGeo = new THREE.BoxGeometry(1.5, 0.05, 1);
+    // PLATTEN – wellblechartig, lehnen an der Wand
+    const platteGeo = new THREE.BoxGeometry(1.5, 0.05, 1.0);
     const platte1 = new THREE.Mesh(platteGeo, matPlatte);
-    platte1.position.set(-1.8, 1.2, -1.1);
-    platte1.rotation.y = 0.3;
+    platte1.position.set(-1.0, 0.5, 1.5);
+    platte1.rotation.y = 0.1;
     platte1.rotation.x = -0.2;
     scene.add(platte1);
 
     const platte2 = new THREE.Mesh(platteGeo, matPlatte);
-    platte2.position.set(1.5, 1.0, -1.3);
-    platte2.rotation.y = -0.25;
+    platte2.position.set(1.5, 0.6, -1.5);
+    platte2.rotation.y = -0.2;
     platte2.rotation.x = 0.15;
     scene.add(platte2);
 
     // BODEN – uneben, dreckig
     const boden = new THREE.Mesh(
-      new THREE.BoxGeometry(10, 0.2, 10),
+      new THREE.PlaneGeometry(20, 20),
       matBoden
     );
-    boden.position.y = -0.1;
+    boden.rotation.x = -Math.PI / 2;
+    boden.position.y = 0;
     scene.add(boden);
 
-    // GRAS – ein paar Flecken, damit's nicht so nackig is
+    // GRAS – ein paar Halme, wild gewachsen
     for (let i = 0; i < 30; i++) {
       const halm = new THREE.Mesh(
-        new THREE.ConeGeometry(0.03, 0.15, 3),
+        new THREE.ConeGeometry(0.02, 0.15, 3),
         matGras
       );
       halm.position.set(
-        (Math.random() - 0.5) * 9,
-        0.05,
-        (Math.random() - 0.5) * 9
+        (Math.random() - 0.5) * 18,
+        0.075,
+        (Math.random() - 0.5) * 18
       );
       halm.rotation.y = Math.random() * Math.PI * 2;
-      halm.rotation.z = (Math.random() - 0.5) * 0.3;
+      halm.rotation.x = (Math.random() - 0.5) * 0.3;
       scene.add(halm);
     }
 
-    // SCHIEFES SCHILD – klappert im Wind, hängt an einem Nagel
-    const schildGroup = new THREE.Group();
+    // SCHILD – "Betreten verboten" oder so, schwingt im Wind
+    const schildGruppe = new THREE.Group();
     const schildPlatte = new THREE.Mesh(
-      new THREE.BoxGeometry(1.2, 0.6, 0.05),
+      new THREE.PlaneGeometry(0.8, 0.5),
       matSchild
     );
-    schildPlatte.position.y = 0;
-    schildGroup.add(schildPlatte);
+    schildPlatte.position.y = 0.25;
+    schildGruppe.add(schildPlatte);
 
-    const nagel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.03, 0.03, 0.4, 6),
+    const schildStab = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.03, 0.03, 1.5, 4),
       matRohr
     );
-    nagel.position.set(0, 0.4, 0.05);
-    nagel.rotation.x = Math.PI / 2;
-    schildGroup.add(nagel);
+    schildStab.position.y = -0.5;
+    schildGruppe.add(schildStab);
 
-    schildGroup.position.set(0.8, 2.2, 1.3);
-    schildGroup.rotation.y = -0.3;
-    schildGroup.rotation.z = 0.15;
-    scene.add(schildGroup);
+    schildGruppe.position.set(1.8, 0, 1.6);
+    schildGruppe.rotation.y = -0.3;
+    scene.add(schildGruppe);
 
-    // MAUSSTEUERUNG – drehen, zoomen, panieren
-    let target = new THREE.Vector3(0, 1.5, 0);
-    let angle = 0.8;
-    let radius = 12;
-    let phi = 0.55;
+    // MAUSSTEUERUNG – ziehen zum Drehen, Rad zum Zoomen
     let isDragging = false;
-    let lastX = 0, lastY = 0;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+    const target = new THREE.Vector3(0, 1.5, 0);
+    const spherical = new THREE.Spherical();
+    spherical.setFromVector3(camera.position.clone().sub(target));
 
-    canvas.addEventListener('mousedown', e => {
+    canvas.addEventListener('mousedown', (e) => {
       isDragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
       canvas.style.cursor = 'grabbing';
     });
 
-    window.addEventListener('mousemove', e => {
+    window.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
-      const dx = e.clientX - lastX;
-      const dy = e.clientY - lastY;
-      angle -= dx * 0.005;
-      phi = THREE.MathUtils.clamp(phi + dy * 0.005, 0.15, Math.PI - 0.15);
-      lastX = e.clientX;
-      lastY = e.clientY;
+      const deltaX = e.clientX - lastMouseX;
+      const deltaY = e.clientY - lastMouseY;
+      spherical.theta -= deltaX * 0.005;
+      spherical.phi += deltaY * 0.005;
+      spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
     });
 
     window.addEventListener('mouseup', () => {
@@ -276,44 +276,57 @@
       canvas.style.cursor = 'grab';
     });
 
-    canvas.addEventListener('wheel', e => {
+    canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
-      radius = THREE.MathUtils.clamp(radius + e.deltaY * 0.01, 4, 25);
+      spherical.radius *= e.deltaY > 0 ? 1.1 : 0.9;
+      spherical.radius = Math.max(3, Math.min(25, spherical.radius));
     }, { passive: false });
 
-    // TASTEN – Pfeile für Kamera, Leertaste resettet
-    window.addEventListener('keydown', e => {
-      if (e.key === 'ArrowLeft') angle -= 0.05;
-      if (e.key === 'ArrowRight') angle += 0.05;
-      if (e.key === 'ArrowUp') phi = Math.max(0.15, phi - 0.05);
-      if (e.key === 'ArrowDown') phi = Math.min(Math.PI - 0.15, phi + 0.05);
-      if (e.key === ' ') {
-        angle = 0.8;
-        radius = 12;
-        phi = 0.55;
-        target.set(0, 1.5, 0);
+    // TASTEN – Pfeile drehen/neigen, Leertaste resettet
+    window.addEventListener('keydown', (e) => {
+      switch (e.code) {
+        case 'ArrowLeft': spherical.theta -= 0.05; break;
+        case 'ArrowRight': spherical.theta += 0.05; break;
+        case 'ArrowUp': spherical.phi = Math.max(0.1, spherical.phi - 0.05); break;
+        case 'ArrowDown': spherical.phi = Math.min(Math.PI - 0.1, spherical.phi + 0.05); break;
+        case 'Space':
+          spherical.set(12, Math.PI / 3, Math.PI / 4);
+          target.set(0, 1.5, 0);
+          break;
       }
     });
 
-    // ANIMATIONSLOOP – Schild schwingt, Kamera folgt
+    // ANIMATIONSLOOP – alles bewegt sich leicht
     const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
 
-      // Schild schwingt im Wind – pendelt leicht
-      schildGroup.rotation.z = 0.15 + Math.sin(t * 1.7) * 0.08;
-      schildGroup.rotation.x = Math.sin(t * 2.3) * 0.03;
-
-      // Kamera spherical
-      camera.position.x = target.x + radius * Math.sin(phi) * Math.sin(angle);
-      camera.position.y = target.y + radius * Math.cos(phi);
-      camera.position.z = target.z + radius * Math.sin(phi) * Math.cos(angle);
+      // Kamera aus Spherical aktualisieren
+      camera.position.setFromSpherical(spherical).add(target);
       camera.lookAt(target);
+
+      // Schild schwingt im Wind – Sinus auf Z und X
+      schildGruppe.rotation.z = Math.sin(t * 1.2) * 0.15;
+      schildGruppe.rotation.x = Math.cos(t * 0.9) * 0.05;
+
+      // Dach wackelt ganz leicht
+      dach.rotation.y = 0.15 + Math.sin(t * 0.7) * 0.01;
+      dach.rotation.x = -0.1 + Math.cos(t * 0.5) * 0.005;
+
+      // Rohr vibriert minimal
+      rohr.rotation.x = 0.25 + Math.sin(t * 2.3) * 0.008;
+
+      // Bretter flattern ganz wenig
+      brett1.rotation.z = 0.3 + Math.sin(t * 1.1) * 0.02;
+      brett2.rotation.z = -0.2 + Math.cos(t * 0.8) * 0.015;
+      brett3.rotation.z = 0.1 + Math.sin(t * 1.5) * 0.01;
 
       renderer.render(scene, camera);
     }
     animate();
+
+    // Init Cursor
     canvas.style.cursor = 'grab';
   </script>
 </body>
