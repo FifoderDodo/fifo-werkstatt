@@ -119,52 +119,56 @@ def neuer_tag(daten: dict) -> dict:
 if __name__ == "__main__":
     import json
     
+    def run_test(name, daten):
+        print(f"--- {name} ---")
+        erg = neuer_tag(daten)
+        print(json.dumps(erg, ensure_ascii=False, indent=2))
+        print()
+
     # Test 1: Normaler Tag mit Daten
-    test_daten_1 = {
+    run_test("Test 1: Normal", {
         "gestern": {"am_projekt_arbeiten": 3, "schrott_suchen": 2, "spazieren": 1},
         "fehlschlaege": {"schrott_suchen": 2, "verkaufen": 1},
         "stimmung": 15,
         "wetter": "sonnig"
-    }
-    print("--- Test 1 ---")
-    print(json.dumps(neuer_tag(test_daten_1), ensure_ascii=False, indent=2))
+    })
 
     # Test 2: Leere Daten (Randfall)
-    test_daten_2 = {
+    run_test("Test 2: Leer", {
         "gestern": {},
         "fehlschlaege": {},
         "stimmung": 30,
         "wetter": ""
-    }
-    print("\n--- Test 2 ---")
-    print(json.dumps(neuer_tag(test_daten_2), ensure_ascii=False, indent=2))
+    })
 
-    # Test 3: Schlechte Stimmung (Prüfen ob nur 1 Basis-Aktion kommt)
-    test_daten_3 = {
+    # Test 3: Schlechte Stimmung (Prüfen ob nur 1 Basis-Aktion kommt, Rest frei für Fehler/Wetter)
+    run_test("Test 3: Schlechte Laune", {
         "gestern": {"think": 5},
         "fehlschlaege": {},
         "stimmung": -50,
         "wetter": "regen"
-    }
-    print("\n--- Test 3 (Tiefstimmung) ---")
-    print(json.dumps(neuer_tag(test_daten_3), ensure_ascii=False, indent=2))
+    })
 
-    # Test 4: Kaputte Typen (String-Stimmung, None-Wetter, unbekannte Aktionen)
-    test_daten_4 = {
-        "gestern": {"schuppen_ausmisten": 5, "think": 2},
-        "fehlschlaege": {"kaputt_machen": 3},
-        "stimmung": "sehr_schlecht",
-        "wetter": None
-    }
-    print("\n--- Test 4 (Robustheit) ---")
-    print(json.dumps(neuer_tag(test_daten_4), ensure_ascii=False, indent=2))
-
-    # Test 5: Viele Fehler + viele Gestern-Aktionen (Prüfen Top-2 Logik & Slot-Limit)
-    test_daten_5 = {
-        "gestern": {"schuppen_ausmisten": 5, "am_projekt_arbeiten": 4, "malen": 3},
-        "fehlschlaege": {"verkaufen": 4, "schrott_suchen": 3, "einlagern": 2},
+    # Test 4: Doppelte Fäden - Schuppen ausmisten oft & schiefgegangen
+    run_test("Test 4: Schuppen-Doppel", {
+        "gestern": {"schuppen_ausmisten": 5, "malen": 2},
+        "fehlschlaege": {"schuppen_ausmisten": 3},
         "stimmung": 10,
         "wetter": "bewölkt"
-    }
-    print("\n--- Test 5 (Viele Fäden) ---")
-    print(json.dumps(neuer_tag(test_daten_5), ensure_ascii=False, indent=2))
+    })
+
+    # Test 5: Viele Fehler, peu Platz
+    run_test("Test 5: Fehlerflut", {
+        "gestern": {"think": 1, "eat": 1},
+        "fehlschlaege": {"schrott_suchen": 4, "verkaufen": 3, "aufheben": 2},
+        "stimmung": 0,
+        "wetter": "sonne"
+    })
+
+    # Test 6: Unbekannte Aktionen in Input (Robustheit)
+    run_test("Test 6: Müll im Input", {
+        "gestern": {"fliegen": 10, "schlafen": 5, "think": 1},
+        "fehlschlaege": {"kaputt_machen": 99},
+        "stimmung": "viel",  # Falscher Typ
+        "wetter": 123        # Falscher Typ
+    })
