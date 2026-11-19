@@ -24,7 +24,7 @@ def neuer_tag(daten: dict) -> dict:
     
     wetter = str(daten.get("wetter", "unbekannt")).lower()
 
-    # Erlaubte Aktionen (Whitelist) - Schuppen ausmisten endlich offiziell
+    # Erlaubte Aktionen (Whitelist)
     ERLAUBT = {
         "think", "eat", "drink", "walk_to", "sitzen", "spazieren",
         "schrott_suchen", "aufheben", "verkaufen", "einlagern",
@@ -32,8 +32,13 @@ def neuer_tag(daten: dict) -> dict:
         "nachsehen", "am_projekt_arbeiten", "schuppen_ausmisten"
     }
 
-    # Physische Aktionen, die 'nachsehen' als Reparatur brauchen
-    PHYSISCH = {"schrott_suchen", "aufheben", "verkaufen", "einlagern", "schuppen_ausmisten"}
+    # Aktionen mit Sinn für 'Wiederholung lohnt sich' (Priorität)
+    SINNVOLL_WIEDERHOLEN = {
+        "am_projekt_arbeiten", "malen", "komponieren", 
+        "schuppen_ausmisten", "spazieren", "read_news"
+    }
+    # Grind-Aktionen: nicht blind wiederholen
+    GRIND = {"schrott_suchen", "aufheben", "einlagern", "verkaufen"}
 
     plan = []
     notiz_teile = []
@@ -57,47 +62,72 @@ def neuer_tag(daten: dict) -> dict:
     elif stimmung > 70:
         notiz_teile.append("Guter Start. Nutzen.")
 
-    # 2. Fehlschläge analysieren: Top 2 häufigste -> Gegenmaßnahme (reparieren first!)
+    # 2. Fehlschläge analysieren: Top 2 -> Nachdenken (reparieren = verstehen)
     if fehlschlaege and len(plan) < 3:
-        # Sortiert absteigend nach Anzahl
         sortiert_fehler = sorted(fehlschlaege.items(), key=lambda x: x[1], reverse=True)
-        for fehler_aktion, anzahl in sortiert_fehler[:2]:  # Max top 2 Fehler ansehen
+        for fehler_aktion, anzahl in sortiert_fehler[:2]:
             if len(plan) >= 3:
                 break
             if fehler_aktion in ERLAUBT:
-                if fehler_aktion in PHYSISCH:
-                    add_aktion("nachsehen", f"Checken, warum '{fehler_aktion}' ({anzahl}x) schiefging", f"Reparatur: {fehler_aktion} ({anzahl}x).")
-                else:
-                    add_aktion("think", f"Nachdenken über '{fehler_aktion}' ({anzahl}x)", f"Top-Fehler: {fehler_aktion} ({anzahl}x).")
+                # nachsehen ist für Events, nicht für Debugging. think ist sicher.
+                add_aktion("think", f"Analyse: Warum '{fehler_aktion}' ({anzahl}x) scheiterte", f"Fehler-Fokus: {fehler_aktion} ({anzahl}x).")
             else:
                 notiz_teile.append(f"Unbekannter Fehler: {fehler_aktion} ({anzahl}x).")
                 if len(plan) < 3:
                     add_aktion("think", f"Rätsel: {fehler_aktion} klären", f"Unbekannt: {fehler_aktion}.")
 
-    # 3. Gestern häufiges wiederholen oder fortsetzen (Top 2, wenn Platz)
+    # 3. Gestern sinnvolles fortsetzen (Priorität: Projekt, Kreativ, Schuppen, Bewegung)
     if gestern and len(plan) < 3:
-        sortiert_gestern = sorted(gestern.items(), key=lambda x: x[1], reverse=True)
-        for aktion, anzahl in sortiert_gestern[:2]:
+        # Sortieren: Priorität hoch -> runter, dann Häufigkeit
+        def sort_key(item):
+            aktion, anzahl = item
+            prio = 0
+            if aktion == "am_projekt_arbeiten": prio = 100
+            elif aktion in {"malen", "komponieren"}: prio = 90
+            elif aktion == "schuppen_ausmisten": prio = 80
+            elif aktion == "spazieren": prio = 70
+            elif aktion == "read_news": prio = 60
+            elif aktion in GRIND: prio = 10  # niedrig
+            else: prio = 50
+            return (-prio, -anzahl)
+        
+        sortiert_gestern = sorted(gestern.items(), key=sort_key)
+        
+        for aktion, anzahl in sortiert_gestern:
             if len(plan) >= 3:
                 break
-            if aktion in ERLAUBT and not any(p["aktion"] == aktion for p in plan):
+            if aktion not in ERLAUBT:
+                notiz_teile.append(f"Unbekannte Aktion gestern: {aktion} ({anzahl}x).")
+                continue
+            if any(p["aktion"] == aktion for p in plan):
+                continue
+            
+            # walk_to braucht Ziel. Wenn häufig -> essladen (Standard) oder spazieren
+            if aktion == "walk_to":
+                add_aktion("walk_to", "walk_to essladen", f"Weg fortsetzen: {aktion} ({anzahl}x).")
+            elif aktion in SINNVOLL_WIEDERHOLEN:
                 if aktion == "am_projekt_arbeiten":
-                    add_aktion(aktion, "Projekt weitertreiben, ein Schritt", f"Gestern oft: {aktion} ({anzahl}x).")
+                    add_aktion(aktion, "Projekt weitertreiben, ein Schritt", f"Gestern wichtig: {aktion} ({anzahl}x).")
                 elif aktion in {"malen", "komponieren"}:
                     add_aktion(aktion, f"Kreativ weitermachen: {aktion}", f"Gestern oft: {aktion} ({anzahl}x).")
-                elif aktion in PHYSISCH:
-                    add_aktion(aktion, f"Routine: {aktion} fortsetzen", f"Gestern oft: {aktion} ({anzahl}x).")
+                elif aktion == "schuppen_ausmisten":
+                    add_aktion(aktion, "Schuppen weiter ausmisten, eine Ecke", f"Dranbleiben: {aktion} ({anzahl}x).")
                 else:
-                    add_aktion(aktion, f"Routine: {aktion}", f"Gestern oft: {aktion} ({anzahl}x).")
-            elif aktion not in ERLAUBT:
-                notiz_teile.append(f"Unbekannte Top-Aktion gestern: {aktion} ({anzahl}x).")
+                    add_aktion(aktion, f"Routine: {aktion}", f"Gestern gut: {aktion} ({anzahl}x).")
+            # Grind nur wenn Platz und nix Besseres da (wird durch Sortierung automatisch hintenan gestellt)
+            elif aktion in GRIND and len(plan) < 2: # Max 1 Grind wenn sonst leer
+                 add_aktion(aktion, f"Routine: {aktion}", f"Gestern viel: {aktion} ({anzahl}x).")
 
-    # 4. Wetter-Reaktion (falls Platz)
+    # 4. Wetter-Reaktion (echte Wetter-Arten)
     if len(plan) < 3:
-        if "regen" in wetter or "sturm" in wetter:
+        if wetter in {"regen", "gewitter", "sturm"}:
             add_aktion("sitzen", "Drinnen bleiben, Tee, Projekt", "Wetter mies.")
-        elif "sonne" in wetter or "klar" in wetter:
+        elif wetter in {"schnee", "nebel"}:
+            add_aktion("spazieren", "Kurze Runde, warm anziehen", "Wetter frisch.")
+        elif wetter in {"klar", "sonne", "sonnig"}:
             add_aktion("spazieren", "Raus, Licht tanken, 20 Min.", "Wetter gut.")
+        elif wetter == "wolken":
+            add_aktion("spazieren", "Raus, graue Runde drehen", "Wetter okay.")
 
     # 5. Fallback: Wenn Plan leer, Minimalprogramm
     if not plan:
@@ -107,8 +137,9 @@ def neuer_tag(daten: dict) -> dict:
     # Plan auf max 3 kürzen (Sicherheit)
     plan = plan[:3]
 
-    # Notiz zusammenbauen, max 200 Zeichen
+    # Notiz zusammenbauen, max 200 Zeichen, keine doppelten Punkte
     notiz = ". ".join(filter(None, notiz_teile))
+    notiz = notiz.replace("..", ".") # Sicherheitsnetz
     if len(notiz) > 200:
         notiz = notiz[:197] + "..."
 
@@ -125,10 +156,10 @@ if __name__ == "__main__":
         print(json.dumps(erg, ensure_ascii=False, indent=2))
         print()
 
-    # Test 1: Normaler Tag mit Daten
+    # Test 1: Normaler Tag mit Daten (walk_to häufig, Fehler physisch)
     run_test("Test 1: Normal", {
-        "gestern": {"am_projekt_arbeiten": 3, "schrott_suchen": 2, "spazieren": 1},
-        "fehlschlaege": {"schrott_suchen": 2, "verkaufen": 1},
+        "gestern": {"walk_to": 10, "am_projekt_arbeiten": 3, "schrott_suchen": 2, "spazieren": 1},
+        "fehlschlaege": {"verkaufen": 2, "schrott_suchen": 1},
         "stimmung": 15,
         "wetter": "sonnig"
     })
@@ -141,7 +172,7 @@ if __name__ == "__main__":
         "wetter": ""
     })
 
-    # Test 3: Schlechte Stimmung (Prüfen ob nur 1 Basis-Aktion kommt, Rest frei für Fehler/Wetter)
+    # Test 3: Schlechte Stimmung
     run_test("Test 3: Schlechte Laune", {
         "gestern": {"think": 5},
         "fehlschlaege": {},
@@ -149,26 +180,22 @@ if __name__ == "__main__":
         "wetter": "regen"
     })
 
-    # Test 4: Doppelte Fäden - Schuppen ausmisten oft & schiefgegangen
-    run_test("Test 4: Schuppen-Doppel", {
-        "gestern": {"schuppen_ausmisten": 5, "malen": 2},
-        "fehlschlaege": {"schuppen_ausmisten": 3},
+    # Test 4: Schuppen-Doppelte (häufig gestern, heute dranbleiben)
+    run_test("Test 4: Schuppen-Fokus", {
+        "gestern": {"schuppen_ausmisten": 5, "walk_to": 3},
+        "fehlschlaege": {},
         "stimmung": 10,
-        "wetter": "bewölkt"
+        "wetter": "wolken"
     })
 
-    # Test 5: Viele Fehler, peu Platz
-    run_test("Test 5: Fehlerflut", {
-        "gestern": {"think": 1, "eat": 1},
-        "fehlschlaege": {"schrott_suchen": 4, "verkaufen": 3, "aufheben": 2},
-        "stimmung": 0,
-        "wetter": "sonne"
+    # Test 5: Fehlerflut & Robustheit
+    run_test("Test 5: Chaos & Typen", {
+        "gestern": {"walk_to": 20, "malen": 2},
+        "fehlschlaege": {"nachsehen": 5, "walk_to": 3, "unbekannt": 99},
+        "stimmung": "hoch",  # String statt Int
+        "wetter": "gewitter"
     })
 
-    # Test 6: Unbekannte Aktionen in Input (Robustheit)
-    run_test("Test 6: Müll im Input", {
-        "gestern": {"fliegen": 10, "schlafen": 5, "think": 1},
-        "fehlschlaege": {"kaputt_machen": 99},
-        "stimmung": "viel",  # Falscher Typ
-        "wetter": 123        # Falscher Typ
-    })
+    # Test 6: Wetter-Varianten
+    for w in ["klar", "wolken", "nebel", "regen", "gewitter", "schnee", "sonnig"]:
+        run_test(f"Wetter: {w}", {"gestern": {}, "fehlschlaege": {}, "stimmung": 0, "wetter": w})
