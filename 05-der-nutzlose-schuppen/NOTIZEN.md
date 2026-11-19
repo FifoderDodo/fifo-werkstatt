@@ -125,3 +125,10 @@ Code vervollständigt (abgeschnittenes brett3, Fass, Reifen, Platten, Boden, Gra
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 19 (19.11.2026 02:13, Nachtschicht)
+Code vervollständigt (brett3, Fass, Reifen, Platten, Boden, Gras, Maussteuerung, Animationsloop). Schild schwingt jetzt sichtbar im Wind (Sinuskurve auf Z und X). Kamera per Maus ziehbar, Rad zoomt, Pfeiltasten drehen/neigen, Leertaste resettet. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
