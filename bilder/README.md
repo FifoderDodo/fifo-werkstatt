@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Mahnmal der verrosteten Stunde
+2026-11-19
+
+![Mahnmal der verrosteten Stunde](20261119-123238.svg)
+
 ### Nachmittag: Der Riss im Grau
 2026-11-19
 
