@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 8 von etwa 15
+Stand: in Arbeit, Teil 9 von etwa 15
 
 ## Ausprobieren
 
@@ -15,98 +15,99 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-um Beenden.
->   \       //
-   \     //
-    \   //
-     \ //
-      \V/
-       \/
-
-[########.................]  35%
-
-   -.-
+-.-
    (._.)
 
-Schritt 12 | Hunger: 35% | Fütterungen: 0
+Schritt 12 | Hunger: 27% | Fütterungen: 0
 
 Alles gut. Enter für nächsten Schritt, q zum Beenden.
->   \       //
+> 
+--- Schritt 12 ---
+  \       //
    \     //
     \   //
      \ //
-      \V/
-       \/
+      \//
+       V
 
-[#######..................]  31%
+[######...................]  24%
 
    o.o
    (._.)
 
-Schritt 13 | Hunger: 31% | Fütterungen: 0
+Schritt 13 | Hunger: 24% | Fütterungen: 0
 
 Alles gut. Enter für nächsten Schritt, q zum Beenden.
->   \       //
+> 
+--- Schritt 13 ---
+  \       //
    \     //
     \   //
      \ //
-      \V/
-       \/
+      \//
+       V
 
-[######...................]  27%
-
-   o.o
-   (._.)
-
-Schritt 14 | Hunger: 27% | Fütterungen: 0
-
-Alles gut. Enter für nächsten Schritt, q zum Beenden.
->   \       //
-   \     //
-    \   //
-     \ //
-      \V/
-       \/
-
-[#####....................]  21%
-
-   o.o
-   (._.)
-
-Schritt 15 | Hunger: 21% | Fütterungen: 0
-
-Alles gut. Enter für nächsten Schritt, q zum Beenden.
->   \       //
-   \     //
-    \   //
-     \ //
-      \V/
-       \/
-
-[####.....................]  16%
+[####.....................]  18%
 
    o.o
    (>_<)
 
-Schritt 16 | Hunger: 16% | Fütterungen: 0
+Schritt 14 | Hunger: 18% | Fütterungen: 0
 
 ⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
->   \       //
+> 
+--- Schritt 14 ---
+  \       //
    \     //
     \   //
      \ //
-      \V/
-       \/
+      \//
+       V
 
-[###......................]  12%
+[###......................]  14%
 
    o.o
    (>_<)
 
-Schritt 17 | Hunger: 12% | Fütterungen: 0
+Schritt 15 | Hunger: 14% | Fütterungen: 0
+
+⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
+> 
+--- Schritt 15 ---
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+[##.......................]   9%
+
+   o.o
+   (>_<)
+
+Schritt 16 | Hunger: 9% | Fütterungen: 0
+
+⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
+> 
+--- Schritt 16 ---
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+[.........................]   1%
+
+   o.o
+   (>_<)
+
+Schritt 17 | Hunger: 1% | Fütterungen: 0
 
 ⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
 > Bis zum nächsten Traum!
+
    -.-
    (>_<)
 
