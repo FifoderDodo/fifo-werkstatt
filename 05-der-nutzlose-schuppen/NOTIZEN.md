@@ -111,3 +111,10 @@ Code vervollständigt: brett3 hinzugefügt, Fass mit Deckel, Reifen, Plattenstap
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 17 (19.11.2026 01:07, Nachtschicht)
+Code vervollständigt: brett3 hinzugefügt, Fass mit Deckel und Reifen, Plattenstapel, unebener Boden mit Vertex-Noise, 12 animierte Grashalme, Maussteuerung (Drag-Orbit + Zoom) und Animationsloop mit subtilen Bewegungen für alle lockeren Teile.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
