@@ -1,6 +1,6 @@
-# main.py - Dodo-Magenwärmer Teil 8
+# main.py - Dodo-Magenwärmer Teil 9
 # Fifo der Dodo bastelt weiter im Traum.
-# Fehler behoben: Keine Abstürze mehr. Kleiner Schritt: Statistik, Magen-Alarm (Bell), schönerer Magen.
+# Fehler behoben: Magen-Füllung funktioniert jetzt für alle Level. Nicht-TTY: Trennzeile statt clear.
 
 import random
 import time
@@ -14,13 +14,17 @@ def satte_pruefung(aktueller_wert: int) -> bool:
     """Prüft, ob Sättigung unter 20 % gefallen ist."""
     return aktueller_wert < 20
 
-def clear_screen() -> None:
-    """Löscht Terminal plattformunabhängig, nur wenn TTY."""
-    if not USE_ANSI:
-        return
-    # ANSI Escape: Bildschirm löschen + Cursor home
-    sys.stdout.write("\033[2J\033[H")
-    sys.stdout.flush()
+def clear_screen(schritt: int = None) -> None:
+    """Löscht Terminal plattformunabhängig, nur wenn TTY. Sonst Trennzeile."""
+    if USE_ANSI:
+        # ANSI Escape: Bildschirm löschen + Cursor home
+        sys.stdout.write("\033[2J\033[H")
+        sys.stdout.flush()
+    else:
+        if schritt is not None:
+            print(f"\n--- Schritt {schritt} ---")
+        else:
+            print()
 
 def draw_bar(wert: int, breite: int = 25) -> str:
     """Baut einen ASCII-Balken mit Farbverlauf (nur bei TTY)."""
@@ -41,42 +45,36 @@ def draw_bar(wert: int, breite: int = 25) -> str:
         return f"[{'#' * voll}{'.' * leer}] {wert:3d}%"
 
 def draw_stomach(wert: int) -> str:
-    """Zeichnet einen ASCII-Magen, der sich füllt/leert (zentriert, 6 Zeilen)."""
-    # 6 Stufen (0-5), jede 6 Zeilen hoch für flüssigeren Übergang
+    """Zeichnet einen ASCII-Magen, der sich füllt/leert (6 Zeilen)."""
+    # 6 Stufen (0-5), jede 20% entspricht einer Stufe
     level = max(0, min(5, int(wert / 20)))
-    # Wellenzeichen für Füllstand
     wave = "~~~"
-    empty = "   "
     
-    # Bauch-Segmente: oben, mitte1, mitte2, mitte3, unten, boden
-    # Wir nutzen ein Template und füllen Zeilen basierend auf Level
+    # Vorlage: 5 füllbare Zeilen (mit //), letzte Zeile ist Spitze (V)
     lines = [
         "  \\       //",
         "   \\     //",
         "    \\   //",
         "     \\ //",
-        "      \\V/",
-        "       \/"
+        "      \\//",
+        "       V"
     ]
     
-    # Füll-Logik: Level 0=leer, 5=voll
-    # Zeilen-Indizes 0-5 (oben nach unten)
-    # Level 1 füllt unterste Zeile (Index 4), Level 5 füllt alle bis Index 0
-    fill_start = 5 - level 
+    # Ab welcher Zeile (von oben) gefüllt wird: Level 0 -> fill_start=5 (keine Füllung), Level 5 -> fill_start=0 (alle füllbaren)
+    fill_start = 5 - level
     
     result_lines = []
     for i, line in enumerate(lines):
-        if i >= fill_start and level > 0:
-            # Fülle die Mitte der Zeile mit Wellen
-            # Finde die Mitte zwischen \ und /
+        if i >= fill_start and level > 0 and i < 5:  # nur die ersten 5 Zeilen sind füllbar
+            # Fülle die Mitte zwischen \\ und //
             left = line.find('\\')
-            right = line.rfind('//')
+            right = line.find('//')
             if left != -1 and right != -1 and right > left:
-                middle = line[left+2:right]
+                middle = line[left+1:right]
                 # Ersetze Leerzeichen durch Wellen
                 filled_middle = wave * (len(middle) // 3 + 1)
                 filled_middle = filled_middle[:len(middle)]
-                line = line[:left+2] + filled_middle + line[right:]
+                line = line[:left+1] + filled_middle + line[right:]
         result_lines.append(line)
     
     return "\n".join(result_lines)
@@ -106,7 +104,7 @@ def main() -> None:
     time.sleep(1)
     
     while hunger > 0:
-        clear_screen()
+        clear_screen(schritt)
         schritt += 1
         # Hunger sinkt zufällig
         hunger -= random.randint(3, 8)
