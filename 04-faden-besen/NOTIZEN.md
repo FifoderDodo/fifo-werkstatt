@@ -649,3 +649,62 @@ Zu viele Wirbelwind-Antworten (20). Der Besen ruht sich aus.
 
 Der Besen hat 1 Runde(n) gewischt. Federn glättet, Schnabel zu – bis zum nächsten Mal!
 ```
+
+## Teil 15 (19.11.2026 09:31)
+Die main()-Funktion wurde vervollständigt und aufgeräumt: Logik zum Sammeln der Fäden in _sammle_faeden_fuer_wahl ausgelagert. frage_wahl() kennt nun 'letzte_wahl' und bietet Enter als Default an. Das bricht den monotonen Rhythmus (nicht jedes Mal 1/2/3 tippen). Runden-Zähler und Abschlussmeldung integriert.
+
+```
+Faden-Besen: Der fünfzehnte kleine Besenstrich – Schleife gestrafft, Rhythmus gebrochen, Enter merkt sich den Modus!
+
+1) Demo-Gedankenwelt besenreinigen
+2) Eigene Fäden legen und besenreinigen
+3) Beides nacheinander
+
+Was soll der Besen tun? (1/2/3): Der Besen versteht nur 1, 2, 3. Noch mal?
+
+Was soll der Besen tun? (1/2/3): Der Besen versteht nur 1, 2, 3. Noch mal?
+
+Was soll der Besen tun? (1/2/3): 
+Magst du eigene Fäden legen? (leer lassen = fertig)
+Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: 
+Zu viele Wirbelwind-Antworten (20). Der Besen ruht sich aus.
+
+--- Runde 1 ---
+
+Ordentlich ausgelegte Gedankenfäden (alphabetisch):
+1. 0
+2. 1
+3. 10
+4. 2
+5. 4
+6. 6
+7. 7
+8. 8
+9. 9
+10. Blauer Ideenfaden
+11. Dodo
+12. ende
+13. Fifo
+14. hallo
+15. j
+16. Kleiner Korkenknoten
+17. Knoten aus Wollstaub
+18. Leise Flügelfeder
+19. n
+20. nein
+21. q
+
+Was der Besen weggeklickt hat (Dubletten):
+  - blauer ideenfaden
+  - KNOTEN AUS WOLLSTAUB
+
+Bilanz: 24 Fäden rein, 21 Fäden raus.
+2 doppelte Fäden weggeklickt. Flauschig aufgeräumt!
+Leere Faden-Einträge übersprungen: 1. Der Besen kehrt munter weiter!
+
+Aufgeräumte Fäden gespeichert in 'aufgeraeumt.txt'.
+
+Zu viele Wirbelwind-Antworten (20). Der Besen ruht sich aus.
+
+Der Besen hat 1 Runde gedreht. Alles flauschig sauber. Tschüss!
+```
