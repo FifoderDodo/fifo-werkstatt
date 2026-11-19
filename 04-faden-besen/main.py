@@ -1,4 +1,4 @@
-"""Faden-Besen, Teil 5: Der Besen zeigt, was er weggekehrt hat – transparent und flauschig."""
+"""Faden-Besen, Teil 6: Der Besen fragt geduldiger und zeigt die Bilanz."""
 
 
 def entferne_doppelte(eintraege):
@@ -45,6 +45,34 @@ def sammle_eigene_gedanken():
     return eigene
 
 
+def frage_wahl():
+    """Fragt die Menüwahl, ignoriert leere Eingaben, bricht bei EOF freundlich ab."""
+    print("\n1) Demo-Gedankenwelt besenreinigen")
+    print("2) Eigene Fäden legen und besenreinigen")
+    print("3) Beides nacheinander")
+    
+    versuche = 0
+    while versuche < 20:
+        try:
+            wahl = input("\nWas soll der Besen tun? (1/2/3): ").strip()
+        except EOFError:
+            print("\nKeine Antwort – der Besen kehrt nur die Demo.")
+            return "1"
+        
+        if wahl in ("1", "2", "3"):
+            return wahl
+        
+        if wahl == "":
+            # Still weiterwarten, nicht meckern – der Dodo hat Zeit.
+            continue
+            
+        print("Der Besen versteht nur 1, 2 oder 3. Noch mal?")
+        versuche += 1
+    
+    print("\nZu viele Wirbelwind-Antworten. Der Besen wählt Demo (1).")
+    return "1"
+
+
 def main():
     # Eine kleine erfundene Gedankenwelt mit Dubletten, Leere und Schreibweisen.
     gedankenfaeden = [
@@ -57,21 +85,9 @@ def main():
         "KNOTEN AUS WOLLSTAUB",   # Noch ein Doppelter
     ]
 
-    print("Faden-Besen: Der fünfte kleine Besenstrich!")
-    print("\n1) Demo-Gedankenwelt besenreinigen")
-    print("2) Eigene Fäden legen und besenreinigen")
-    print("3) Beides nacheinander")
+    print("Faden-Besen: Der sechste kleine Besenstrich!")
     
-    wahl = ""
-    while wahl not in ("1", "2", "3"):
-        try:
-            wahl = input("\nWas soll der Besen tun? (1/2/3): ").strip()
-        except EOFError:
-            print("\nKeine Antwort – der Besen kehrt nur die Demo.")
-            wahl = "1"
-            break
-        if wahl not in ("1", "2", "3"):
-            print("Der Besen versteht nur 1, 2 oder 3. Noch mal?")
+    wahl = frage_wahl()
 
     alle_faeden = []
     if wahl in ("1", "3"):
@@ -84,8 +100,10 @@ def main():
         print("\nKeine Fäden da. Der Besen streckt die Flügel und schläft weiter.")
         return
 
+    gesamt_vorher = len(alle_faeden)
     aufgeraeumt, leere_eintraege, entfernte_duplikate = entferne_doppelte(alle_faeden)
     entfernt = len(entfernte_duplikate)
+    gesamt_nachher = len(aufgeraeumt)
 
     print("\nOrdentlich ausgelegte Gedankenfäden:")
     for nummer, faden in enumerate(aufgeraeumt, start=1):
@@ -96,7 +114,8 @@ def main():
         for d in entfernte_duplikate:
             print(f"  - {d}")
     
-    print(f"\n{entfernt} doppelte Fäden weggeklickt. Flauschig aufgeräumt!")
+    print(f"\nBilanz: {gesamt_vorher} Fäden rein, {gesamt_nachher} Fäden raus.")
+    print(f"{entfernt} doppelte Fäden weggeklickt. Flauschig aufgeräumt!")
     if leere_eintraege:
         print(
             f"Leere Faden-Einträge übersprungen: {leere_eintraege}. "
