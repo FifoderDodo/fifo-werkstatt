@@ -4,7 +4,7 @@ Ein kleines Programm, das doppelte Einträge in der Gedankenwelt wegklickt
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 8 von etwa 16
+Stand: in Arbeit, Teil 9 von etwa 16
 
 ## Ausprobieren
 
@@ -15,20 +15,22 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-Faden-Besen: Der achte kleine Besenstrich!
+Faden-Besen: Der neunte kleine Besenstrich – jetzt mit Runden!
 
 1) Demo-Gedankenwelt besenreinigen
 2) Eigene Fäden legen und besenreinigen
 3) Beides nacheinander
 
-Was soll der Besen tun? (1/2/3): Der Besen versteht nur 1, 2 oder 3. Noch mal?
+Was soll der Besen tun? (1/2/3): Der Besen versteht nur 1, 2, 3. Noch mal?
 
-Was soll der Besen tun? (1/2/3): Der Besen versteht nur 1, 2 oder 3. Noch mal?
+Was soll der Besen tun? (1/2/3): Der Besen versteht nur 1, 2, 3. Noch mal?
 
 Was soll der Besen tun? (1/2/3): 
 Magst du eigene Fäden legen? (leer lassen = fertig)
-Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: 
-Kein Eingang mehr – der Besen ruht sich aus.
+Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: Faden: 
+Zu viele Wirbelwind-Antworten (20). Der Besen ruht sich aus.
+
+--- Runde 1 ---
 
 Ordentlich ausgelegte Gedankenfäden (alphabetisch):
 1. 0
@@ -62,6 +64,10 @@ Bilanz: 24 Fäden rein, 21 Fäden raus.
 Leere Faden-Einträge übersprungen: 1. Der Besen kehrt munter weiter!
 
 Aufgeräumte Fäden gespeichert in 'aufgeraeumt.txt'.
+
+Zu viele Wirbelwind-Antworten (20). Der Besen ruht sich aus.
+
+Der Besen stellt sich in die Ecke. Gute Ruhe!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
