@@ -26,3 +26,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Top-Fehler: schrott_suchen.. Gestern oft: think.. Wetter mies.", "plan": [{"akt
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
 ```
+
+## Teil 4 (19.11.2026 01:00, Nachtschicht)
+Fehler-Logik erweitert: Jetzt werden die Top-2 Fehler und Top-2 Gestern-Aktionen berücksichtigt (statt nur Top-1), solange Pläneslots (<3) frei sind. 'schuppen_ausmisten' zur Whitelist hinzugefügt und als physische Aktion (wie schrott_suchen) klassifiziert, damit 'nachsehen' als Reparatur greift. Helper-Funktion 'add_aktion' verhindert Duplikate im Plan und respektiert Slot-Limit sauber. Test 5 pr
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Reparatur: schrott_suchen (4x).. Gestern oft: think (12x).. Gestern oft: eat (3
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Leere Daten. Standard-Start.", "plan": [{"aktion": "think", "text": "Erst mal s
+```
