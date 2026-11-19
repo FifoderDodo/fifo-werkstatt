@@ -409,3 +409,111 @@ Schritt 17 | Hunger: 12% | Fütterungen: 0
 Dauer: 5.8 Sekunden
 Fütterungen: 0
 ```
+
+## Teil 9 (20.11.2026 00:45, Nachtschicht)
+Magen-Zeichnung repariert: konsistente Vorlage mit '//' für alle füllbaren Zeilen, Fülllogik funktioniert jetzt für alle Level. clear_screen zeigt in Nicht-TTY-Umgebungen Trennzeile mit Schrittzahl.
+
+```
+-.-
+   (._.)
+
+Schritt 12 | Hunger: 27% | Fütterungen: 0
+
+Alles gut. Enter für nächsten Schritt, q zum Beenden.
+> 
+--- Schritt 12 ---
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+[######...................]  24%
+
+   o.o
+   (._.)
+
+Schritt 13 | Hunger: 24% | Fütterungen: 0
+
+Alles gut. Enter für nächsten Schritt, q zum Beenden.
+> 
+--- Schritt 13 ---
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+[####.....................]  18%
+
+   o.o
+   (>_<)
+
+Schritt 14 | Hunger: 18% | Fütterungen: 0
+
+⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
+> 
+--- Schritt 14 ---
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+[###......................]  14%
+
+   o.o
+   (>_<)
+
+Schritt 15 | Hunger: 14% | Fütterungen: 0
+
+⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
+> 
+--- Schritt 15 ---
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+[##.......................]   9%
+
+   o.o
+   (>_<)
+
+Schritt 16 | Hunger: 9% | Fütterungen: 0
+
+⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
+> 
+--- Schritt 16 ---
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+[.........................]   1%
+
+   o.o
+   (>_<)
+
+Schritt 17 | Hunger: 1% | Fütterungen: 0
+
+⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
+> Bis zum nächsten Traum!
+
+   -.-
+   (>_<)
+
+🦤 Dodo watschelt zufrieden weg. Gute Nacht.
+
+--- Statistik ---
+Überlebt: 17 Schritte
+Dauer: 5.8 Sekunden
+Fütterungen: 0
+```
