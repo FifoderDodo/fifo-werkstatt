@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 1 von etwa 15
+Stand: in Arbeit, Teil 2 von etwa 15
 
 ## Ausprobieren
 
@@ -15,21 +15,43 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-🦤 Fifo meldet Dienst: Magenwärmer-Logik startet.
-Drück Enter für nächsten Testwert oder 'q' zum Beenden.
-Testwert 100% – Enter für Prüfen, 'q' für Ende: Sättigung: 100% -> ✅ Alles im grünen Bereich.
+ Fifo meldet Dienst: Magenwärmer-Simulation startet.
+Befehle: Enter=warten, f=füttern, q=beenden
 
-Testwert 55% – Enter für Prüfen, 'q' für Ende: Sättigung: 55% -> ✅ Alles im grünen Bereich.
+Runde  0 | [92m[####################][0m 100% | Magenstand: 100%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -6% Sättigung.
 
-Testwert 19% – Enter für Prüfen, 'q' für Ende: Sättigung: 19% -> 🚨 ALARM: Magen knurrt!
+Runde  1 | [92m[##################..][0m 94% | Magenstand: 94%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -6% Sättigung.
 
-Testwert 0% – Enter für Prüfen, 'q' für Ende: Sättigung: 0% -> 🚨 ALARM: Magen knurrt!
+Runde  2 | [92m[#################...][0m 88% | Magenstand: 88%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -9% Sättigung.
 
-Testwert 20% – Enter für Prüfen, 'q' für Ende: Sättigung: 20% -> ✅ Alles im grünen Bereich.
+Runde  3 | [92m[###############.....][0m 79% | Magenstand: 79%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -7% Sättigung.
 
-Testwert 21% – Enter für Prüfen, 'q' für Ende: Sättigung: 21% -> ✅ Alles im grünen Bereich.
+Runde  4 | [92m[##############......][0m 72% | Magenstand: 72%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
 
-Alle Beispieldurchläufe erledigt. Fifo nickt zufrieden.
+Runde  5 | [92m[###########.........][0m 57% | Magenstand: 57%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -14% Sättigung.
+
+Runde  6 | [92m[########............][0m 43% | Magenstand: 43%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -11% Sättigung.
+
+Runde  7 | [92m[######..............][0m 32% | Magenstand: 32%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -11% Sättigung.
+
+Runde  8 | [92m[####................][0m 21% | Magenstand: 21%
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
+
+Runde  9 | [91m[#...................][0m 6% | 🚨 ALARM: Magenstand: 6%
+   >>> Der Magen knurrt laut! Füttern nicht vergessen. <<<
+Aktion (Enter/f/q):    ⏳ Zeit vergeht... -15% Sättigung.
+
+   ☠️ Der Magen ist ganz leer. Fifo wird ohnmächtig... Spielende.
+
+Simulation beendet. Fifo nickt zufrieden.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
