@@ -118,3 +118,10 @@ Code vervollständigt: brett3 hinzugefügt, Fass mit Deckel und Reifen, Plattens
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 18 (19.11.2026 01:31, Nachtschicht)
+Code vervollständigt (abgeschnittenes brett3, Fass, Reifen, Platten, Boden, Gras, Maussteuerung, Animationsloop) und ein schiefes Blechschild als neues Detail hinzugefügt. Alles läuft.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
