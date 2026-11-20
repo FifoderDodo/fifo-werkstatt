@@ -180,264 +180,154 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
     """Zeichnet den ASCII-Magen mit Füllung, Knurren, animiertem Dampf, Peristaltik und Wellen.
     
     Struktur (6 Zeilen Körper + Header):
-    Zeile 0: Deckel / Dampf
-    Zeile 1-5: Magenwände mit Peristaltik-Sinus
-    Füllhöhe basiert auf 'wert' (0-100).
-    Wellen auf der Füllstandsoberfläche.
-    Farbe der Füllung per interpolate_color.
+     Zeile 0: Deckel / Dampf
+     Zeile 1-4: Magenwände mit Füllstands-Welle & Peristaltik
+     Zeile 5: Boden
+    Farbe der Füllung nutzt interpolate_color für Tiefe.
     """
-    lines = []
     reset = "\033[0m" if USE_ANSI else ""
+    lines = []
     
-    # Dampf über dem Magen (animiert)
-    dampf_chars = ["   ~ ~ ~", "  ~ ~ ~ ~", " ~ ~ ~ ~ ~", "~ ~ ~ ~ ~ ~"]
-    dampf_idx = int((schritt * 0.2) % len(dampf_chars))
-    dampf = dampf_chars[dampf_idx]
-    if USE_ANSI:
-        dampf = f"\033[90m{dampf}{reset}"
-    lines.append(f"      {dampf}")
+    # Dampf über dem Magen (animiert, Farbe basiert auf Wärme)
+    dampf_chars = ["~", "∼", "∿", "⤳", "⤴"]
+    dampf_line = "      "
+    if waerme > 0:
+        for i in range(5):
+            phase = (schritt * 0.2 + i * 0.3) % 1.0
+            if phase < 0.6:
+                char = dampf_chars[int(phase * len(dampf_chars))]
+                if USE_ANSI:
+                    # Dampf: Weiß -> Gelb bei hoher Wärme
+                    steam_ratio = min(waerme / 10.0, 1.0)
+                    r = 255
+                    g = int(200 + 55 * steam_ratio)
+                    b = int(150 * (1 - steam_ratio))
+                    dampf_line += f"\033[38;2;{r};{g};{b}m{char}{reset} "
+                else:
+                    dampf_line += f"{char} "
+            else:
+                dampf_line += "  "
+    lines.append(dampf_line.rstrip())
     
     # Magen-Geometrie
-    breite_innen = 20
-    hoehe = 5
-    fuell_hoehe = int((wert / 100) * hoehe)
+    width = 20  # Innenbreite
+    fill_height = int((wert / 100) * 4)  # 4 Zeilen Füllung max
     
-    # Peristaltik: Horizontale Verschiebung der Wände (Sinus)
-    # Zwei Phasen für oberes/unteres Drittel
-    phase = schritt * 0.3
+    # Peristaltik-Welle (sinusbasiert, läuft von oben nach unten)
+    peristaltik_phase = (schritt * 0.15) % (2 * math.pi)
     
-    for row in range(hoehe):
-        # Wand-Offset berechnen
-        # Stärker in der Mitte (Bauch)
-        bauch_faktor = 1.0 - abs((row - hoehe / 2) / (hoehe / 2)) # 0 oben/unten, 1 mitte
-        offset = int(math.sin(phase + row * 0.5) * 1.5 * bauch_faktor)
+    for row in range(4):  # 4 Inhaltszeilen
+        # Wand-Links/Rechts
+        left_wall = "("
+        right_wall = ")"
         
-        links = "/" + " " * max(0, 2 + offset)
-        rechts = " " * max(0, 2 - offset) + "\\"
+        # Peristaltik-Versatz für diese Zeile
+        wave_offset = math.sin(peristaltik_phase - row * 0.8) * 1.5
+        inner_width = width + int(wave_offset)
+        inner_width = max(10, min(24, inner_width))  # Clamp
         
-        # Füllung
-        if row >= (hoehe - fuell_hoehe):
-            # Wir sind im Füllbereich
-            fuell_ratio = (row - (hoehe - fuell_hoehe) + 0.5) / fuell_hoehe if fuell_hoehe > 0 else 0
-            farbe = interpolate_color(fuell_ratio) if USE_ANSI else ""
-            
-            # Wellen auf der Oberfläche (oberste Füllzeile) und leichte Unruhe drunter
-            is_surface = (row == hoehe - fuell_hoehe)
-            wellen_phase = phase * 2 + row * 0.8
-            
-            inhalt = ""
-            for col in range(breite_innen):
-                wellen_offset = math.sin(wellen_phase + col * 0.6) * (0.4 if is_surface else 0.15)
-                # Einfaches Rauschen für Blubbern
-                blubber = random.random() < 0.05 * (1.0 - fuell_ratio) # Mehr Blubbern oben
-                
-                if is_surface and wellen_offset > 0.3:
-                    ch = "≈"
-                elif blubber:
-                    ch = "⦿"
+        # Füllung in dieser Zeile? (row 0 ist oben, row 3 unten)
+        fill_row = (3 - row) < fill_height
+        
+        content = ""
+        if fill_row:
+            # Wellen auf der Flüssigkeitsoberfläche (nur oberste gefüllte Zeile)
+            is_surface = (3 - row) == (fill_height - 1)
+            for col in range(inner_width):
+                ratio = col / max(1, inner_width - 1)
+                # Farbverlauf horizontal + vertikal für Tiefe
+                color_ratio = (ratio + (row / 4.0)) / 2.0
+                if USE_ANSI:
+                    farbe = interpolate_color(color_ratio)
+                    if is_surface and random.random() < 0.1:
+                        char = random.choice(["≈", "∼", "∿", "~"])
+                    else:
+                        char = "█"
+                    content += f"{farbe}{char}{reset}"
                 else:
-                    ch = "~" if is_surface else "█"
-                inhalt += f"{farbe}{ch}{reset}" if USE_ANSI else ch
-            
-            line = f"{links}{inhalt}{rechts}"
+                    content += "#"
         else:
-            # Leer: Luft / Magenwand innen
-            line = f"{links}{' ' * breite_innen}{rechts}"
+            # Leer: Magenwand-Textur oder Knurren
+            if knurrt and row == 3 and (schritt // 2) % 2 == 0:
+                content = "\033[91m~~KNURR~~\033[0m" if USE_ANSI else "~~KNURR~~"
+                content = content.center(inner_width)
+            else:
+                content = " " * inner_width
         
-        # Knurren-Effekt: Magenwand zittern
-        if knurrt and random.random() < 0.3:
-            line = line.replace("/", "{").replace("\\", "}")
-        
-        lines.append(f"    {line}")
+        lines.append(f"     {left_wall}{content}{right_wall}")
     
     # Boden
-    boden = "    \\" + "_" * (breite_innen + 4) + "/"
-    if USE_ANSI and waerme > 0:
-        boden = f"\033[93m{boden}{reset}"
-    lines.append(boden)
-    
-    # Knurr-Text
-    if knurrt:
-        knurr_text = "  *** GRRRUUUU ***"
-        if USE_ANSI:
-            knurr_text = f"\033[91;1m{knurr_text}{reset}"
-        lines.append(knurr_text)
+    lines.append(f"      \\{'_' * (width + 2)}//")
     
     return "\n".join(lines)
 
 
-def draw_dodo(schritt: int) -> str:
-    """Zeichnet eine kleine Dodo-Figur mit überarbeitetem Schattenwurf.
+def draw_dodo(schritt: int, saettigung: int) -> str:
+    """Zeichnet den Dodo mit rotierender Lichtquelle und dynamischem Schatten.
     
-    Lichtquelle rotiert langsam um die Figur (Kreisbahn).
-    Schatten wird als versetzte Silhouette (Offset x, y) gerendert.
-    Neu: Schatten-Härte (Sharpness) basierend auf Licht-Höhe (Höhenwinkel).
-    Tiefstehende Sonne -> langer, weicher Schatten. Hohe Sonne -> kurzer, harter Schatten.
+    Lichtquelle rotiert um den Dodo (Azimut) und ändert Höhenwinkel.
+    Schattenlänge via Cotangens(Höhe), Aspect-Ratio-Korrektur (Zeichen sind ~2x hoch).
+    Dodo blinzelt alle paar Sekunden.
     """
-    # Dodo ASCII Art (5 Zeilen hoch, ca 9 breit)
-    #   __
-    #  (o o)
-    #  ( v )
-    #  / ^ \
-    # ^^   ^^
-    dodo_art = [
-        "   __   ",
-        "  (o o) ",
-        "  ( v ) ",
-        "  / ^ \\ ",
-        " ^^   ^^ "
+    reset = "\033[0m" if USE_ANSI else ""
+    
+    # Animation: Blinzeln
+    blink = (schritt // 30) % 2 == 0 and (schritt % 60) > 55
+    eye_l = "⚬" if not blink else "─"
+    eye_r = "⚬" if not blink else "─"
+    
+    # Hunger-Ausdruck
+    if saettigung < 15:
+        mouth = "ᗒ"
+        brow = "⸢  ⸣"
+    elif saettigung < 40:
+        mouth = "ᗕ"
+        brow = "⸣  ⸢"
+    else:
+        mouth = "◡"
+        brow = "   "
+    
+    # Dodo Body (vereinfacht, aber mit Schichten für Schatten)
+    # Wir rendern den Dodo in ein 2D-Array (List of Lists) für Schatten-Projektion
+    canvas_w, canvas_h = 20, 12
+    canvas = [[' ' for _ in range(canvas_w)] for _ in range(canvas_h)]
+    
+    # Dodo Pixel Art (relativ zum Zentrum ~10, 6)
+    # Body
+    body_parts = [
+        (0, -3, "  __  "),
+        (-3, -2, " /  \\ "),
+        (-2, -1, f"( {eye_l} {eye_r} )"),
+        (-3, 0, " /    \\ "),
+        (-2, 1, f"(  {mouth}  )"),
+        (-3, 2, " /    \\ "),
+        (-1, 3, "/ ^^ ^^ \\"),
+        (0, 4, " \\  // "),
     ]
     
-    if not USE_ANSI:
-        return "\n".join(dodo_art)
+    for dx, dy, line in body_parts:
+        x_start = 10 + dx
+        y_pos = 6 + dy
+        for i, ch in enumerate(line):
+            if 0 <= y_pos < canvas_h and 0 <= x_start + i < canvas_w:
+                canvas[y_pos][x_start + i] = ch
     
     # Lichtberechnung
-    # Winkel um Figur (Azimut) -> rotiert
-    azimut = (schritt * 0.05) % (2 * math.pi)
-    # Höhenwinkel (Elevation) -> oszilliert leicht (Tag/Nacht Sim)
-    elevation = 0.5 + 0.3 * math.sin(schritt * 0.02) # 0.2 bis 0.8 rad (~11° bis 45°)
+    # Azimut: rotiert langsam
+    azimut = (schritt * 0.02) % (2 * math.pi)
+    # Elevation: schwankt sanft (sonnenauf/untergang)
+    elev = 0.5 + 0.3 * math.sin(schritt * 0.01)  # 0.2 bis 0.8 rad (~11° bis 45°)
     
-    # Lichtvektor (gerichtet VON Licht ZU Objekt -> Schatten fällt ENTGEGENSETZT)
-    # x: rechts, y: unten (Terminal Koordinaten)
-    # Licht kommt aus Richtung azimut, elevation.
-    # Schatten-Vektor zeigt weg von Lichtquelle am Boden.
-    # dx = -cos(azimut) * cot(elevation)  (Laengenverhaeltnis)
-    # dy = -sin(azimut) * cot(elevation) * aspect_ratio_korrektur
-    # Terminal Zeichen sind ca 2x so hoch wie breit -> dy skalieren * 0.5
+    # Lichtvektor (x, y, z) -> y ist Bildschirm-hoch, z ist tiefe
+    # Aspect Ratio Korrektur: Zeichen sind doppelt so hoch wie breit -> y-Skalierung 0.5
+    lx = math.cos(azimut) * math.cos(elev)
+    ly = -math.sin(elev) * 0.5  # Negativ, da y nach unten wächst im Array
+    # lz = math.sin(azimut) * math.cos(elev) # Nicht direkt für 2D Schatten nötig
     
-    cot_elev = 1.0 / math.tan(elevation) if elevation > 0.01 else 20.0
+    # Schattenlänge ~ Cotangens(Elevation) * Objekt-Höhe
+    # Cot = cos/sin. Bei flachem Licht (kleines elev) -> langer Schatten.
+    shadow_len = max(2, int((math.cos(elev) / max(0.1, math.sin(elev))) * 4))
     
-    # Schatten-Offset in Zeichen
-    shadow_dx = -math.cos(azimut) * cot_elev
-    shadow_dy = -math.sin(azimut) * cot_elev * 0.5 # Aspect Ratio Korrektur
-    
-    # Weichheit: Je flacher das Licht (kleines elevation), desto weicher (diffuser) der Schatten.
-    # Wir simulieren Weichheit durch einen 'Grauwert' (ANSI 90 vs 37) und leichtes Verwischen (hier nur Alpha/Char).
-    # Da wir kein Pixel-Blur können, nutzen wir dunklere Zeichen für harten, hellere für weichen Schatten.
-    shadow_intensity = max(0.2, min(1.0, elevation / 0.5)) # Hohe Sonne -> Intensität 1 (dunkel), tiefe -> 0.4 (hell)
-    shadow_char = "█" if shadow_intensity > 0.7 else ("▓" if shadow_intensity > 0.4 else "░")
-    shadow_color = f"\033[38;5;{232 + int(20 * shadow_intensity)}m" # Graustufen 232-252
-    
-    # Runden auf ganzzahlige Offsets für Zeichengitter
-    off_x = int(round(shadow_dx))
-    off_y = int(round(shadow_dy))
-    
-    # Canvas erstellen (Dict: (y,x) -> (char, color, is_shadow))
-    canvas = {}
-    h = len(dodo_art)
-    w = max(len(l) for l in dodo_art)
-    
-    # 1. Schatten zeichnen (hinten)
-    for r, line in enumerate(dodo_art):
-        for c, ch in enumerate(line):
-            if ch != ' ':
-                sy = r + off_y
-                sx = c + off_x
-                # Schatten nur wenn im sichtbaren Bereich (wir erweitern Canvas dynamisch)
-                canvas[(sy, sx)] = (shadow_char, shadow_color, True)
-    
-    # 2. Dodo zeichnen (vorne, überlagert Schatten)
-    dodo_color = "\033[38;2;139;115;85m" # Dodo-Braun
-    for r, line in enumerate(dodo_art):
-        for c, ch in enumerate(line):
-            if ch != ' ':
-                canvas[(r, c)] = (ch, dodo_color, False)
-    
-    # Canvas zu String rendern
-    min_y = min(y for y, x in canvas.keys())
-    max_y = max(y for y, x in canvas.keys())
-    min_x = min(x for y, x in canvas.keys())
-    max_x = max(x for y, x in canvas.keys())
-    
-    out_lines = []
-    for y in range(min_y, max_y + 1):
-        line_parts = []
-        for x in range(min_x, max_x + 1):
-            if (y, x) in canvas:
-                ch, col, is_shad = canvas[(y, x)]
-                line_parts.append(f"{col}{ch}\033[0m")
-            else:
-                line_parts.append(" ")
-        out_lines.append("".join(line_parts).rstrip())
-    
-    return "\n".join(out_lines)
-
-
-def main() -> None:
-    """Hauptschleife: Füttern, Wärmen, Zuschauen."""
-    saettigung = 50
-    waerme = 0
-    schritt = 0
-    eingaben = 0
-    
-    print("🦤 Dodo-Magenwärmer v49 — Licht & Schatten")
-    print("Befehle: f=füttern, w=wärmen, q=beenden, Enter=weiter")
-    pause(1.0)
-    
-    while eingaben < MAX_EINGABEN:
-        schritt += 1
-        
-        # Physik: Sättigung sinkt, Wärme sinkt
-        saettigung = max(0, saettigung - random.randint(0, 2))
-        waerme = max(0, waerme - (1 if random.random() < 0.3 else 0))
-        
-        knurrt = satte_pruefung(saettigung)
-        
-        clear_screen(schritt)
-        
-        # UI Zusammenbau
-        # Links: Magen & Balken, Rechts: Dodo & Feder
-        # Wir bauen zeilenweise, damit nebeneinander passt.
-        
-        magen_str = draw_stomach(saettigung, knurrt, waerme, schritt)
-        bar_str = draw_bar(saettigung, waerme=waerme)
-        waerme_str = draw_waerme_bar(waerme)
-        feder_str = draw_feder(saettigung, schritt)
-        dodo_str = draw_dodo(schritt)
-        
-        magen_lines = magen_str.split('\n')
-        dodo_lines = dodo_str.split('\n')
-        
-        # Höhe angleichen
-        max_h = max(len(magen_lines), len(dodo_lines))
-        while len(magen_lines) < max_h: magen_lines.append("")
-        while len(dodo_lines) < max_h: dodo_lines.append("")
-        
-        print(f"Schritt: {schritt}  Sättigung: {bar_str}  Wärme: {waerme_str}")
-        print(f"Feder: {feder_str}")
-        print()
-        
-        for ml, dl in zip(magen_lines, dodo_lines):
-            print(f"{ml:<45}   {dl}")
-        
-        if knurrt:
-            print("\n⚠ Magen knurrt laut! (Piep-Piep im Original-Hardware)")
-        
-        try:
-            inp = input("\n> ").strip().lower()
-        except EOFError:
-            print("\n🦤 Kein Futter mehr da. Dodo schläft.")
-            break
-        
-        eingaben += 1
-        if inp == 'q':
-            print("🦤 Tschüss! Dodo watschelt weg.")
-            break
-        elif inp == 'f':
-            saettigung = min(100, saettigung + random.randint(15, 30))
-            print("🦤 *schluck* Lecker!")
-            pause(0.5)
-        elif inp == 'w':
-            waerme = min(10, waerme + random.randint(2, 4))
-            print("🦤 *kuschel* Warm!")
-            pause(0.5)
-        elif inp == '':
-            pass # Nur Zeit vergehen lassen
-        else:
-            print(f"🦤 Verstehe '{inp}' nicht. Versuch f, w oder q.")
-            pause(0.5)
-    
-    print("\n--- Ende der Simulation ---")
-
-if __name__ == "__main__":
-    main()
+    # Schattenrichtung (Gegensatz zu Lichtquelle horizontal)
+    sx = -lx * shadow_len
+    # sy = -ly * shadow_len # Schatten
