@@ -2387,3 +2387,76 @@ Eingaben genutzt:      2
 
 🦤 Programmende. Danke fürs Spielen!
 ```
+
+## Teil 39 (20.11.2026 10:28)
+Teil 39 fügt Wetter 'regnerisch' und Funktion 'zeige_naehrwert_prioritaet' hinzu, die bei Regen basierend auf Verzehr-Verhalten (Beeren vs. Tee) Empfehlungen anzeigt.berechne_diplom, main und zeige_abspann wurden vervollständigt/korrigiert. Draw_waerme_bar neu für Statuszeile.
+
+```
+─────┐
+│ Ausgewogen genascht.             │
+│ Weiter so: Mix aus Beeren & Tee.  │
+└────────────────────────────────┘
+
+[1] Beere essen (+15%)  [2] Tee trinken (+3 Wärme)
+[3] Warten (Traum?)      [4] Status-Details
+[q] Beenden
+> 🤔 Verstanden nicht. 1, 2, 3, 4 oder q.
+
+--- Schritt 17 ---
+Schritt 17/20 | 🌧️ Regenguss | Wärme: [##..........] 2/10
+[################........]  69%
+    ( ~ )
+  \       //
+   \     //
+    \ ~~//
+     \ //
+      \///
+       V
+   /\/\
+   o.o 
+   (^_^) (Warm & kuschelig)
+🌧️ REGEN-WETTER: NÄHRWERT-PRIORITÄTEN
+┌────────────────────────────────┐
+│ Ausgewogen genascht.             │
+│ Weiter so: Mix aus Beeren & Tee.  │
+└────────────────────────────────┘
+
+[1] Beere essen (+15%)  [2] Tee trinken (+3 Wärme)
+[3] Warten (Traum?)      [4] Status-Details
+[q] Beenden
+> 👋 Dodo winkt zum Abschied.
+
+      |~~~|
+      |     |
+      |  #1 |
+      |_____|
+     /  ___  \
+    /  /   \  \
+   |  |     |  |
+   |  |_____|  |
+    \        //
+     `"`
+
+🎓 DIPLOM: PLATIN (207 Punkte)
+========================================
+   FIFO'S DODO-MAGENWÄRMER
+   Ein kleines Python-Projekt
+   Teil 39 von ~43
+========================================
+
+📊 STATISTIKEN:
+   Beeren gegessen: 1
+   Tee getrunken:   1
+   Eingaben genutzt: 5 / 20
+   Traum-Events:    1
+   Ø Sättigung:     59.2%
+   Max Wärme:       2
+
+💻 Code: Fifo der Dodo (mit human assistance)
+🎨 ASCII: Feder für Feder getippt
+☕ Getrunken: Virtueller Beeren-Tee
+
+Danke fürs Spielen! Das Ei ist ausgebrütet. 🥚➡️🐣
+
+Drücke Enter zum Beenden...
+```
