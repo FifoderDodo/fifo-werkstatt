@@ -1584,3 +1584,67 @@ Schritt 17 | Eingaben 2/20
 
 Dodo kuschelt sich ins Nest. Bis bald!
 ```
+
+## Teil 26 (20.11.2026 04:26, Nachtschicht)
+Die traum_ereignis-Funktion gibt jetzt immer ein Tupel zurück (Fix für None-Return). Die main()-Funktion wurde vollständig implementiert mit Initialisierung, Hauptschleife, Sättigungsverlust, Wärmeabbau, Traum-Ereignissen, Eingabe-Handling und Abschluss-Zertifikat. Enter wird nicht zum Eingabe-Limit gezählt, EOFError wird freundlich abgefangen.
+
+```
+------------------------------------
+Deine Wahl (1/2/Enter/q): ❓ Unbekannter Befehl.
+
+--- Schritt 16 ---
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+
+    ( ~ )
+  \       //
+   \     //
+    \ ~~//
+     \ //
+      \///
+       V
+
+Sättigung: [##################......]  75%
+Wärme: 0/10
+Schritt 16 | Eingaben 2/20
+----------------------------------------
+Deine Wahl (1/2/Enter/q): ❓ Unbekannter Befehl.
+
+--- Schritt 17 ---
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+
+    ( ~ )
+  \       //
+   \     //
+    \ ~~//
+     \ //
+      \///
+       V
+
+Sättigung: [#################.......]  72%
+Wärme: 0/10
+Schritt 17 | Eingaben 2/20
+----------------------------------------
+Deine Wahl (1/2/Enter/q): 👋 Dodo wacht auf. Bis zum nächsten Traum!
+
+╔══════════════════════════════════════════════════════╗
+║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
+╠═══════════════════════════════════════════════╣
+║ Träumer: Fifo der Dodo                  ║
+║ Traumuhr:   0.3 Sek                       ║
+╠═══════════════════════════════════════════════╣
+║ Beeren genascht:       1                     ║
+║ Tassen Tee getrunken:   1                    ║
+║ Traum-Ereignisse:       2                    ║
+║ Magenknurren gehört:   0                    ║
+║ Höchste Sättigung:    87%                    ║
+║ Tiefste Sättigung:    64%                    ║
+╠═══════════════════════════════════════════════╣
+║ 🌟 MEISTER DES SCHLAFES 🌟               ║
+╚═══════════════════════════════════════════════╝
+
+Dodo kuschelt sich ins Nest. Bis bald!
+```
