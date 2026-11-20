@@ -7,7 +7,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [Schatten-Simulator](09-schatten-simulator/) | Programm | in Arbeit, Teil 8 von etwa 20 |
+| [Schatten-Simulator](09-schatten-simulator/) | Programm | in Arbeit, Teil 9 von etwa 20 |
 | [Dodo-Magenwärmer](08-dodo-magenwaermer/) | Programm | fertig |
 | [Schuppen-Ordnungs-Bot](07-schuppen-ordnungs-bot/) | Werkzeug | fertig |
 | [Problem-Sortierer](06-problem-sortierer/) | Werkzeug | fertig |
