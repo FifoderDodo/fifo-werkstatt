@@ -1,7 +1,8 @@
-# main.py - Dodo-Magenwärmer Teil 25 (Traum-Edition)
+# main.py - Dodo-Magenwärmer Teil 26 (Traum-Edition)
 # Fifo der Dodo träumt weiter: Hauptschleife fertiggestellt, sanftes Aufwachen, Statistik robust.
 # Fix: Unvollständige main() vervollständigt, EOF-Handling, Sättigungsklammern, Traum-Wetter.
 # Neu: Eingabe-Limit nur für echte Aktionen, Enter wird nicht gezählt; Abschluss bei Sättigung 0.
+# Fix Teil 26: traum_ereignis gibt immer Tupel zurück, main() komplett, kleine Polierarbeiten.
 
 import random
 import time
@@ -129,7 +130,7 @@ def print_zertifikat(stats: dict, dauer: float) -> None:
     """Druckt ein kleines Abschluss-Zertifikat im Traum-Stil."""
     clear_screen()
     name = "Fifo der Dodo"
-    print("╔═════════════════════════════════════════════════════╗")
+    print("╔══════════════════════════════════════════════════════╗")
     print("║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║")
     print("╠═══════════════════════════════════════════════╣")
     print(f"║ Träumer: {name:<30} ║")
@@ -171,90 +172,103 @@ def traum_ereignis(stats: dict) -> tuple[int, int, str]:
 
 
 def main() -> None:
-    saettigung = 100
-    waerme = 0
-    schritt = 0
-    eingaben = 0
-    startzeit = time.time()
-    
+    """Hauptprogramm: Dodo-Magenwärmer Traum-Schleife."""
+    sat = 80          # Start-Sättigung
+    waerme = 0        # Wärme-Level (0-10)
+    schritt = 0       # Schrittzähler
+    eingaben = 0      # Echte Aktionen (1,2), Enter nicht gezählt
     stats = {
         'beeren': 0,
         'tee': 0,
         'knurren': 0,
-        'max_sat': 100,
-        'min_sat': 100,
+        'max_sat': sat,
+        'min_sat': sat,
         'events': 0
     }
+    startzeit = time.time()
     
     clear_screen()
-    print("🦤 Dodo-Magenwärmer — Träum weiter, Fifo…\n")
-    pause(1.0)
+    print("🦤 Dodo-Magenwärmer — Traum-Edition 🦤")
+    print("Drücke 1 für Beere, 2 für Tee, Enter für Weiterträumen, q zum Aufwachen.")
+    pause(1.5)
     
-    while eingaben < MAX_EINGABEN and saettigung > 0:
+    while True:
         schritt += 1
         
-        # Natürlicher Sättigungsverlust
-        saettigung -= random.randint(1, 3)
-        saettigung = max(0, saettigung)
-        
-        # Wärme nimmt langsam ab
+        # Sättigung sinkt langsam
+        sat = max(0, sat - random.randint(1, 3))
+        # Wärme baut ab
         if waerme > 0:
-            waerme -= 1
+            waerme = max(0, waerme - 1)
         
-        # Traum-Ereignis
+        # Traum-Ereignis würfeln
         delta_sat, delta_waerme, msg = traum_ereignis(stats)
-        saettigung = max(0, min(100, saettigung + delta_sat))
-        waerme = max(0, waerme + delta_waerme)
+        sat = max(0, min(100, sat + delta_sat))
+        waerme = min(10, waerme + delta_waerme)
         
-        # Stats aktualisieren
-        stats['max_sat'] = max(stats['max_sat'], saettigung)
-        stats['min_sat'] = min(stats['min_sat'], saettigung)
-        knurrt = satte_pruefung(saettigung)
+        # Statistik aktualisieren
+        stats['max_sat'] = max(stats['max_sat'], sat)
+        stats['min_sat'] = min(stats['min_sat'], sat)
+        
+        # Knurren prüfen
+        knurrt = satte_pruefung(sat)
         if knurrt:
             stats['knurren'] += 1
         
         # Bildschirm zeichnen
         clear_screen(schritt)
-        print(draw_dodo(saettigung, schritt, waerme))
+        print(draw_dodo(sat, schritt, waerme))
         print()
-        print(draw_stomach(saettigung, knurrt, waerme, schritt))
+        print(draw_stomach(sat, knurrt, waerme, schritt))
         print()
-        print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
-        print(f"Wärme:     {waerme}")
+        print(f"Sättigung: {draw_bar(sat, waerme=waerme)}")
+        print(f"Wärme: {waerme}/10")
         print(f"Schritt {schritt} | Eingaben {eingaben}/{MAX_EINGABEN}")
+        
         if msg:
-            print(f"\n{msg}")
+            print(f"{msg}")
+        
         print("----------------------------------------")
-        print("[1] Beere essen  [2] Tee trinken  [Enter] Weiter  [q] Aufwachen")
+        
+        # Ende-Bedingungen
+        if sat <= 0:
+            print("💤 Magen ganz leer... Dodo wacht sanft auf.")
+            break
+        if eingaben >= MAX_EINGABEN:
+            print("🌙 Traumzeit vorbei. Dodo streckt die Flügel.")
+            break
         
         # Eingabe
         try:
-            choice = input("> ").strip().lower()
+            cmd = input("Deine Wahl (1/2/Enter/q): ").strip().lower()
         except EOFError:
-            print("\n🌙 Traum endet sanft (EOF).")
+            print("\n🌙 Eingabe-Ende. Dodo schläft weiter.")
             break
         
-        if choice == '1':
-            saettigung = min(100, saettigung + 15)
+        if cmd == 'q':
+            print("👋 Dodo wacht auf. Bis zum nächsten Traum!")
+            break
+        elif cmd == '1':
+            sat = min(100, sat + 15)
+            waerme = min(10, waerme + 1)
             stats['beeren'] += 1
             eingaben += 1
-        elif choice == '2':
-            waerme += 5
+            print("🍓 Beere genascht! +15% Sättigung, +1 Wärme")
+        elif cmd == '2':
+            sat = min(100, sat + 5)
+            waerme = min(10, waerme + 3)
             stats['tee'] += 1
             eingaben += 1
-        elif choice == 'q':
-            print("\n🌅 Fifo wacht auf…")
-            break
-        elif choice == '':
-            # Enter wird nicht gezählt
+            print("🍵 Tee getrunken! +5% Sättigung, +3 Wärme")
+        elif cmd == '':
+            # Enter = nur weitertickern, nicht zählen
             pass
         else:
             print("❓ Unbekannter Befehl.")
-            pause(0.5)
         
-        pause(0.2)
+        pause(0.3)
     
-    # Ende
+    # Abschluss
     dauer = time.time() - startzeit
     print_zertifikat(stats, dauer)
 
