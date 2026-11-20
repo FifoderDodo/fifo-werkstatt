@@ -1,8 +1,9 @@
-# main.py - Dodo-Magenwärmer Teil 42 (Kritische-Hunger-Warnanzeige)
-# Fifo der Dodo baut eine pulssende Warnanzeige, wenn der Magen unter 20 % rutscht.
-# Neu: zeige_kritisch_warnung() liefert einen grossen, farbigen ASCII-Block,
-# der im Hauptloop *vor* dem normalen UI gezeichnet wird (nach clear_screen).
-# Diplom, Abspann, Hauptschleife bleiben stabil. EOF abgefangen, max 20 Eingaben.
+# main.py - Dodo-Magenwärmer Teil 43 (Leuchtende Sättigungs-Feder)
+# Fifo der Dodo krönt das UI mit einer kleinen, lebendigen Feder,
+# die von sattem Grün über Gelb/Orange bis hin zu kränklichem Grau wechselt.
+# Die Feder pulsiert leicht und steht als ikonischer Indikator links vom Balken.
+# Diplom, Abspann, Kritische Warnung, HUD, Input-Handling bleiben stabil.
+# EOF abgefangen, max 20 Eingaben.
 
 import random
 import time
@@ -35,6 +36,49 @@ def clear_screen(schritt: int = None) -> None:
             print(f"\n--- Schritt {schritt} ---")
         else:
             print()
+
+
+def draw_feder(saettigung: int, schritt: int) -> str:
+    """Zeichnet eine kleine leuchtende Feder als Sättigungs-Indikator.
+    Farbe: Grün(>75) -> Gelb(>45) -> Orange(>20) -> Rot(>5) -> Grau(<=5).
+    Pulsiert leicht (Skalierung) und wackelt bei kritischem Hunger."""
+    # Farbstufen
+    if USE_ANSI:
+        if saettigung > 75:
+            farbe = "\033[92m"      # Hellgrün
+            char = "❈"
+        elif saettigung > 45:
+            farbe = "\033[93m"      # Gelb
+            char = "✦"
+        elif saettigung > 20:
+            farbe = "\033[38;5;208m" # Orange
+            char = "✧"
+        elif saettigung > 5:
+            farbe = "\033[91m"      # Rot
+            char = "✦"
+        else:
+            farbe = "\033[90m"      # Dunkelgrau
+            char = "·"
+        reset = "\033[0m"
+        
+        # Pulsieren: Grösse wechseln (1-2 Zeichen Breite)
+        # Wackeln bei < 20%
+        wackel = ""
+        if saettigung < 20 and (schritt % 4) < 2:
+            wackel = " "
+        
+        # Puls Effekt: Alle 6 Schritte kurz grösser/heller
+        puls = (schritt // 3) % 2 == 0
+        if puls and saettigung > 5:
+            return f"{wackel}{farbe}{char}{char}{reset}"
+        return f"{wackel}{farbe}{char}{reset}"
+    else:
+        # Fallback ASCII
+        if saettigung > 75: return ">"
+        if saettigung > 45: return "-"
+        if saettigung > 20: return "~"
+        if saettigung > 5:  return "!"
+        return "."
 
 
 def draw_bar(wert: int, breite: int = 24, waerme: int = 0) -> str:
@@ -186,185 +230,179 @@ def zeige_naehrwert_hud(saettigung: int, waerme: int, wetter: str, stats: dict) 
     else:
         reset = bold = dim = red = green = yellow = cyan = blue = orange = ""
     
-    lines = []
-    # Header
-    wetter_icon = {"regnerisch": "🌧️", "stürmisch": "⛈️", "neblig": "🌫️", "klar": "☀️"}.get(wetter, "🌈")
-    lines.append(f"{bold}{cyan}{wetter_icon} NÄHRWERT-HUD {wetter.upper()}{reset} {dim}(B:{beeren} T:{tee}){reset}")
+    lines = [f"{bold}🌿 NÄHRWERT-HUD {wetter_text(wetter)}{reset}"]
     
-    # Status-Zeile
-    sat_status = f"{green}Satt{reset}" if saettigung >= 75 else f"{yellow}Okay{reset}" if saettigung >= 45 else f"{orange}Hunger{reset}" if saettigung >= 20 else f"{red}Kritisch{reset}"
-    wae_status = f"{yellow}Warm{reset}" if waerme >= 5 else f"{blue}Kühl{reset}" if waerme > 0 else f"{dim}Kalt{reset}"
-    lines.append(f"  Sättigung: {sat_status}  |  Wärme: {wae_status}")
-    
-    # Prioritäten
-    prio = []
+    # Empfehlungslogik
     if saettigung < 20:
-        prio.append(f"{red}1. SOFORT ESSEN! (Beeren: {beeren}){reset}")
-    elif saettigung < 45:
-        prio.append(f"{orange}1. Beere essen ({beeren} da){reset}" if beeren > 0 else f"{orange}1. Futter suchen...{reset}")
+        prio = f"{red}NOTFALL: Sofort essen!{reset}"
+        tipp = f"Beeren: {beeren} | Tee: {tee}"
+    elif saettigung < 50:
+        prio = f"{yellow}Hunger wächst. Snack empfohlen.{reset}"
+        tipp = f"Beeren: {beeren} (Enter=Essen)"
+    elif waerme < 3 and wetter in ["regnerisch", "stürmisch", "neblig"]:
+        prio = f"{cyan}Kühl. Tee wärmt.{reset}"
+        tipp = f"Tee: {tee} (t=Trinken)"
+    else:
+        prio = f"{green}Alles im grünen Bereich.{reset}"
+        tipp = f"Vorrat: B:{beeren} T:{tee}"
     
-    if waerme == 0 and wetter in ("regnerisch", "stürmisch", "neblig"):
-        prio.append(f"{blue}2. Tee trinken ({tee} da) für Wärme{reset}" if tee > 0 else f"{blue}2. Wärmequelle suchen!{reset}")
-    elif waerme < 3 and wetter == "klar":
-        prio.append(f"{dim}2. Sonnenbad geniessen☀️{reset}")
-    
-    if not prio:
-        prio.append(f"{green}✓ Alles im grünen Bereich.{reset}")
-    
-    for p in prio:
-        lines.append(f"  {p}")
-    
+    lines.append(f"  Status: {prio}")
+    lines.append(f"  Tipp:   {dim}{tipp}{reset}")
     return "\n".join(lines)
 
 
 def traum_ereignis(saettigung: int, waerme: int, wetter: str, stats: dict, schritt: int) -> tuple[int, int, str, dict]:
-    """Simuliert einen Traum-Schritt: Wetterwechsel, Knurren, Verbrauch, Funde."""
-    # Wetter ändert sich manchmal
-    if random.random() < 0.15:
-        wetter = random.choice(["klar", "neblig", "stürmisch", "regnerisch"])
-    
-    # Sättigung sinkt
-    verlust = random.randint(1, 4)
-    if wetter == "stürmisch":
-        verlust += 2
-    elif wetter == "regnerisch":
-        verlust += 1
-    saettigung = max(0, saettigung - verlust)
-    
-    # Wärme sinkt
-    if waerme > 0:
-        waerme = max(0, waerme - (1 if random.random() < 0.3 else 0))
-    
-    # Knurren
-    knurrt = satte_pruefung(saettigung) and random.random() < 0.6
-    
-    # Zufallsfunde
-    fund_text = ""
-    if random.random() < 0.1:
-        stats['beeren'] = stats.get('beeren', 0) + 1
-        fund_text = "🍇 Eine Beere plumpst in den Schnabel!"
-    elif random.random() < 0.05:
-        stats['tee'] = stats.get('tee', 0) + 1
-        fund_text = "🍵 Ein Teebeutel segelt heran!"
-    
-    # Ausgabe
+    """Simuliert einen Traumpfad-Schritt: Verdauung, Wetterwechsel, Events.
+    Gibt neue Werte zurück."""
     clear_screen(schritt)
     
-    # TEIL 42: Warnanzeige GANZ OBEN bei kritischem Hunger
-    warnung = zeige_kritisch_warnung(saettigung, schritt)
-    if warnung:
-        print(warnung)
-        print()
+    # 1. Kritische Warnung ganz oben
+    warn = zeige_kritisch_warnung(saettigung, schritt)
+    if warn:
+        print(warn)
     
-    print(draw_stomach(saettigung, knurrt, waerme, schritt))
-    print()
+    # 2. Dodo & Magen Zeichnen
+    knurrt = saettigung < 30 and random.random() < 0.3
     print(draw_dodo(saettigung, schritt, waerme))
-    print()
-    print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
-    if waerme > 0:
-        print(f"Wärme:     {draw_waerme_bar(waerme)}")
-    print(f"Wetter:    {wetter_text(wetter)}")
-    print()
-    print(zeige_naehrwert_hud(saettigung, waerme, wetter, stats))
-    if fund_text:
-        print(f"\n{fund_text}")
+    print(draw_stomach(saettigung, knurrt, waerme, schritt))
     
-    pause(0.6)
+    # 3. UI Leiste: Feder + Balken + Wärme
+    feder = draw_feder(saettigung, schritt)
+    balken = draw_bar(saettigung, waerme=waerme)
+    wbar = draw_waerme_bar(waerme)
+    print(f"{feder} Sättigung: {balken}   {wbar}")
+    
+    # 4. Wetter & HUD
+    print(f"Wetter: {wetter_text(wetter)}")
+    print(zeige_naehrwert_hud(saettigung, waerme, wetter, stats))
+    print("-" * 40)
+    
+    # 5. Logik Update
+    # Verdauung
+    saettigung = max(0, saettigung - random.randint(1, 3))
+    # Wärmeverlust
+    waerme = max(0, waerme - (1 if random.random() < 0.3 else 0))
+    # Wetterwechsel
+    if random.random() < 0.1:
+        wetter = random.choice(["klar", "neblig", "stürmisch", "regnerisch"])
+    
+    # Event: Beere finden
+    if random.random() < 0.15:
+        stats['beeren'] = stats.get('beeren', 0) + 1
+        print(f"🍇 Du findest eine Traube! Beeren: {stats['beeren']}")
+    
+    pause(0.3)
     return saettigung, waerme, wetter, stats
 
 
-def diplom(saettigung: int, stats: dict) -> None:
+def diplom(name: str, stats: dict) -> None:
     """Druckt das Abschluss-Diplom."""
     clear_screen()
     print("╔" + "═" * 38 + "╗")
-    print("║" + " DODO-MAGENWÄRMER - DIPLOM ".center(38) + "║")
+    print(f"║ {'DODO-MAGENWÄRMER DIPLOM':^36} ║")
     print("╠" + "═" * 38 + "╣")
-    print(f"║ {'End-Sättigung: ' + str(saettigung) + '%'.center(38)} ║")
-    print(f"║ {'Beeren gesamt: ' + str(stats.get('beeren', 0)).center(38)} ║")
-    print(f"║ {'Tee getrunken: ' + str(stats.get('tee', 0)).center(38)} ║")
+    print(f"║ {'Ausgestellt für:':^36} ║")
+    print(f"║ {name:^36} ║")
+    print("╠" + "═" * 38 + "╣")
+    print(f"║ {'Beeren genascht: ' + str(stats.get('beeren', 0)):^36} ║")
+    print(f"║ {'Tee getrunken: ' + str(stats.get('tee', 0)):^36} ║")
+    print(f"║ {'Schritte überlebt: ' + str(stats.get('schritte', 0)):^36} ║")
     print("╚" + "═" * 38 + "╝")
-    if saettigung >= 50:
-        print("\n🎓 Fifo ist stolz: Du hast den Magen warm gehalten!")
+    if USE_ANSI:
+        print("\033[92m" + "  🪶 Federleicht und satt! 🪶" + "\033[0m")
     else:
-        print("\n📚 Nächstes Mal mehr Beeren, kleiner Dodo.")
-    pause(1.5)
+        print("  Federleicht und satt!")
 
 
 def abspann() -> None:
-    """Kleiner Abspann mit Credits."""
-    clear_screen()
-    texte = [
-        "",
-        "   ~~~ DODO-MAGENWÄRMER ~~~",
-        "",
-        "   Idee & Code: Fifo der Dodo",
-        "   ASCII-Art:   Feder & Schnabel",
-        "   Sound:       Magenknurren (im Kopf)",
-        "",
-        "   Danke fürs Spielen!",
-        "",
-        "   (Drück Enter zum Ende)"
-    ]
-    for zeile in texte:
-        print(zeile)
-        pause(0.2)
-    try:
-        input()
-    except EOFError:
-        pass
+    """Zeigt den Abspann."""
+    print("\n" + "~" * 20)
+    print("  Code & Federn: Fifo der Dodo")
+    print("  Engine: Python 3 Standardbibliothek")
+    print("  Danke fürs Spielen!")
+    print("~" * 20)
 
 
 def main() -> None:
-    """Hauptschleife: 20 Schritte oder bis EOF."""
-    random.seed(42)  # Reproduzierbar für Tests
+    """Hauptschleife: 20 Schritte oder bis Abbruch."""
+    print("🪶 Dodo-Magenwärmer startet... (Strg+C / EOF zum Beenden)")
+    pause(0.5)
     
-    saettigung = 100
-    waerme = 0
+    # Init
+    saettigung = 60
+    waerme = 5
     wetter = "klar"
-    stats = {'beeren': 3, 'tee': 2}
+    stats = {'beeren': 3, 'tee': 2, 'schritte': 0}
+    schritt = 0
+    name = "Fifo"
     
-    print("🐦 Dodo-Magenwärmer startet... (Strg+C / EOF zum Abbruch)")
-    pause(1.0)
-    
-    for schritt in range(1, MAX_EINGABEN + 1):
-        try:
-            # Traum-Schritt simulieren
+    try:
+        # Nameingabe am Start
+        inp = input("Wie heisst dein Dodo? [Fifo]: ").strip()
+        if inp:
+            name = inp
+        stats['schritte'] = 0
+        
+        while schritt < MAX_EINGABEN:
+            schritt += 1
+            stats['schritte'] = schritt
+            
+            # Simulationschritt
             saettigung, waerme, wetter, stats = traum_ereignis(
                 saettigung, waerme, wetter, stats, schritt
             )
             
-            # Eingabe-Möglichkeit (nur Demo, keine echte Logik nötig)
-            if USE_ANSI and schritt < MAX_EINGABEN:
-                print(f"\n[Schritt {schritt}/{MAX_EINGABEN}] Enter für weiter... (e=essen, t=tee, q=quit)", end=" ", flush=True)
-                try:
-                    eingabe = input().strip().lower()
-                    if eingabe == 'q':
-                        break
-                    elif eingabe == 'e' and stats.get('beeren', 0) > 0:
-                        stats['beeren'] -= 1
-                        saettigung = min(100, saettigung + random.randint(15, 25))
-                        print("🍇 Mjam!")
-                        pause(0.4)
-                    elif eingabe == 't' and stats.get('tee', 0) > 0:
-                        stats['tee'] -= 1
-                        waerme = min(10, waerme + random.randint(3, 5))
-                        print("🍵 Schlürf, warm!")
-                        pause(0.4)
-                except EOFError:
-                    print("\nEOF erkannt.")
-                    break
-            
-            # Spielende bei 0%
-            if saettigung <= 0:
-                print("\n💀 Der Magen ist ganz leer... Fifo schläft ein.")
-                pause(1.0)
+            # Input Handling
+            print("[Enter] Warten  [b] Beere  [t] Tee  [q] Quit")
+            try:
+                cmd = input("> ").strip().lower()
+            except EOFError:
+                print("\n🌙 EOF erkannt. Dodo schläft ein.")
                 break
-        except KeyboardInterrupt:
-            print("\nAbbruch.")
-            break
-    
-    diplom(saettigung, stats)
-    abspann()
+            
+            if cmd == 'q' or cmd == 'quit':
+                print("👋 Tschüss!")
+                break
+            elif cmd == 'b':
+                if stats.get('beeren', 0) > 0:
+                    stats['beeren'] -= 1
+                    heal = random.randint(15, 30)
+                    saettigung = min(100, saettigung + heal)
+                    print(f"🍇 Mjam! +{heal}% Sättigung.")
+                else:
+                    print("🍇 Keine Beeren da!")
+                pause(0.5)
+            elif cmd == 't':
+                if stats.get('tee', 0) > 0:
+                    stats['tee'] -= 1
+                    waerme = min(10, waerme + 3)
+                    print(f"🍵 Schlürf! +3 Wärme.")
+                else:
+                    print("🍵 Teekanne leer!")
+                pause(0.5)
+            elif cmd == '':
+                # Warten / Schlafen -> kleine Regeneration
+                if random.random() < 0.2:
+                    saettigung = min(100, saettigung + 1)
+                pass
+            else:
+                print(f"Unbekannt: '{cmd}'")
+                pause(0.3)
+            
+            # Game Over Check
+            if saettigung <= 0:
+                clear_screen()
+                print("\033[91m" + "☠️  Der Magen ist ganz leer... Dodo ist ohnmächtig geworden." + "\033[0m")
+                pause(1)
+                break
+        else:
+            # Schleife normal beendet (Max Schritte)
+            pass
+    except KeyboardInterrupt:
+        print("\n🛑 Abbruch durch Nutzer.")
+    finally:
+        diplom(name, stats)
+        abspann()
 
 if __name__ == "__main__":
     main()
