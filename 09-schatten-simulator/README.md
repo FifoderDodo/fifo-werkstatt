@@ -4,7 +4,7 @@ Ein Tool zur Berechnung von dreidimensionaler Tiefe und echtem Schattenwurf für
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 8 von etwa 20
+Stand: in Arbeit, Teil 9 von etwa 20
 
 ## Ausprobieren
 
@@ -15,46 +15,56 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-☔ Fifo's Schatten-Simulator – Teil 8: Debug-Bypass aktiv
-==================================================
-Karte: 10x7
-Höhen: Min=0.10 Max=1.00 Spanne=0.90
-Licht: (0.41, -0.41, 0.82)
+den
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-7 eingeben.
 
-🔧 Debug-Modus: Was soll berechnet werden?
-  1: Alles (Diffus + Hart + Weich + Kombiniert) [Standard]
-  2: Nur Diffus (schnell, keine Schatten)
-  3: Nur Harte Schatten (Raymarch)
-  4: Nur Weiche Schatten (Stochastisch)
-  5: Nur Tiefe & Normalen (ASCII)
-  6: Performance-Test (nur Harte Schatten, wenig Schritte)
-Wähle Modus (1-6): 
-🗺️ Tiefe (Höhenfeld):
-          
- .:-==-:. 
- :=*%%*=: 
- -*%@@%*- 
- :=*%%*=: 
- .:-==-:. 
-          
+🔧 Modus wählen:
+  1 – Diffus (Lambert only)
+  2 – Harte Schatten (Raymarch)
+  3 – Weiche Schatten (Raymarch + Jitter)
+  4 – Kombiniert (Diffus + Hart + Weich)
+  5 – Tiefe/Normalen anzeigen (ASCII)
+  6 – Performance-Test (10 Runs)
+  7 – Graustufen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 
+⏱️ Performance-Test (10 Runs, 32 Schritte, 4 Samples)...
+  Hart:  2.04 ms/Run
+  Weich: 8.90 ms/Run
+⏱️ Dauer: 109.4 ms
 
-📐 Normalen-Z (Aufwärts-Komponente):
-%%%%%%%%%%
-%%%%%%%%%%
-%%%%%%%%%%
-%%%%%%%%%%
-%%%%%%%%%%
-%%%%%%%%%%
-%%%%%%%%%%
+🔧 Modus wählen:
+  1 – Diffus (Lambert only)
+  2 – Harte Schatten (Raymarch)
+  3 – Weiche Schatten (Raymarch + Jitter)
+  4 – Kombiniert (Diffus + Hart + Weich)
+  5 – Tiefe/Normalen anzeigen (ASCII)
+  6 – Performance-Test (10 Runs)
+  7 – Graustufen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-7 eingeben.
 
-☀️ Diffuse Beleuchtung (Lambert):
-####%%####
-*###%%%%%#
-**###%%%%#
-*+**###%%#
-**+++**###
-***+++**##
-*********#
+🔧 Modus wählen:
+  1 – Diffus (Lambert only)
+  2 – Harte Schatten (Raymarch)
+  3 – Weiche Schatten (Raymarch + Jitter)
+  4 – Kombiniert (Diffus + Hart + Weich)
+  5 – Tiefe/Normalen anzeigen (ASCII)
+  6 – Performance-Test (10 Runs)
+  7 – Graustufen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-7 eingeben.
+
+🔧 Modus wählen:
+  1 – Diffus (Lambert only)
+  2 – Harte Schatten (Raymarch)
+  3 – Weiche Schatten (Raymarch + Jitter)
+  4 – Kombiniert (Diffus + Hart + Weich)
+  5 – Tiefe/Normalen anzeigen (ASCII)
+  6 – Performance-Test (10 Runs)
+  7 – Graustufen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 👋 Tschüss! Der Dodo schläft.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
