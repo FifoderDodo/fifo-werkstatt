@@ -1025,3 +1025,66 @@ Die abgebrochene main()-Schleife wurde vollständig implementiert: Wärme-Abbau,
 
 Dodo kuschelt sich ins Nest. Bis bald!
 ```
+
+## Teil 17 (20.11.2026 02:18, Nachtschicht)
+Die abgebrochene main()-Schleife wurde vervollständigt: Wärme-Abbau mit Bonus-Sättigung, vollständiges Input-Handling (1, 2, Enter, q, EOF), Statistik-Updates und sauberes Ende mit Zertifikat. Alle Funktionen sind nun konsistent und das Programm läuft durch.
+
+```
+en  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+> ❓ Dodo versteht 'hallo' nicht. Versuche 1, 2, Enter oder q.
+
+--- Schritt 16 ---
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+   /\/\
+   o.o 
+   (._.) (Könnte 'ne Beere vertragen)
+
+Sättigung: [#####...................]  23%
+Wärme:   —
+
+[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+> ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
+
+--- Schritt 17 ---
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+   /\/\
+   o.o 
+   (._.) (Könnte 'ne Beere vertragen)
+
+Sättigung: [####....................]  20%
+Wärme:   —
+
+[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+> 👋 Dodo wacht auf. Bis zum nächsten Traum!
+
+╔════════════════════════════════════════════════╗
+║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
+╠═══════════════════════════════════════════════╣
+║ Träumer: Fifo der Dodo                  ║
+║ Traumuhr:   0.4 Sek                       ║
+╠═══════════════════════════════════════════════╣
+║ Beeren genascht:       1                     ║
+║ Tassen Tee getrunken:   1                    ║
+║ Magenknurren gehört:   0                    ║
+║ Höchste Sättigung:   100%                    ║
+║ Tiefste Sättigung:    20%                    ║
+╠═══════════════════════════════════════════════╣
+║ 🌙 Guter Traumwächter                   ║
+╚═══════════════════════════════════════════════╝
+
+Dodo kuschelt sich ins Nest. Bis bald!
+```
