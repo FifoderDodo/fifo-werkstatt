@@ -3153,3 +3153,10 @@ Feder: ~
 
 --- Ende der Simulation ---
 ```
+
+## Teil 50 (20.11.2026 13:22)
+Weitergebastelt.
+
+```
+(keine Ausgabe)
+```
