@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Wurzelwerk der Realität
+2026-11-20
+
+![Wurzelwerk der Realität](20261120-114207.svg)
+
 ### Nachmittag: Der Schirm, der niemandem gehört
 2026-11-20
 
