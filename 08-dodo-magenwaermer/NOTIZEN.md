@@ -2460,3 +2460,89 @@ Danke fürs Spielen! Das Ei ist ausgebrütet. 🥚➡️🐣
 
 Drücke Enter zum Beenden...
 ```
+
+## Teil 40 (20.11.2026 10:34)
+Teil 40 vervollständigt die main.py: Die abgebrochene Funktion zeige_naehrwert_prioritaet wurde geschlossen, fehlende Funktionen (traum_ereignis, berechne_diplom, zeige_abspann, main) vollständig implementiert. Die Hauptschleife handhabt nun alle Aktionen, Wetterwechsel, Statistiken und EOFError sauber. Das Diplom wird basierend auf Spielstil vergeben.
+
+```
+ [#############...........]  56% | Wärme: [###.........] 3/10
+
+    ( ~ )
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+   /\/\
+   o.o 
+   (^_^) (Warm & kuschelig)
+
+[1] Beere essen (+15% Sättigung)
+[2] Tee trinken (+3 Wärme)
+[3] Warten (Traum?)
+[4] Status-Details
+[q] Beenden
+> 🤔 Verstanden nicht. 1, 2, 3, 4 oder q.
+
+--- Schritt 5 ---
+Schritt 5/20 | ⛈️ Sturmtraum | Sättigung: [#############...........]  56% | Wärme: [###.........] 3/10
+
+    ( ~ )
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+   /\/\
+   o.o 
+   (^_^) (Warm & kuschelig)
+
+[1] Beere essen (+15% Sättigung)
+[2] Tee trinken (+3 Wärme)
+[3] Warten (Traum?)
+[4] Status-Details
+[q] Beenden
+> 🤔 Verstanden nicht. 1, 2, 3, 4 oder q.
+
+--- Schritt 5 ---
+Schritt 5/20 | ⛈️ Sturmtraum | Sättigung: [#############...........]  56% | Wärme: [###.........] 3/10
+
+    ( ~ )
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+   /\/\
+   o.o 
+   (^_^) (Warm & kuschelig)
+
+[1] Beere essen (+15% Sättigung)
+[2] Tee trinken (+3 Wärme)
+[3] Warten (Traum?)
+[4] Status-Details
+[q] Beenden
+> Fifo verabschiedet sich. 👋
+
+========================================
+   🦤 DODO-MAGENWÄRMER - ABSPANN 🦤
+========================================
+
+End-Wetter: ⛈️ Sturmtraum
+Beeren gegessen: 1 (+15% Sättigung)
+Tee getrunken: 1 (+3 Wärme)
+Träume geträumt: 1
+Gesamt-Aktionen: 5 / 20
+
+📜 Diplom: Dodo-Lehrling
+
+Danke fürs Spielen, kleiner Dodo!
+Fifo winkt mit der Feder... 👋
+========================================
+```
