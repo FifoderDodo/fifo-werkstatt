@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 52 von etwa 53
+Stand: fertig
 
 ## Ausprobieren
 
@@ -15,78 +15,94 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-en  [q] Quit
-> 🦤 *versteht nicht* - 1, 2, 3 oder q eingeben
-
---- Schritt 10 ---
-        MAGEN         
-  ~ ~ ~ ~  
-(  ................)
-(                  )
-( ################ )
-( ________________ )
-
-
-[############............]  50%
-[............] 0/10
-
-Hunger: [-------------------▶--------------------] 50%
-
-Schritt 10 | Feder: -~
-
-Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
-> 🦤 *kuschelt sich an die Wärmequelle* +3 Wärme
+ttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
 
 --- Schritt 11 ---
-        MAGEN         
-  ~ ~ ~ ~  
-(  ................)
-(                  )
-( ################ )
-( ________________ )
+   ___   
+   ☁☁
+  /_-~_\
+ |[#################.......]  74%|
+ \~-~~/
+   ‾‾‾   
 
+🔴───🟠─────🟡────🟢────✅
+               🔺 74%
 
-[##########..............]  45%
-[##..........] 2/10
-
-Hunger: [-----------------▶----------------------] 45%
-
-Schritt 11 | Feder: ~
-
-Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
-> 🦤 *versteht nicht* - 1, 2, 3 oder q eingeben
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
 
 --- Schritt 12 ---
-        MAGEN         
-   ~   ~   
-(                  )
-(  ................)
-( ################ )
-( ________________ )
+   ___   
+   ☁
+  /~-~~\
+ |[#################.......]  72%|
+ \--~-/
+   ‾‾‾   
 
+🔴───🟠─────🟡────🟢────✅
+               🔺 72%
 
-[##########..............]  42%
-[#...........] 1/10
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
 
-Hunger: [----------------▶-----------------------] 42%
+--- Schritt 13 ---
+   ___   
+   ☁
+  /--~-\
+ |[################........]  69%|
+ \_-~_/
+   ‾‾‾   
 
-Schritt 12 | Feder: ~
+🔴───🟠─────🟡────🟢────✅
+              🔺 69%
 
-Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
-> 🦤 Dodo watschelt weg. Tschüss!
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
 
-        MAGEN         
-   ~   ~   
-(                  )
-(  ................)
-( ################ )
-( ________________ )
+--- Schritt 14 ---
+   ___   
+   ☁☁
+  /_-~_\
+ |[################........]  68%|
+ \~-~~/
+   ‾‾‾   
 
+🔴───🟠─────🟡────🟢────✅
+              🔺 68%
 
-[##########..............]  42%
-Hunger: [----------------▶-----------------------] 42%
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
 
-Endstand: 42% Sättigung, 1 Wärme nach 12 Schritten.
+--- Schritt 15 ---
+   ___   
+   ☁☁
+  /~-~~\
+ |[###############.........]  66%|
+ \--~-/
+   ‾‾‾   
+
+🔴───🟠─────🟡────🟢────✅
+             🔺 66%
+
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 16 ---
+   ___   
+   ☁
+  /--~-\
+ |[###############.........]  63%|
+ \_-~_/
+   ‾‾‾   
+
+🔴───🟠─────🟡────🟢────✅
+             🔺 63%
+
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Tschüss!
+
+Programm beendet.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
