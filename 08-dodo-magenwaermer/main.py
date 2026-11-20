@@ -101,7 +101,7 @@ def draw_feder(saettigung: int, schritt: int) -> str:
     else:
         # Fallback ASCII
         if saettigung > 75: return ">"
-        if saettigung > 45: return "-"
+        if saettigung > 45: return "-~"
         if saettigung > 20: return "~"
         if saettigung > 5:  return "!"
         return "."
@@ -178,36 +178,87 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
                 mid = line[left+2:right]
                 filled = (wave * (len(mid) // 3 + 1))[:len(mid)]
                 line = line[:left+2] + filled + line[right:]
-        if magen_farbe and waerme > 0:
-            line = line.replace('\\', magen_farbe + '\\' + reset).replace('//', magen_farbe + '//' + reset).replace('V', magen_farbe + 'V' + reset)
         result.append(line)
     return "\n".join(result)
 
 
-def draw_dodo(wert: int, schritt: int, waerme: int = 0) -> str:
-    """Zeigt das Dodo-Gesicht mit Federkamm, Blinzeln und Wärmelächeln."""
-    blinzelt = (schritt % 10) == 0
-    augen = "-.- " if blinzelt else "o.o "
+def main() -> None:
+    """Hauptprogramm: Dodo-Magenwärmer Simulation."""
+    saettigung = 100
+    waerme = 0
+    schritt = 0
+    max_schritte = 20
+    eingaben = 0
     
-    if waerme > 0:
-        mund = "^_^"
-        notiz = " (Warm & kuschelig)"
-    elif wert < 20:
-        mund = ">_<"
-        notiz = " (Magen knurrt!)"
-    elif wert < 50:
-        mund = "._."
-        notiz = " (Könnte 'ne Beere vertragen)"
+    print("Dodo-Magenwärmer gestartet. Drücke Enter für nächsten Schritt,")
+    print("'f' zum Füttern, 'q' zum Beenden.")
+    pause(1.5)
+    
+    while schritt < max_schritte and saettigung > 0:
+        schritt += 1
+        clear_screen(schritt)
+        
+        # Knurren prüfen
+        knurrt = satte_pruefung(saettigung) and random.random() < 0.3
+        
+        # Feder zeichnen
+        feder = draw_feder(saettigung, schritt)
+        
+        # Balken zeichnen
+        bar = draw_bar(saettigung, 24, waerme)
+        waerme_bar = draw_waerme_bar(waerme, 10, 12)
+        
+        # Magen zeichnen
+        magen = draw_stomach(saettigung, knurrt, waerme, schritt)
+        
+        # Ausgabe
+        print(f"Schritt: {schritt}/{max_schritte}")
+        print(f"Sättigung: {bar}  Feder: {feder}")
+        print(f"Wärme:     {waerme_bar}")
+        print("Magen:")
+        print(magen)
+        if knurrt:
+            print("\n*** Der Magen knurrt! ***")
+            if USE_ANSI:
+                sys.stdout.write("\a")  # Piep
+                sys.stdout.flush()
+        
+        # Eingabe
+        try:
+            aktion = input("\nAktion (f=füttern, q=beenden, Enter=weiter): ").strip().lower()
+            eingaben += 1
+            if eingaben > MAX_EINGABEN:
+                print("Maximale Anzahl an Eingaben erreicht.")
+                break
+        except EOFError:
+            print("\nEingabeende erkannt. Tschüss!")
+            break
+        
+        if aktion == 'q':
+            print("Bis bald, kleiner Dodo!")
+            break
+        elif aktion == 'f':
+            # Füttern: Sättigung erhöhen, Wärme etwas erhöhen
+            saettigung = min(100, saettigung + random.randint(15, 30))
+            waerme = min(10, waerme + 1)
+            print("Mampf! Das hat gutgetan.")
+            pause(0.8)
+        
+        # Natürlicher Verbrauch
+        saettigung = max(0, saettigung - random.randint(5, 15))
+        # Wärme nimmt langsam ab
+        if waerme > 0 and random.random() < 0.2:
+            waerme -= 1
+        
+        pause(0.3)
+    
+    if saettigung <= 0:
+        clear_screen()
+        print("Der Dodo ist vor Hunger ohnmächtig geworden...\n")
+        print(draw_stomach(0, False, 0, schritt))
+        print("\nSpiel zu Ende. Nächstes Mal besser füttern!")
     else:
-        mund = "^_^"
-        notiz = " (Pummelig & warm)"
-    return f"""   /\\/\\
-   {augen}
-   ({mund}){notiz}"""
+        print("\nSimulation beendet. Der Dodo ist zufrieden.")
 
-
-def wetter_text(wetter: str) -> str:
-    """Gibt kurzes Wetter-Symbol zurück."""
-    return {
-        "klar": "☀️ Klartraum"
-    }
+if __name__ == "__main__":
+    main()
