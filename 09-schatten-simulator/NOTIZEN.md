@@ -220,3 +220,78 @@ Ergebnis: Kombinierte Schattenkarte (0.00 = dunkel, 1.00 = hell):
 Der Code steht. Die Schatten fallen. Fifo gähnt.
 Alles gut für heute? (j/n) 🦤 Okay, noch eine Runde... aber morgen. Gute Nacht.
 ```
+
+## Teil 7 (20.11.2026 22:56)
+Neue Funktion `weiche_schatten_raymarch` implementiert: Stochastisches Raymarching mit deterministischem Hash-Jitter pro Pixel/Sample für weiche Kanten (Penumbra). `kombiniere_schatten` erweitert um drei Gewichtungen (Diffus, Hart, Weich). Hauptprogramm demonstriert Pipeline und fragt nach Sample-Count für nächsten Run.
+
+```
+ymarcher lernt Streuen.
+
+Aktuelle Tiefenkarte (Höhenwerte 0.00–1.00):
+  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10
+  0.10  0.20  0.30  0.40  0.50  0.50  0.40  0.30  0.20  0.10
+  0.10  0.30  0.50  0.70  0.90  0.90  0.70  0.50  0.30  0.10
+  0.10  0.40  0.70  0.90  1.00  1.00  0.90  0.70  0.40  0.10
+  0.10  0.50  0.90  1.00  1.00  1.00  1.00  0.90  0.50  0.10
+  0.10  0.40  0.70  0.90  1.00  1.00  0.90  0.70  0.40  0.10
+  0.10  0.30  0.50  0.70  0.90  0.90  0.70  0.50  0.30  0.10
+  0.10  0.20  0.30  0.40  0.50  0.50  0.40  0.30  0.20  0.10
+  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10
+  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10  0.10
+
+Lichtrichtung (normiert): -0.43, -0.26, 0.86
+
+--- Diffus (Lambert) ---
+%#%%%%%%##
+%%%%%#####
+%%%%%#####
+%%%%%##***
+%%%####*+*
+%%####****
+%%###****#
+%###****##
+##########
+##########
+
+--- Hart (Raymarch) ---
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+
+Berechne weiche Schatten (Stochastisch, 8 Samples)...
+
+--- Weich (Stochastisch) ---
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+@@@@@@@@@@
+
+--- Final (Kombiniert) ---
+%#%%%%%%##
+%%%%%#####
+%%%%%#####
+%%%%%##***
+%%%####*+*
+%%####****
+%%###****#
+%###****##
+##########
+##########
+
+🦤 Mehr Samples für nächsten Run? (Zahl oder Enter für 8) Ok, 5 Samples notiert. Nächster Build wird schöner.
+
+🦤 Fifo watschelt ins Bett. Schatten sind weich. Gute Nacht.
+```
