@@ -2772,3 +2772,96 @@ Weitergebastelt. Den Absturz gleich repariert.
 ```
 (keine Ausgabe)
 ```
+
+## Teil 45 (20.11.2026 11:57)
+Die draw_stomach-Funktion wurde vervollständigt und ein Hauptprogramm hinzugefügt, das die neue Feder-Anzeige, die Balken und den Magen in einer Schritt-für-Schritt-Simulation zusammenführt. Der Benutzer kann den Dodo füttern oder das Programm beenden. Die Farbskala der Feder ist an die Sättigungsgrenzen gekoppelt und nutzt Easing für organische Animation.
+
+```
+  \///
+       V
+
+Aktion (f=füttern, q=beenden, Enter=weiter): 
+--- Schritt 7 ---
+Schritt: 7/20
+Sättigung: [#########...............]  39%  Feder: ~
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+Aktion (f=füttern, q=beenden, Enter=weiter): 
+--- Schritt 8 ---
+Schritt: 8/20
+Sättigung: [#######.................]  33%  Feder: ~
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+Aktion (f=füttern, q=beenden, Enter=weiter): 
+--- Schritt 9 ---
+Schritt: 9/20
+Sättigung: [#####...................]  24%  Feder: ~
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+Aktion (f=füttern, q=beenden, Enter=weiter): 
+--- Schritt 10 ---
+Schritt: 10/20
+Sättigung: [####....................]  17%  Feder: !
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+Aktion (f=füttern, q=beenden, Enter=weiter): 
+--- Schritt 11 ---
+Schritt: 11/20
+Sättigung: [#.......................]   8%  Feder: !
+Wärme:     [............] 0/10
+Magen:
+   *GRRRR*
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+*** Der Magen knurrt! ***
+
+Aktion (f=füttern, q=beenden, Enter=weiter): 
+Der Dodo ist vor Hunger ohnmächtig geworden...
+
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+Spiel zu Ende. Nächstes Mal besser füttern!
+```
