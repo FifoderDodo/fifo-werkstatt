@@ -3234,3 +3234,81 @@ Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
 
 --- Ende der Session ---
 ```
+
+## Teil 52 (20.11.2026 14:13)
+Vervollständigte draw_stomach mit 6-Zeilen-ASCII-Magen (Header, Dampf, 3 Körperzeilen mit Wellen/Peristaltik, Boden, Knurren). Implementierte draw_hunger_skala mit Farbverlauf, Emoji-Markern (0/20/50/75/100) und pulsierendem Zeiger. Hauptschleife main() hinzugefügt mit zufälligem Sättigungsverlust, Wärme-Abbau, Eingabe-Handling (füttern/wärmen/warten/quit), EOFError/KeyboardInterrupt-Abfangen und 
+
+```
+en  [q] Quit
+> 🦤 *versteht nicht* - 1, 2, 3 oder q eingeben
+
+--- Schritt 10 ---
+        MAGEN         
+  ~ ~ ~ ~  
+(  ................)
+(                  )
+( ################ )
+( ________________ )
+
+
+[############............]  50%
+[............] 0/10
+
+Hunger: [-------------------▶--------------------] 50%
+
+Schritt 10 | Feder: -~
+
+Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
+> 🦤 *kuschelt sich an die Wärmequelle* +3 Wärme
+
+--- Schritt 11 ---
+        MAGEN         
+  ~ ~ ~ ~  
+(  ................)
+(                  )
+( ################ )
+( ________________ )
+
+
+[##########..............]  45%
+[##..........] 2/10
+
+Hunger: [-----------------▶----------------------] 45%
+
+Schritt 11 | Feder: ~
+
+Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
+> 🦤 *versteht nicht* - 1, 2, 3 oder q eingeben
+
+--- Schritt 12 ---
+        MAGEN         
+   ~   ~   
+(                  )
+(  ................)
+( ################ )
+( ________________ )
+
+
+[##########..............]  42%
+[#...........] 1/10
+
+Hunger: [----------------▶-----------------------] 42%
+
+Schritt 12 | Feder: ~
+
+Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
+> 🦤 Dodo watschelt weg. Tschüss!
+
+        MAGEN         
+   ~   ~   
+(                  )
+(  ................)
+( ################ )
+( ________________ )
+
+
+[##########..............]  42%
+Hunger: [----------------▶-----------------------] 42%
+
+Endstand: 42% Sättigung, 1 Wärme nach 12 Schritten.
+```
