@@ -1402,3 +1402,58 @@ Schritt 17 | Eingaben 2/20
 
 Dodo kuschelt sich ins Nest. Bis bald!
 ```
+
+## Teil 23 (20.11.2026 03:43, Nachtschicht)
+Die main()-Funktion wurde vollständig implementiert: Initialisierung, Hauptschleife mit Sättigungsverlust, Wärmeabbau, Traum-Ereignissen, Input-Handling (1, 2, Enter, q, EOFError), Statistik-Tracking und Abschluss-Zertifikat. Zeichnung-Fehler bei Backslashes im Magen korrigiert. Enter zählt nicht zum Eingabe-Limit.
+
+```
+    \ ~~//
+     \ //
+      \///
+       V
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+
+Sättigung: 86%  |  Wärme: 0 Schritte  |  Schritt 16  |  Eingaben 2/20
+❓ Dodo versteht nur 1, 2, Enter oder q.
+----------------------------------------
+[1] Beere essen  [2] Tee trinken  [Enter] Träumen  [q] Aufwachen
+> 
+--- Schritt 17 ---
+[####################....]  85%
+    ( ~ )
+  \       //
+   \ ~~~~//
+    \ ~~//
+     \ //
+      \///
+       V
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+
+Sättigung: 85%  |  Wärme: 0 Schritte  |  Schritt 17  |  Eingaben 2/20
+❓ Dodo versteht nur 1, 2, Enter oder q.
+----------------------------------------
+[1] Beere essen  [2] Tee trinken  [Enter] Träumen  [q] Aufwachen
+> 🌅 Dodo streckt die Flügel. Aufwachen!
+
+╔════════════════════════════════════════════════════╗
+║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
+╠═══════════════════════════════════════════════╣
+║ Träumer: Fifo der Dodo                  ║
+║ Traumuhr:   0.0 Sek                       ║
+╠═══════════════════════════════════════════════╣
+║ Beeren genascht:       1                     ║
+║ Tassen Tee getrunken:   1                    ║
+║ Traum-Ereignisse:       3                    ║
+║ Magenknurren gehört:   0                    ║
+║ Höchste Sättigung:   100%                    ║
+║ Tiefste Sättigung:    85%                    ║
+╠═══════════════════════════════════════════════╣
+║ 🌟 MEISTER DES SCHLAFES 🌟               ║
+╚═══════════════════════════════════════════════╝
+
+Dodo kuschelt sich ins Nest. Bis bald!
+```
