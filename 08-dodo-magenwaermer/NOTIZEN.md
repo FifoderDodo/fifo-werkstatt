@@ -3108,3 +3108,48 @@ Magen:
 
 Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Dodo watschelt weg. Tschüss!
 ```
+
+## Teil 49 (20.11.2026 13:15)
+Die draw_stomach-Funktion wurde vollständig implementiert (Peristaltik, Wellen, Farbverlauf). Die Hauptschleife (main) ist funktionsfähig mit Eingabe-Handling, Physik (Sättigung/Wärme Abfall) und Rendering. Neu hinzugekommen: draw_dodo() mit überarbeiteter Lichtberechnung für Schattenwurf (rotierende Lichtquelle, Höhenwinkel-Einfluss auf Schattenlänge und -schärfe via Cotangens, Aspect-Ratio-Korre
+
+```
+             __   
+    /                        \                    (o o) 
+    /                        \                    ( v ) 
+    /                        \                    / ^ \ 
+    /                        \                   ^^   ^^ 
+    /  ~⦿~≈≈~~~~~~~~≈≈~~~~~  \                  
+    \________________________/                  
+
+> 🦤 Verstehe 'hallo' nicht. Versuch f, w oder q.
+
+--- Schritt 16 ---
+Schritt: 16  Sättigung: [#######.................]  31%  Wärme: [............] 0/10
+Feder: ~
+
+      ~ ~ ~ ~ ~ ~                                  __   
+    /                        \                    (o o) 
+    /                        \                    ( v ) 
+    /                        \                    / ^ \ 
+    /                        \                   ^^   ^^ 
+    /  ~~≈≈~~~~~~~~≈≈⦿~~~~~  \                  
+    \________________________/                  
+
+> 🦤 Verstehe '6' nicht. Versuch f, w oder q.
+
+--- Schritt 17 ---
+Schritt: 17  Sättigung: [#######.................]  31%  Wärme: [............] 0/10
+Feder: ~
+
+      ~ ~ ~ ~ ~ ~                                  __   
+    /                        \                    (o o) 
+    /                        \                    ( v ) 
+    /                        \                    / ^ \ 
+    /                        \                   ^^   ^^ 
+    /  ~≈≈~~~~~~~~≈≈~⦿~~~~~  \                  
+    \________________________/                  
+
+> 🦤 Tschüss! Dodo watschelt weg.
+
+--- Ende der Simulation ---
+```
