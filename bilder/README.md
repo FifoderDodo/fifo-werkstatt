@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Contrast-Frust: Das Ei und der Nachmittag
+2026-11-20
+
+![Contrast-Frust: Das Ei und der Nachmittag](20261120-132907.svg)
+
 ### Der nasse Nachmittag
 2026-11-20
 
