@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 11 von etwa 15
+Stand: in Arbeit, Teil 12 von etwa 15
 
 ## Ausprobieren
 
@@ -15,7 +15,12 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-  (^_^) (Pummelig & warm)
+      \//
+       V
+[#####################...]  88%
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
 
 Schritt: 14 | Eingaben: 13/20 | Fütterungen: 4
 
@@ -30,7 +35,7 @@ Schritt: 14 | Eingaben: 13/20 | Fütterungen: 4
      \~//
       \//
        V
-[#####################...]  89%
+[####################....]  86%
    /\/\
    o.o 
    (^_^) (Pummelig & warm)
@@ -48,7 +53,7 @@ Schritt: 15 | Eingaben: 14/20 | Fütterungen: 4
      \~//
       \//
        V
-[####################....]  87%
+[###################.....]  83%
    /\/\
    o.o 
    (^_^) (Pummelig & warm)
@@ -66,7 +71,7 @@ Schritt: 16 | Eingaben: 15/20 | Fütterungen: 4
      \~//
       \//
        V
-[####################....]  86%
+[###################.....]  82%
    /\/\
    o.o 
    (^_^) (Pummelig & warm)
@@ -76,18 +81,15 @@ Schritt: 17 | Eingaben: 16/20 | Fütterungen: 4
 [1] Beere naschen | [2] Warmer Kräutertee | [Enter] Weiterträumen | [q] Ende
 > Dodo kuschelt sich ins Nest. Bis bald!
 
-   /\/\
-   o.o 
-   (^_^) (Pummelig & warm)
+🦤 Der Traum neigt sich dem Ende zu...
 
-🦤 Dodo watschelt wohlig gewärmt durch den Morgentau.
+Endstand nach 17 Schritten (0.3s):
+  Sättigung: 82%
+  Fütterungen: 4
+  Eingaben: 17/20
+  Dodo wacht glücklich auf. Guter Traum!
 
---- Dodo-Schlafstatistik ---
-Gelebte Schritte:    17
-Eingaben gesamt:     17
-Fütterungen:         4
-End-Sättigung:       86%
-Traumdauer:          0.6 s
+Gute Nacht! 🌙
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
