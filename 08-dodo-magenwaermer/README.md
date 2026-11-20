@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 37 von etwa 40
+Stand: in Arbeit, Teil 38 von etwa 40
 
 ## Ausprobieren
 
@@ -15,39 +15,13 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-tragen)
-Wärme: 0 | Knurren: 0 | Eingaben: 2/20
-[1] Beere essen  [2] Tee trinken  [Enter] Weiter träumen  [q] Aufwachen
-> 
---- Schritt 16 ---
-🦤 Dodo-Magenwärmer — Schritt 16 | ☀️ Klartraum
-           
-  \       //
-   \     //
-    \   //
-     \ //
-      \///
-       V
-[#######.................]  31%
-   /\/\
-   o.o 
-   (._.) (Könnte 'ne Beere vertragen)
-Wärme: 0 | Knurren: 0 | Eingaben: 2/20
-[1] Beere essen  [2] Tee trinken  [Enter] Weiter träumen  [q] Aufwachen
-> 
-========================================
-🌅 DODO WACHT AUF — DIPLOMZEIT
-========================================
+n:          0
+Beeren gegessen:       1
+Tee getrunken:         1
+Eingaben genutzt:      2
 
-📊 Statistik:
-   Schritte: 16
-   Ø Sättigung: 41%
-   Beste Sättigung: 52% | Schlechteste: 31%
-   Gesamt-Wärme: 6
-   Traum-Ereignisse: 2
-   Magenknurren: 0
+🎓 DIPLOM: SILBER (132 Punkte)
 
-🎓 Diplom: Silber (74 Punkte)
       |~~~|
       |  2. |
       |_____|
@@ -57,22 +31,31 @@ Wärme: 0 | Knurren: 0 | Eingaben: 2/20
     \       //
      `"`
 
-🌟 NEUER SESSION-HIGHSCORE! 🌟
+🌟 NEUER SESSION-REKORD! Vorher: 0 Pkt
 
-📖 Traum-Tagebuch:
-  - Schritt 8: Unbekanntes Signal '10' ignoriert.
-  - Schritt 9: Tee getrunken (+3 Wärme).
-  - Schritt 10: Unbekanntes Signal 'j' ignoriert.
-  - Schritt 11: Unbekanntes Signal '4' ignoriert.
-  - Schritt 12: Unbekanntes Signal 'n' ignoriert.
-  - Schritt 13: Unbekanntes Signal '8' ignoriert.
-  - Schritt 14: Wetter dreht auf ☀️ Klartraum.
-  - Schritt 14: Unbekanntes Signal 'hallo' ignoriert.
-  - Schritt 15: Unbekanntes Signal '6' ignoriert.
-  - Schritt 16: Dodo wacht freiwillig auf.
+📖 TAGESBUCH-EINTRAG:
+   "Solide Leistung. Der Magen ist zufrieden, die Federn flauschig."
 
-🍃 Gute Reise, kleiner Dodo. Der Magen ist warm, das Herz auch.
-Drücke Enter zum Beenden...
+
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                                                              ║
+    ║     🦤  D O D O - M A G E N W Ä R M E R   v1.0  🦤          ║
+    ║                                                              ║
+    ║     Ein kleines Python-Projekt in ~40 Schritten             ║
+    ║     Vom leeren Magen zum warmen Diplom.                     ║
+    ║                                                              ║
+    ║     Idee, Code & ASCII-Art: Fifo der Dodo                   ║
+    ║     Getestet von: Dem Zuschauer (Du!)                       ║
+    ║                                                              ║
+    ║     Danke fürs Mitbasteln, Füttern & Träumen.               ║
+    ║     Bleib warm & knurr nicht so oft.                        ║
+    ║                                                              ║
+    ║     (Keine echten Dodos wurden beim Coding verletzt.)       ║
+    ║                                                              ║
+    ╚══════════════════════════════════════════════════════════════╝
+    
+
+🦤 Programmende. Danke fürs Spielen!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
