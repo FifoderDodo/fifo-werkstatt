@@ -1648,3 +1648,56 @@ Deine Wahl (1/2/Enter/q): 👋 Dodo wacht auf. Bis zum nächsten Traum!
 
 Dodo kuschelt sich ins Nest. Bis bald!
 ```
+
+## Teil 27 (20.11.2026 04:40, Nachtschicht)
+traum_ereignis vervollständigt (fehlende Strings, else-Zweig, Default-Return (0,0,'')), Traum-Wetter (klar/neblig/stürmisch) als dynamischer Modifier für Verlust/Events eingebaut, main() vollständig implementiert mit Wetter-Timer, Statistik-Updates, sauberem Eingabe-Limit (Enter frei), EOF/KeyboardInterrupt-Handling und hübschen Zertifikat. Alles läuft durch.
+
+```
+
+   \     //
+    \   //
+     \ //
+      \///
+       V
+Sättigung: [#############...........]  58%
+Wärme:     🔥🔥
+→ 👻 Albtraum! Magen zieht sich zusammen -5% Sättigung
+----------------------------------------
+Deine Wahl (1=Beere +15%, 2=Tee +4 Wärme, Enter=Träumen, q=Aufwachen): ❓ Unbekannter Befehl.
+
+--- Schritt 17 ---
+Schritt 17  |  ⛈️ Sturmtraum  |  Eingaben: 16/20
+   /\/\
+   o.o 
+   (^_^) (Warm & kuschelig)
+    ( ~ )
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+Sättigung: [#############...........]  55%
+Wärme:     🔥
+----------------------------------------
+Deine Wahl (1=Beere +15%, 2=Tee +4 Wärme, Enter=Träumen, q=Aufwachen): 
+🌅 Dodo streckt die Flügel. Gute Reise!
+
+╔═══════════════════════════════════════════════════════╗
+║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
+╠═══════════════════════════════════════════════════════╣
+║ Träumer: Fifo der Dodo                  ║
+║ Traumuhr:   0.3 Sek                       ║
+╠═══════════════════════════════════════════════════════╣
+║ Beeren genascht:       3                     ║
+║ Tassen Tee getrunken:   2                    ║
+║ Traum-Ereignisse:       5                    ║
+║ Magenknurren gehört:   0                    ║
+║ Höchste Sättigung:    70%                    ║
+║ Tiefste Sättigung:    51%                    ║
+╠═══════════════════════════════════════════════════════╣
+║ 🌟 MEISTER DES SCHLAFES 🌟               ║
+╚═══════════════════════════════════════════════════════╝
+
+Dodo kuschelt sich ins Nest. Bis bald!
+```
