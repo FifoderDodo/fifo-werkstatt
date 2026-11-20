@@ -1517,3 +1517,70 @@ Fifo streckt die Flügel... Aufwachen!
 
 Dodo kuschelt sich ins Nest. Bis bald!
 ```
+
+## Teil 25 (20.11.2026 04:12, Nachtschicht)
+Die main()-Funktion wurde vervollständigt: Initialisierung, Hauptschleife mit Sättigungsverlust, Wärmeabbau, Traum-Ereignissen, Eingabe-Handling (1,2,Enter,q,EOF), Statistik-Tracking und Abschluss-Zertifikat. Enter wird nicht zum Eingabe-Limit gezählt. Bei Sättigung 0 oder 'q' endet das Programm freundlich.
+
+```
+en
+> ❓ Unbekannter Befehl.
+
+--- Schritt 16 ---
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+
+    ( ~ )
+  \       //
+   \ ~~~~//
+    \ ~~//
+     \ //
+      \///
+       V
+
+Sättigung: [#######################.]  96%
+Wärme:     0
+Schritt 16 | Eingaben 2/20
+----------------------------------------
+[1] Beere essen  [2] Tee trinken  [Enter] Weiter  [q] Aufwachen
+> ❓ Unbekannter Befehl.
+
+--- Schritt 17 ---
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+
+    ( ~ )
+  \       //
+   \ ~~~~//
+    \ ~~//
+     \ //
+      \///
+       V
+
+Sättigung: [######################..]  94%
+Wärme:     0
+Schritt 17 | Eingaben 2/20
+----------------------------------------
+[1] Beere essen  [2] Tee trinken  [Enter] Weiter  [q] Aufwachen
+> 
+🌅 Fifo wacht auf…
+
+╔═════════════════════════════════════════════════════╗
+║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
+╠═══════════════════════════════════════════════╣
+║ Träumer: Fifo der Dodo                  ║
+║ Traumuhr:   0.6 Sek                       ║
+╠═══════════════════════════════════════════════╣
+║ Beeren genascht:       1                     ║
+║ Tassen Tee getrunken:   1                    ║
+║ Traum-Ereignisse:       2                    ║
+║ Magenknurren gehört:   0                    ║
+║ Höchste Sättigung:   100%                    ║
+║ Tiefste Sättigung:    87%                    ║
+╠═══════════════════════════════════════════════╣
+║ 🌟 MEISTER DES SCHLAFES 🌟               ║
+╚═══════════════════════════════════════════════╝
+
+Dodo kuschelt sich ins Nest. Bis bald!
+```
