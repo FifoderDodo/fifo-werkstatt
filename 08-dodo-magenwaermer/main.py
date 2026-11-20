@@ -149,6 +149,47 @@ def draw_waerme_bar(waerme: int, max_waerme: int = 10, breite: int = 12) -> str:
     return f"[{'#' * voll}{'.' * leer}] {waerme}/{max_waerme}"
 
 
+def draw_shadow_layer(wert: int, schritt: int, offset_x: int = 2, offset_y: int = 1) -> list:
+    """Erzeugt Schatten-Layer für den Magen als Liste von Zeilen (Prototyp).
+    
+    Zeichnet eine stark abgedunkelte, leicht versetzte Silhouette des Magens.
+    Nutzt ANSI dim (\033[2m) und dunkles Grau für subtilen Tiefeneindruck.
+    Gibt Liste von Strings zurück – eine pro Zeile des Schattens.
+    """
+    if not USE_ANSI:
+        return []
+    
+    dim = "\033[2m"
+    dark_gray = "\033[38;2;60;60;60m"
+    reset = "\033[0m"
+    shadow_char = "░"
+    
+    def welle(row: int) -> str:
+        chars = ["~", "-", "_"]
+        idx = (row + schritt) % len(chars)
+        return chars[idx]
+    
+    # Schatten-Zeilen: Header, Dampf, Körper 1-3, Boden
+    lines = []
+    # Header-Schatten
+    lines.append(" " * offset_x + dim + dark_gray + " " * 3 + shadow_char * 3 + " " * 3 + reset)
+    # Dampf-Schatten (einfach)
+    lines.append(" " * offset_x + dim + dark_gray + " " * 3 + shadow_char + reset)
+    # Körper-Zeilen mit Füllung basierend auf Sättigung
+    voll_breite = 24
+    voll = int((wert / 100) * voll_breite)
+    shadow_fill = shadow_char * voll + " " * (voll_breite - voll)
+    # Körper links/rechts mit Wellen
+    lines.append(" " * offset_x + dim + dark_gray + "  /" + welle(0) + shadow_fill + welle(0) + "\\" + reset)
+    lines.append(" " * offset_x + dim + dark_gray + " |" + shadow_fill + "|" + reset)
+    lines.append(" " * offset_x + dim + dark_gray + " \\" + welle(1) + shadow_fill + welle(1) + "/" + reset)
+    # Boden-Schatten
+    lines.append(" " * offset_x + dim + dark_gray + " " * 3 + shadow_char * 3 + " " * 3 + reset)
+    
+    # Vertikaler Offset: leere Zeilen vorne einfügen
+    return ["" for _ in range(offset_y)] + lines
+
+
 def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> str:
     """Zeichnet den ASCII‑Magen mit Füllung, Knurren, animiertem Dampf, Peristaltik und Wellen."""
     # Header
@@ -177,133 +218,129 @@ def draw_hunger_skala(wert: int, schritt: int = 0) -> str:
     farblich passend zum aktuellen Wert, plus Legende für Zonen.
     """
     if not USE_ANSI:
-        # Fallback ohne ANSI
-        markers = {0: "[R]", 20: "[O]", 50: "[Y]", 75: "[G]", 100: "[OK]"}
-        line = ""
-        for i in range(0, 101, 5):
-            if i in markers:
-                line += markers[i]
-            else:
-                line += "-"
-        pos = int((wert / 100) * len(line))
-        line = line[:pos] + "^" + line[pos+1:]
-        return f"{line} {wert}%"
+        breite = 60
+        pos = int((wert / 100) * (breite - 1))
+        skala = ['-'] * breite
+        skala[pos] = '^'
+        return ''.join(skala) + f" {wert}%"
     
-    # ANSI-Version mit echter Farbinterpolation
-    breite = 60  # Zeichenbreite der Skala
-    segments = []
+    breite = 60
+    reset = "\033[0m"
     
-    # Baue Skala Zeichen für Zeichen mit Farbverlauf
+    # Skala-Zeichen mit kontinuierlichem Farbverlauf
+    skala_parts = []
     for i in range(breite):
         ratio = i / (breite - 1)
         farbe = interpolate_color(ratio)
-        # Marker an markanten Stellen
-        wert_at_i = int(ratio * 100)
-        if wert_at_i in (0, 20, 50, 75, 100) and i % (breite // 4) == 0:
-            segments.append(f"{farbe}◆\033[0m")
-        else:
-            segments.append(f"{farbe}━\033[0m")
+        skala_parts.append(f"{farbe}▬{reset}")
+    skala_str = ''.join(skala_parts)
     
-    skala_str = "".join(segments)
-    
-    # Pulsierender Zeiger - Position interpoliert
+    # Zeigerposition (interpoliert für weichere Bewegung)
     zeiger_pos = (wert / 100) * (breite - 1)
-    zeiger_idx = int(zeiger_pos)
+    zeiger_int = int(zeiger_pos)
     
-    # Puls-Animation für Zeiger
-    puls = (schritt * 0.15) % 1.0
-    puls_eased = ease_in_out_quad(puls)
-    zeiger_chars = ["▼", "▽", "▼", "▽"]
-    zeiger_char = zeiger_chars[int(puls_eased * 3)]
-    
-    # Zeiger-Farbe passend zum Wert
+    # Pulsierender Zeiger (▼/▽)
+    pulse = (schritt * 0.15) % 1.0
+    zeiger_char = "▼" if ease_in_out_quad(pulse) > 0.5 else "▽"
     zeiger_farbe = interpolate_color(wert / 100.0)
     
-    # Baue Zeiger-Zeile
-    zeiger_line = "" 
+    # Zeiger in die Skala einsetzen
+    skala_list = list(skala_str)
+    # ANSI-Codes machen String-Manipulation tricky – wir bauen neu
+    result_parts = []
     for i in range(breite):
-        if i == zeiger_idx:
-            zeiger_line += f"{zeiger_farbe}{zeiger_char}\033[0m"
-        elif i == zeiger_idx + 1 and (zeiger_pos - zeiger_idx) > 0.5:
-            # Interpolation zwischen zwei Positionen
-            zeiger_line += f"{zeiger_farbe}{zeiger_char}\033[0m"
+        ratio = i / (breite - 1)
+        farbe = interpolate_color(ratio)
+        if i == zeiger_int:
+            result_parts.append(f"{zeiger_farbe}{zeiger_char}{reset}")
         else:
-            zeiger_line += " "
+            result_parts.append(f"{farbe}▬{reset}")
     
     # Zonen-Legende
     zones = [
-        (0, 20, "🔴 Kritisch", "\033[38;2;230;0;0m"),
-        (20, 50, "🟠 Niedrig", "\033[38;2;230;115;0m"),
-        (50, 75, "🟡 Mittel", "\033[38;2;230;230;0m"),
-        (75, 100, "🟢 Gut", "\033[38;2;0;230;0m"),
+        (0, 20, "Kritisch", "\033[38;2;230;0;0m"),
+        (20, 45, "Niedrig", "\033[38;2;230;120;0m"),
+        (45, 75, "Mittel", "\033[38;2;230;200;0m"),
+        (75, 100, "Gut", "\033[38;2;0;200;0m"),
     ]
+    legend_parts = []
+    for start, end, label, color in zones:
+        legend_parts.append(f"{color}[{label}]{reset}")
+    legend = "  " + "  ".join(legend_parts)
     
-    # Finde aktuelle Zone
-    aktuelle_zone = ""
-    for start, end, label, farbe in zones:
-        if start <= wert < end or (wert == 100 and end == 100):
-            aktuelle_zone = f"{farbe}{label}\033[0m"
-            break
-    
-    return f"{skala_str}\n{zeiger_line} {zeiger_farbe}{wert:3d}%\033[0m  {aktuelle_zone}"
+    return ''.join(result_parts) + f" {zeiger_farbe}{wert:3d}%{reset}" + legend
 
 
 def main() -> None:
-    """Hauptschleife: Magen füttern, wärmen, warten – bis 20 Eingaben oder Abbruch."""
+    """Hauptschleife: Magen simulieren, Eingaben verarbeiten, Anzeige aktualisieren."""
     saettigung = 50
     waerme = 0
     schritt = 0
     eingaben = 0
     
-    print("🦤 Dodo-Magenwärmer gestartet. Strg+C oder 'q' zum Beenden.")
+    print("Dodo-Magenwärmer gestartet. Strg+C oder 'q' zum Beenden.")
+    pause(0.5)
     
     while eingaben < MAX_EINGABEN:
         try:
             clear_screen(schritt)
+            
+            # Schatten-Layer rendern (Prototyp)
+            shadow_lines = draw_shadow_layer(saettigung, schritt)
+            for line in shadow_lines:
+                print(line)
+            
+            # Magen leicht versetzt über Schatten zeichnen (Cursor hoch)
+            if USE_ANSI and shadow_lines:
+                # Cursor um Schatten-Höhe nach oben
+                sys.stdout.write(f"\033[{len(shadow_lines)}A")
+                sys.stdout.flush()
+            
             knurrt = satte_pruefung(saettigung)
             print(draw_stomach(saettigung, knurrt, waerme, schritt))
-            print()
-            print(draw_hunger_skala(saettigung, schritt))
-            print()
             print(draw_waerme_bar(waerme))
-            print()
+            print(draw_hunger_skala(saettigung, schritt))
             print(f"Eingaben: {eingaben}/{MAX_EINGABEN}")
             print("Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit")
+            
+            if USE_ANSI:
+                # Cursor nach unten für Input-Zeile
+                sys.stdout.write("\033[2B")
             
             inp = input("> ").strip().lower()
             eingaben += 1
             schritt += 1
             
-            if inp == 'q' or inp == 'quit':
-                print("🦤 Dodo watschelt weg. Tschüss!")
+            if inp == 'q':
+                print("Tschüss, kleiner Dodo!")
                 break
             elif inp == 'f':
-                saettigung = min(100, saettigung + random.randint(10, 25))
-                waerme = min(10, waerme + 1)
-                print("🍎 Mampf! Sättigung steigt.")
-                pause(0.5)
+                saettigung = min(100, saettigung + random.randint(15, 30))
+                print("*schluck* *knusper*")
+                pause(0.4)
             elif inp == 'w':
-                waerme = min(10, waerme + 2)
-                saettigung = max(0, saettigung - 2)
-                print("🔥 Wärmekissen aktiviert.")
-                pause(0.5)
-            elif inp == '' or inp == 'warten':
-                saettigung = max(0, saettigung - random.randint(1, 5))
-                waerme = max(0, waerme - 1)
-                print("⏳ Zeit vergeht... Magen knurrt leiser.")
-                pause(0.5)
+                waerme = min(10, waerme + random.randint(1, 3))
+                print("*wärme strahlt*")
+                pause(0.3)
+            elif inp == '':
+                pass  # warten
             else:
                 print("Unbekannte Eingabe, bitte f, w, <Enter> oder q.")
-                pause(0.5)
+                pause(0.3)
+            
+            # Natürlicher Verfall
+            saettigung = max(0, saettigung - random.randint(1, 4))
+            waerme = max(0, waerme - (1 if random.random() < 0.3 else 0))
+            
         except EOFError:
-            print("\n🦤 Eingabe zu Ende. Dodo schläft ein. Gute Nacht!")
+            print("\nEingabe-Ende erkannt. Gute Reise!")
             break
         except KeyboardInterrupt:
-            print("\n🦤 Abgebrochen. Dodo watschelt weg.")
+            print("\nUnterbrochen. Bis bald!")
             break
-    else:
-        print(f"\n🦤 {MAX_EINGABEN} Eingaben erreicht. Dodo ist satt und zufrieden.")
-
+    
+    if eingaben >= MAX_EINGABEN:
+        print("Maximale Eingaben erreicht. Der Dodo schläft nun.")
 
 if __name__ == "__main__":
     main()
