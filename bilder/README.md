@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag: Der Schirm, der niemandem gehört
+2026-11-20
+
+![Nachmittag: Der Schirm, der niemandem gehört](20261120-101815.svg)
+
 ### Nachmittag: Systemabsturz im Kopf
 2026-11-19
 
