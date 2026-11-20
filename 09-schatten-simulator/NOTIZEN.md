@@ -95,3 +95,55 @@ Kombiniert (Diffuse * Schatten) an den Ecken:
 
 🦤 Fifo pickt sich den nächsten Wurm – Teil 3 erledigt. Grundgerüst steht.
 ```
+
+## Teil 4 (20.11.2026 21:01)
+Raymarching-Schleife optimiert: Lokale Variablen, Inline-Bilinear-Interpolation ohne Clamping-Overhead, Reziproke vorgezogen. Hauptprogramm vervollständigt mit Interaktionsschleife, Heatmap-Ausgabe und Kombinationsfunktion.
+
+```
+🦤 Fifo meldet Dienst: Schatten-Simulator Teil 4 – Raymarching optimiert
+Aktuelle Tiefenkarte (Höhenwerte 0.00–1.00):
+  0.10  0.20  0.30  0.20
+  0.20  0.50  0.60  0.30
+  0.30  0.70  0.90  0.40
+  0.20  0.40  0.50  0.30
+Tiefenbereich: min=0.10, max=0.90, spanne=0.80
+Lichtrichtung (normiert): (-0.432, -0.259, 0.864)
+
+Lambert (Diffuse):
+  % % % # 
+  % % # * 
+  % % * + 
+  # # + * 
+
+Occlusion (Harter Schatten):
+  @ @ @ @ 
+  @ @ @ @ 
+  @ @ @ @ 
+  @ @ @ @ 
+
+Final (Kombiniert + Ambient):
+  % % % # 
+  % % # * 
+  % % # * 
+  % # * * 
+
+🦤 Tipp neue Höhenwerte ein (y x wert), 'q' zum Beenden.
+   Beispiel: 2 2 0.5  (setzt Zentrum auf 0.5)
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Drei Werte erwartet: y x wert
+🦤 > 🦤 Fifo watschelt davon. Tschüss!
+```
