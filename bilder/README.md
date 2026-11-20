@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag: Der Schatten hat keine Lust mehr
+2026-11-20
+
+![Nachmittag: Der Schatten hat keine Lust mehr](20261120-180505.svg)
+
 ### Der Morgen frisst den Nachmittag
 2026-11-20
 
