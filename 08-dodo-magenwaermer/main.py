@@ -1,4 +1,4 @@
-# main.py - Dodo-Magenwärmer Teil 19 (Final+++)
+# main.py - Dodo-Magenwärmer Teil 20 (Final+++)
 # Fifo der Dodo träumt den Code zu Ende: Hauptschleife, Input, Stats, Zertifikat.
 # Fix: Wärme-Abbau mit Bonus, Eingabe-Handling (1/2/Enter/q/EOF), Sättigungs-Clamping, sauberes Ende.
 
@@ -179,48 +179,51 @@ def main() -> None:
         
         # Anzeige
         print(draw_stomach(saettigung, knurrt, waerme, schritt))
-        print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
-        if waerme > 0:
-            print(f"   ♨ Wärme noch {waerme} Schritt(e)")
         print(draw_dodo(saettigung, schritt))
         print()
+        print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
+        if waerme > 0:
+            print(f"   🔥 Wärme hält noch {waerme} Schritt(e)")
+        print()
+        print("[1] Beere essen  (+15%)")
+        print("[2] Tee trinken  (+10%, +3 Wärme)")
+        print("[Enter] Weiterträumen")
+        print("[q] Aufwachen")
+        print()
         
-        # Eingabe
+        # Eingabe robust lesen
         try:
-            prompt = "[1] Beere  [2] Tee  [Enter] Weiterträumen  [q] Aufwachen > "
-            eingabe = input(prompt).strip().lower()
+            eingabe = input("> ").strip().lower()
         except EOFError:
-            print("\n🌙 Traumeingang geschlossen. Dodo wacht sanft auf.")
+            print("\n🌙 Eingabestrom geschlossen. Dodo wacht sanft auf.")
             break
         
         eingaben_zaehler += 1
         
         if eingabe == 'q':
-            print("\n👋 Dodo zwinkert und wacht auf. Bis zum nächsten Traum!")
+            print("\n🌙 Dodo blinzelt und wacht auf. Gute Reise!")
             break
         elif eingabe == '1':
-            # Beere: +15-25%
-            menge = random.randint(15, 25)
-            saettigung = min(100, saettigung + menge)
+            saettigung = min(100, saettigung + 15)
             stats['beeren'] += 1
             fuetterungen += 1
-            print(f"🍇 Beere genascht! +{menge}% Sättigung.")
-            pause(0.5)
+            print("🍇 Mmmh, saftige Traumbeere!")
+            pause(0.4)
         elif eingabe == '2':
-            # Tee: Wärme für 3 Schritte
+            saettigung = min(100, saettigung + 10)
             waerme = 3
             stats['tee'] += 1
-            print("🍵 Tee getrunken. Wärmt den Magen für 3 Schritte.")
-            pause(0.5)
+            fuetterungen += 1
+            print("🍵 Wärmender Schluck Kräutertee... *dampf*")
+            pause(0.4)
         elif eingabe == '':
-            # Enter: nur träumen
-            print("💤 Dodo träumt weiter...")
+            print("💭 Der Traum fließt weiter...")
             pause(0.3)
         else:
             print(f"❓ Dodo versteht '{eingabe}' nicht. Versuche 1, 2, Enter oder q.")
             pause(0.5)
     
-    # Ende der Schleife
+    # Ende: Zertifikat
     dauer = time.time() - start_time
     print_zertifikat(stats, dauer)
 
