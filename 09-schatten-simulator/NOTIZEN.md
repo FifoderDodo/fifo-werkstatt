@@ -454,3 +454,54 @@ Wahl (1/2): ❌ Unbekannte Form.
 0 – Beenden
 🦤 Fifo fragt: Deine Wahl? ❓ 🦤 Tschüss! Bis zum nächsten Mal in der Werkstatt!
 ```
+
+## Teil 11 (21.11.2026 00:09, Nachtschicht)
+Fehlendes Codeende repariert, Raymarch-Schattierung mit Ambient Occlusion (AO) und Blinn-Phong-Komposition erweitert sowie Menü interaktiv und fehlertolerant ausgebaut.
+
+```
+bungsverdeckung (Ambient Occlusion)
+5 – Vollbild (Blinn-Phong + Schatten + AO)
+6 – Tiefenform wählen (Kugel, Kegel, Pyramide)
+7 – Lichtrichtung anpassen
+8 – Höhen-Rohdaten anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-8 eingeben.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 11) ---
+1 – Diffus (Lambert only)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch Jitter)
+4 – Umgebungsverdeckung (Ambient Occlusion)
+5 – Vollbild (Blinn-Phong + Schatten + AO)
+6 – Tiefenform wählen (Kugel, Kegel, Pyramide)
+7 – Lichtrichtung anpassen
+8 – Höhen-Rohdaten anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 
+Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide
+Welche Form? ❓ Unbekannte Form.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 11) ---
+1 – Diffus (Lambert only)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch Jitter)
+4 – Umgebungsverdeckung (Ambient Occlusion)
+5 – Vollbild (Blinn-Phong + Schatten + AO)
+6 – Tiefenform wählen (Kugel, Kegel, Pyramide)
+7 – Lichtrichtung anpassen
+8 – Höhen-Rohdaten anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-8 eingeben.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 11) ---
+1 – Diffus (Lambert only)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch Jitter)
+4 – Umgebungsverdeckung (Ambient Occlusion)
+5 – Vollbild (Blinn-Phong + Schatten + AO)
+6 – Tiefenform wählen (Kugel, Kegel, Pyramide)
+7 – Lichtrichtung anpassen
+8 – Höhen-Rohdaten anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 🦤 Fifo packt seine Schatten zusammen. Bis bald!
+```
