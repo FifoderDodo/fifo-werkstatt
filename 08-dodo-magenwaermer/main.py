@@ -170,65 +170,140 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
     return "\n".join([header, dampf, body1, body2, body3, boden, knurr])
 
 
-def draw_hunger_skala(wert: int) -> str:
-    """Zeigt eine farbige Skala mit Emoji‑Markern und pulsierendem Zeiger."""
-    markers = {0: "🔴", 20: "🟠", 50: "🟡", 75: "🟢", 100: "✅"}
-    line = ""
-    for i in range(0, 101, 5):
-        if i in markers:
-            line += markers[i]
+def draw_hunger_skala(wert: int, schritt: int = 0) -> str:
+    """Zeigt eine farbige Skala mit Emoji‑Markern und pulsierendem Zeiger.
+    
+    Verfeinert: Kontinuierlicher Farbverlauf entlang der Skala, interpolierter Zeiger,
+    farblich passend zum aktuellen Wert, plus Legende für Zonen.
+    """
+    if not USE_ANSI:
+        # Fallback ohne ANSI
+        markers = {0: "[R]", 20: "[O]", 50: "[Y]", 75: "[G]", 100: "[OK]"}
+        line = ""
+        for i in range(0, 101, 5):
+            if i in markers:
+                line += markers[i]
+            else:
+                line += "-"
+        pos = int((wert / 100) * len(line))
+        line = line[:pos] + "^" + line[pos+1:]
+        return f"{line} {wert}%"
+    
+    # ANSI-Version mit echter Farbinterpolation
+    breite = 60  # Zeichenbreite der Skala
+    segments = []
+    
+    # Baue Skala Zeichen für Zeichen mit Farbverlauf
+    for i in range(breite):
+        ratio = i / (breite - 1)
+        farbe = interpolate_color(ratio)
+        # Marker an markanten Stellen
+        wert_at_i = int(ratio * 100)
+        if wert_at_i in (0, 20, 50, 75, 100) and i % (breite // 4) == 0:
+            segments.append(f"{farbe}◆\033[0m")
         else:
-            line += "─"
-    # Zeiger
-    pos = int(wert / 100 * len(line))
-    pointer = " " * pos + "🔺"
-    return f"{line}\n{pointer} {wert}%"
+            segments.append(f"{farbe}━\033[0m")
+    
+    skala_str = "".join(segments)
+    
+    # Pulsierender Zeiger - Position interpoliert
+    zeiger_pos = (wert / 100) * (breite - 1)
+    zeiger_idx = int(zeiger_pos)
+    
+    # Puls-Animation für Zeiger
+    puls = (schritt * 0.15) % 1.0
+    puls_eased = ease_in_out_quad(puls)
+    zeiger_chars = ["▼", "▽", "▼", "▽"]
+    zeiger_char = zeiger_chars[int(puls_eased * 3)]
+    
+    # Zeiger-Farbe passend zum Wert
+    zeiger_farbe = interpolate_color(wert / 100.0)
+    
+    # Baue Zeiger-Zeile
+    zeiger_line = "" 
+    for i in range(breite):
+        if i == zeiger_idx:
+            zeiger_line += f"{zeiger_farbe}{zeiger_char}\033[0m"
+        elif i == zeiger_idx + 1 and (zeiger_pos - zeiger_idx) > 0.5:
+            # Interpolation zwischen zwei Positionen
+            zeiger_line += f"{zeiger_farbe}{zeiger_char}\033[0m"
+        else:
+            zeiger_line += " "
+    
+    # Zonen-Legende
+    zones = [
+        (0, 20, "🔴 Kritisch", "\033[38;2;230;0;0m"),
+        (20, 50, "🟠 Niedrig", "\033[38;2;230;115;0m"),
+        (50, 75, "🟡 Mittel", "\033[38;2;230;230;0m"),
+        (75, 100, "🟢 Gut", "\033[38;2;0;230;0m"),
+    ]
+    
+    # Finde aktuelle Zone
+    aktuelle_zone = ""
+    for start, end, label, farbe in zones:
+        if start <= wert < end or (wert == 100 and end == 100):
+            aktuelle_zone = f"{farbe}{label}\033[0m"
+            break
+    
+    return f"{skala_str}\n{zeiger_line} {zeiger_farbe}{wert:3d}%\033[0m  {aktuelle_zone}"
 
 
 def main() -> None:
-    saettigung = 100
+    """Hauptschleife: Magen füttern, wärmen, warten – bis 20 Eingaben oder Abbruch."""
+    saettigung = 50
     waerme = 0
     schritt = 0
     eingaben = 0
-    clear_screen()
-    try:
-        while eingaben < MAX_EINGABEN:
-            knurrt = satte_pruefung(saettigung)
+    
+    print("🦤 Dodo-Magenwärmer gestartet. Strg+C oder 'q' zum Beenden.")
+    
+    while eingaben < MAX_EINGABEN:
+        try:
             clear_screen(schritt)
+            knurrt = satte_pruefung(saettigung)
             print(draw_stomach(saettigung, knurrt, waerme, schritt))
-            print(draw_hunger_skala(saettigung))
-            if waerme > 0:
-                print(draw_waerme_bar(waerme))
-            print("\nOptionen: [f]üttern, [w]ärmen, [w]arten, [q]uit")
-            choice = input("> ").strip().lower()
+            print()
+            print(draw_hunger_skala(saettigung, schritt))
+            print()
+            print(draw_waerme_bar(waerme))
+            print()
+            print(f"Eingaben: {eingaben}/{MAX_EINGABEN}")
+            print("Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit")
+            
+            inp = input("> ").strip().lower()
             eingaben += 1
-            if choice == "f":
-                menge = random.randint(5, 20)
-                saettigung = min(100, saettigung + menge)
-                print(f"Du hast {menge}% gefüttert.")
-            elif choice == "w":
-                if waerme < 10:
-                    waerme += 1
-                    print("Wärme erhöht.")
-                else:
-                    print("Maximale Wärme erreicht.")
-            elif choice == "":  # warten
-                print("Du wartest...")
-            elif choice == "q":
-                print("Tschüss!")
+            schritt += 1
+            
+            if inp == 'q' or inp == 'quit':
+                print("🦤 Dodo watschelt weg. Tschüss!")
                 break
+            elif inp == 'f':
+                saettigung = min(100, saettigung + random.randint(10, 25))
+                waerme = min(10, waerme + 1)
+                print("🍎 Mampf! Sättigung steigt.")
+                pause(0.5)
+            elif inp == 'w':
+                waerme = min(10, waerme + 2)
+                saettigung = max(0, saettigung - 2)
+                print("🔥 Wärmekissen aktiviert.")
+                pause(0.5)
+            elif inp == '' or inp == 'warten':
+                saettigung = max(0, saettigung - random.randint(1, 5))
+                waerme = max(0, waerme - 1)
+                print("⏳ Zeit vergeht... Magen knurrt leiser.")
+                pause(0.5)
             else:
                 print("Unbekannte Eingabe, bitte f, w, <Enter> oder q.")
-            # Simuliere Hunger‑Verlust und Wärme‑Abbau
-            saettigung = max(0, saettigung - random.randint(1, 4))
-            waerme = max(0, waerme - 1)
-            schritt += 1
-            pause(0.5)
-    except (EOFError, KeyboardInterrupt):
-        print("\nEingabe beendet, bis zum nächsten Mal!")
-    finally:
-        clear_screen()
-        print("Programm beendet.")
+                pause(0.5)
+        except EOFError:
+            print("\n🦤 Eingabe zu Ende. Dodo schläft ein. Gute Nacht!")
+            break
+        except KeyboardInterrupt:
+            print("\n🦤 Abgebrochen. Dodo watschelt weg.")
+            break
+    else:
+        print(f"\n🦤 {MAX_EINGABEN} Eingaben erreicht. Dodo ist satt und zufrieden.")
+
 
 if __name__ == "__main__":
     main()
