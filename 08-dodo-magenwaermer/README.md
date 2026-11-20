@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 45 von etwa 48
+Stand: in Arbeit, Teil 46 von etwa 48
 
 ## Ausprobieren
 
@@ -15,13 +15,8 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-  \///
-       V
-
-Aktion (f=füttern, q=beenden, Enter=weiter): 
---- Schritt 7 ---
-Schritt: 7/20
-Sättigung: [#########...............]  39%  Feder: ~
+Sättigung: [########................]  37%
+Feder:     ~
 Wärme:     [............] 0/10
 Magen:
            
@@ -32,10 +27,12 @@ Magen:
       \///
        V
 
-Aktion (f=füttern, q=beenden, Enter=weiter): 
---- Schritt 8 ---
-Schritt: 8/20
-Sättigung: [#######.................]  33%  Feder: ~
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe 'n' nicht. Versuch f, w oder q.
+
+--- Schritt 14 ---
+Schritt: 14/20
+Sättigung: [########................]  35%
+Feder:     ~
 Wärme:     [............] 0/10
 Magen:
            
@@ -46,10 +43,12 @@ Magen:
       \///
        V
 
-Aktion (f=füttern, q=beenden, Enter=weiter): 
---- Schritt 9 ---
-Schritt: 9/20
-Sättigung: [#####...................]  24%  Feder: ~
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe '8' nicht. Versuch f, w oder q.
+
+--- Schritt 15 ---
+Schritt: 15/20
+Sättigung: [########................]  35%
+Feder:     ~
 Wärme:     [............] 0/10
 Magen:
            
@@ -60,10 +59,12 @@ Magen:
       \///
        V
 
-Aktion (f=füttern, q=beenden, Enter=weiter): 
---- Schritt 10 ---
-Schritt: 10/20
-Sättigung: [####....................]  17%  Feder: !
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe 'hallo' nicht. Versuch f, w oder q.
+
+--- Schritt 16 ---
+Schritt: 16/20
+Sättigung: [########................]  35%
+Feder:     ~
 Wärme:     [............] 0/10
 Magen:
            
@@ -71,37 +72,27 @@ Magen:
    \     //
     \   //
      \ //
-      \//
+      \///
        V
 
-Aktion (f=füttern, q=beenden, Enter=weiter): 
---- Schritt 11 ---
-Schritt: 11/20
-Sättigung: [#.......................]   8%  Feder: !
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe '6' nicht. Versuch f, w oder q.
+
+--- Schritt 17 ---
+Schritt: 17/20
+Sättigung: [########................]  34%
+Feder:     ~
 Wärme:     [............] 0/10
 Magen:
-   *GRRRR*
-  \       //
-   \     //
-    \   //
-     \ //
-      \//
-       V
-
-*** Der Magen knurrt! ***
-
-Aktion (f=füttern, q=beenden, Enter=weiter): 
-Der Dodo ist vor Hunger ohnmächtig geworden...
-
            
   \       //
    \     //
     \   //
      \ //
-      \//
+      \///
        V
 
-Spiel zu Ende. Nächstes Mal besser füttern!
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 
+🦤 Dodo watschelt zufrieden davon. Bis bald!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
