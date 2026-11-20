@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 16 von etwa 15
+Stand: in Arbeit, Teil 17 von etwa 15
 
 ## Ausprobieren
 
@@ -15,14 +15,10 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-.) (Könnte 'ne Beere vertragen)
-
-[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+en  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
 > ❓ Dodo versteht 'hallo' nicht. Versuche 1, 2, Enter oder q.
 
 --- Schritt 16 ---
-[########................]  36%
-
            
   \       //
    \     //
@@ -34,13 +30,14 @@ python3 main.py
    /\/\
    o.o 
    (._.) (Könnte 'ne Beere vertragen)
+
+Sättigung: [#####...................]  23%
+Wärme:   —
 
 [1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
 > ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
 
 --- Schritt 17 ---
-[######..................]  29%
-
            
   \       //
    \     //
@@ -53,11 +50,13 @@ python3 main.py
    o.o 
    (._.) (Könnte 'ne Beere vertragen)
 
-[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
-> 
-🌅 Dodo streckt die Flügel. Aufwachen!
+Sättigung: [####....................]  20%
+Wärme:   —
 
-╔═══════════════════════════════════════════════╗
+[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+> 👋 Dodo wacht auf. Bis zum nächsten Traum!
+
+╔════════════════════════════════════════════════╗
 ║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
 ╠═══════════════════════════════════════════════╣
 ║ Träumer: Fifo der Dodo                  ║
@@ -67,7 +66,7 @@ python3 main.py
 ║ Tassen Tee getrunken:   1                    ║
 ║ Magenknurren gehört:   0                    ║
 ║ Höchste Sättigung:   100%                    ║
-║ Tiefste Sättigung:    29%                    ║
+║ Tiefste Sättigung:    20%                    ║
 ╠═══════════════════════════════════════════════╣
 ║ 🌙 Guter Traumwächter                   ║
 ╚═══════════════════════════════════════════════╝
