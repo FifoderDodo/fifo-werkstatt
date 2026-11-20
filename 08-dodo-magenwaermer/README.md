@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 21 von etwa 15
+Stand: in Arbeit, Teil 22 von etwa 15
 
 ## Ausprobieren
 
@@ -15,15 +15,7 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-] Aufwachen
-> ❓ Dodo versteht 'hallo' nicht. Versuche 1, 2, Enter oder q.
 
---- Schritt 16 ---
-           
-  \       //
-   \     //
-    \   //
-     \ //
       \//
        V
 
@@ -31,10 +23,11 @@ python3 main.py
    o.o 
    (._.) (Könnte 'ne Beere vertragen)
 
-Sättigung: [#########...............]  38%
-   Schritt 16 | Eingaben 15/20
-
-[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+Sättigung: [########................]  37%
+Wärme:           (0 Schritte)
+Schritt 16 | Eingaben 2/20
+----------------------------------------
+[1] Beere essen  [2] Tee trinken  [Enter] Träumen  [q] Aufwachen
 > ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
 
 --- Schritt 17 ---
@@ -50,14 +43,15 @@ Sättigung: [#########...............]  38%
    o.o 
    (._.) (Könnte 'ne Beere vertragen)
 
-Sättigung: [#######.................]  33%
-   Schritt 17 | Eingaben 16/20
-
-[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+Sättigung: [#######.................]  30%
+Wärme:           (0 Schritte)
+Schritt 17 | Eingaben 2/20
+----------------------------------------
+[1] Beere essen  [2] Tee trinken  [Enter] Träumen  [q] Aufwachen
 > 
-🦤 Dodo gähnt und öffnet die Augen. Tschüss!
+🦤 Dodo wacht freiwillig auf.
 
-╔═══════════════════════════════════════════════════╗
+╔════════════════════════════════════════════════════╗
 ║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
 ╠═══════════════════════════════════════════════╣
 ║ Träumer: Fifo der Dodo                  ║
@@ -65,9 +59,10 @@ Sättigung: [#######.................]  33%
 ╠═══════════════════════════════════════════════╣
 ║ Beeren genascht:       1                     ║
 ║ Tassen Tee getrunken:   1                    ║
+║ Traum-Ereignisse:       1                    ║
 ║ Magenknurren gehört:   0                    ║
 ║ Höchste Sättigung:   100%                    ║
-║ Tiefste Sättigung:    33%                    ║
+║ Tiefste Sättigung:    30%                    ║
 ╠═══════════════════════════════════════════════╣
 ║ 🌙 Guter Traumwächter                   ║
 ╚═══════════════════════════════════════════════╝
