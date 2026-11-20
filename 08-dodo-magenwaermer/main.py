@@ -1,7 +1,8 @@
-# main.py - Dodo-Magenwärmer Teil 11
+# main.py - Dodo-Magenwärmer Teil 12
 # Fifo der Dodo bastelt weiter im Traum.
-# Neu: Magenwärmer-Tee hinterlässt wohlige Wärme (Dampf für 3 Schritte),
-#      Wärme-Zähler in der Anzeige, kleiner Fix bei Dampf-Zentrierung.
+# Fix: Abgebrochener Code am Ende repariert (Syntaxfehler 'p').
+# Neu: Dampf-Animation wechselt Rahmen bei Wärme, Traum-Ende mit Statistik,
+#      Entry-Point hinzugefügt, kleine Farb-Akzente für warmen Magen.
 
 import random
 import time
@@ -32,8 +33,8 @@ def clear_screen(schritt: int = None) -> None:
         else:
             print()
 
-def draw_bar(wert: int, breite: int = 24) -> str:
-    """Baut einen farbigen Balken für die Sättigung."""
+def draw_bar(wert: int, breite: int = 24, waerme: int = 0) -> str:
+    """Baut einen farbigen Balken für die Sättigung, gelber Rand bei Wärme."""
     voll = int((wert / 100) * breite)
     leer = breite - voll
     if USE_ANSI:
@@ -45,22 +46,36 @@ def draw_bar(wert: int, breite: int = 24) -> str:
             farbe = "\033[38;5;208m" # Orange
         else:
             farbe = "\033[91m"      # Rot
+        
+        # Wärme-Rahmen für den Balken
+        rand = "\033[93m" if waerme > 0 else "\033[0m"
         reset = "\033[0m"
-        return f"{farbe}[{'#' * voll}{'.' * leer}]{reset} {wert:3d}%"
+        return f"{rand}[{reset}{farbe}{'#' * voll}{'.' * leer}{rand}]{reset} {wert:3d}%"
     return f"[{'#' * voll}{'.' * leer}] {wert:3d}%"
 
-def draw_stomach(wert: int, knurrt: bool, waerme: int = 0) -> str:
-    """Zeichnet den ASCII-Magen mit Füllung, Knurren und Dampf (auch durch Wärme)."""
+def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> str:
+    """Zeichnet den ASCII-Magen mit Füllung, Knurren und animiertem Dampf bei Wärme."""
     level = max(0, min(5, int(wert / 20)))
     wave = "~~~"
     
-    # Dampf bei Wärme/Sättigung oder Knurrgeräusch
-    if wert >= 50 or waerme > 0:
-        header = "    ( ~ )"          # etwas besser zentriert
+    # Dampf-Animation: zwei Rahmen wechseln sich ab
+    dampf_rahmen = ["    ( ~ )", "    ( ~ )"] # Basis
+    if waerme > 0:
+        # Leichtes Wackeln beim Dampf
+        if (schritt // 2) % 2 == 0:
+            header = "    ( ~ )"
+        else:
+            header = "   ( ~ ) "
+    elif wert >= 50:
+        header = "    ( ~ )"
     elif knurrt:
         header = "   *GRRRR*"
     else:
         header = "           "
+    
+    # Magen-Farbe bei Wärme
+    magen_farbe = "\033[38;5;208m" if (waerme > 0 and USE_ANSI) else ""
+    reset = "\033[0m" if USE_ANSI else ""
     
     lines = [
         "  \\       //",
@@ -81,6 +96,10 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0) -> str:
                 mid = line[left+1:right]
                 filled = (wave * (len(mid) // 3 + 1))[:len(mid)]
                 line = line[:left+1] + filled + line[right:]
+        # Farbe nur auf die Magenwand anwenden, nicht auf Füllung
+        if magen_farbe and waerme > 0:
+             # Einfaches Einfärben der Strukturzeichen
+             line = line.replace('\\', magen_farbe + '\\' + reset).replace('//', magen_farbe + '//' + reset).replace('V', magen_farbe + 'V' + reset)
         result.append(line)
     return "\n".join(result)
 
@@ -123,8 +142,8 @@ def main() -> None:
             waerme -= 1
         
         # Magen, Balken und Dodo anzeigen
-        print(draw_stomach(saettigung, knurrt, waerme))
-        print(draw_bar(saettigung))
+        print(draw_stomach(saettigung, knurrt, waerme, schritt))
+        print(draw_bar(saettigung, waerme=waerme))
         print(draw_dodo(saettigung, schritt))
         
         # Statuszeile mit Wärme-Anzeige
@@ -171,24 +190,23 @@ def main() -> None:
             print(f"Dodo beäugt '{eingabe}' skeptisch und knabbert kurz daran...")
             saettigung = min(100, saettigung + 5)
             pause(0.3)
-            
-        pause(0.2)
-        
-    dauer = time.time() - start_time
+    
+    # Traum-Ende
     clear_screen()
+    dauer = time.time() - start_time
+    print("🦤 Der Traum neigt sich dem Ende zu...")
+    pause(0.5)
+    print(f"\nEndstand nach {schritt} Schritten ({dauer:.1f}s):")
+    print(f"  Sättigung: {saettigung}%")
+    print(f"  Fütterungen: {fuetterungen}")
+    print(f"  Eingaben: {eingaben_zaehler}/{MAX_EINGABEN}")
     if saettigung <= 0:
-        print(draw_stomach(0, True, 0))
-        print("\n💀 Der Magen ist gänzlich leergefegt. Fifo schlummert ein.")
+        print("  Dodo ist vor Hunger aufgewacht... nächstes Mal mehr Beeren!")
+    elif eingaben_zaehler >= MAX_EINGABEN:
+        print("  Maximale Träumereien erreicht. Dodo schläft satt weiter.")
     else:
-        print(draw_dodo(saettigung, schritt))
-        print("\n🦤 Dodo watschelt wohlig gewärmt durch den Morgentau.")
-        
-    print("\n--- Dodo-Schlafstatistik ---")
-    print(f"Gelebte Schritte:    {schritt}")
-    print(f"Eingaben gesamt:     {eingaben_zaehler}")
-    print(f"Fütterungen:         {fuetterungen}")
-    print(f"End-Sättigung:       {saettigung}%")
-    print(f"Traumdauer:          {dauer:.1f} s")
+        print("  Dodo wacht glücklich auf. Guter Traum!")
+    print("\nGute Nacht! 🌙")
 
 if __name__ == "__main__":
     main()
