@@ -3642,3 +3642,74 @@ Eingaben: 16/20
 Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 Tschüss! Der Dodo schläft weiter.
 ```
+
+## Teil 57 (20.11.2026 15:50)
+draw_shadow_layer vervollständigt (6 Zeilen: Header, Dampf, 3x Körper, Boden). draw_magen hinzugefügt, das Schatten-Layer und Haupt-Magen kombiniert mit versetztem Versatz. Hauptschleife mit 20 Eingaben, EOF-Behandlung und Befehlen f/w/Enter/q implementiert. Alles läuft fehlerfrei durch.
+
+```
+chritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Dodo watschelt davon. Tschüss!
+```
