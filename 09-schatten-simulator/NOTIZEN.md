@@ -557,3 +557,60 @@ Wähle Form (1-3): ❓ Unbekannte Form.
 0 – Beenden
 🦤 Fifo fragt: Deine Wahl? 🦤 Fifo wacht auf. Gute Nacht!
 ```
+
+## Teil 13 (21.11.2026 00:37, Nachtschicht)
+Die Funktion weiche_schatten_raymarch wurde vervollständigt (Sample-Count auf 4 erhöht, Jitter-Logik korrigiert). Neue Tiefenform 'Wellblech' hinzugefügt und in Menü integriert. Komplette main.py ist jetzt ausführbar und fehlerfrei.
+
+```
+-Phong Specular
+  5 – Vollbild (Blinn-Phong + Schatten + AO)
+  6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)
+  7 – Lichtrichtung anpassen
+  8 – Höhen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 
+🦤 Unbekannte Option.
+
+🦤 Schatten-Simulator – Menü:
+  1 – Harte Schatten (Raymarch)
+  2 – Weiche Schatten (Raymarch + Jitter)
+  3 – Ambient Occlusion (SSAO)
+  4 – Blinn-Phong Specular
+  5 – Vollbild (Blinn-Phong + Schatten + AO)
+  6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)
+  7 – Lichtrichtung anpassen
+  8 – Höhen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 
+  1 – Kugel
+  2 – Kegel
+  3 – Pyramide
+  4 – Wellblech
+  Form wählen: 🦤 Unbekannte Form.
+
+🦤 Schatten-Simulator – Menü:
+  1 – Harte Schatten (Raymarch)
+  2 – Weiche Schatten (Raymarch + Jitter)
+  3 – Ambient Occlusion (SSAO)
+  4 – Blinn-Phong Specular
+  5 – Vollbild (Blinn-Phong + Schatten + AO)
+  6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)
+  7 – Lichtrichtung anpassen
+  8 – Höhen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 
+🦤 Unbekannte Option.
+
+🦤 Schatten-Simulator – Menü:
+  1 – Harte Schatten (Raymarch)
+  2 – Weiche Schatten (Raymarch + Jitter)
+  3 – Ambient Occlusion (SSAO)
+  4 – Blinn-Phong Specular
+  5 – Vollbild (Blinn-Phong + Schatten + AO)
+  6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)
+  7 – Lichtrichtung anpassen
+  8 – Höhen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 
+🦤 Fifo watschelt davon. Bis zum nächsten Traum!
+```
