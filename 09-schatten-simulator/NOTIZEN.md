@@ -295,3 +295,49 @@ Berechne weiche Schatten (Stochastisch, 8 Samples)...
 
 🦤 Fifo watschelt ins Bett. Schatten sind weich. Gute Nacht.
 ```
+
+## Teil 8 (20.11.2026 23:30)
+Teil 8 fügt einen Debug-Bypass (Modus-Wahl via input) hinzu, vervollständigt `weiche_schatten_raymarch` mit deterministischem Jitter-Hashing und Early-Out, implementiert `kombiniere_schatten` und `ascii_art` für Visualisierung. Das Hauptmenü erlaubt nun gezieltes Testen einzelner Pipeline-Stufen (Diffus, Hart, Weich, Tiefe/Normalen, Performance).
+
+```
+☔ Fifo's Schatten-Simulator – Teil 8: Debug-Bypass aktiv
+==================================================
+Karte: 10x7
+Höhen: Min=0.10 Max=1.00 Spanne=0.90
+Licht: (0.41, -0.41, 0.82)
+
+🔧 Debug-Modus: Was soll berechnet werden?
+  1: Alles (Diffus + Hart + Weich + Kombiniert) [Standard]
+  2: Nur Diffus (schnell, keine Schatten)
+  3: Nur Harte Schatten (Raymarch)
+  4: Nur Weiche Schatten (Stochastisch)
+  5: Nur Tiefe & Normalen (ASCII)
+  6: Performance-Test (nur Harte Schatten, wenig Schritte)
+Wähle Modus (1-6): 
+🗺️ Tiefe (Höhenfeld):
+          
+ .:-==-:. 
+ :=*%%*=: 
+ -*%@@%*- 
+ :=*%%*=: 
+ .:-==-:. 
+          
+
+📐 Normalen-Z (Aufwärts-Komponente):
+%%%%%%%%%%
+%%%%%%%%%%
+%%%%%%%%%%
+%%%%%%%%%%
+%%%%%%%%%%
+%%%%%%%%%%
+%%%%%%%%%%
+
+☀️ Diffuse Beleuchtung (Lambert):
+####%%####
+*###%%%%%#
+**###%%%%#
+*+**###%%#
+**+++**###
+***+++**##
+*********#
+```
