@@ -1,5 +1,5 @@
-# main.py – Schatten-Simulator, Teil 5
-# Fifo, der Dodo, guckt in den Regen. Code fertigstellen, kurz durchatmen, Augen zu.
+# main.py – Schatten-Simulator, Teil 6
+# Fifo, der Dodo, optimiert den Raymarcher ein letztes Mal heute. Dann ist Feierabend.
 
 from __future__ import annotations
 import math
@@ -104,10 +104,11 @@ def harte_schatten_raymarch(karte: Tiefenkarte,
                              schritte: int = 32,
                              bias: float = 0.005) -> List[List[float]]:
     """
-    Echter Schattenwurf durch Raymarching auf dem Höhenfeld (optimiert).
-    - Lokale Variablen für heiße Schleife
-    - Inline-Bilinear ohne Clamping (Bounds-Check vorher)
-    - Vorgezogener Reziproke für Division
+    Echter Schattenwurf durch Raymarching auf dem Höhenfeld (Finaler Optimierungsstand für heute).
+    - Vollständig inline Bilinear-Interpolation ohne Funktionsaufrufe
+    - Vorgezogene Reziproke & Konstanten
+    - Early-Out bei Licht von genau oben
+    - Kein Clamping im heißen Pfad (Bounds-Check davor)
     """
     lx, ly, lz = licht_dir
     daten = karte.daten
@@ -115,6 +116,7 @@ def harte_schatten_raymarch(karte: Tiefenkarte,
     b = karte.b
     
     # Licht kommt von oben (lz > 0). Wir marschieren ENTGEGEN der Lichtrichtung (zum Licht hin).
+    # Maximale Distanz ist Diagonale der Map.
     max_dist = math.sqrt(h * h + b * b)
     step_xy = max_dist / schritte
     
@@ -154,7 +156,7 @@ def harte_schatten_raymarch(karte: Tiefenkarte,
                 if not (0 <= cur_x < b_minus_1 and 0 <= cur_y < h_minus_1):
                     break
                 
-                # --- Inline Bilinear Interpolation (Ohne Clamping, da In-Bounds) ---
+                # --- Inline Bilinear Interpolation (Ohne Clamping, da In-Bounds garantiert) ---
                 y0 = int(cur_y)
                 x0 = int(cur_x)
                 y1 = y0 + 1
@@ -166,7 +168,7 @@ def harte_schatten_raymarch(karte: Tiefenkarte,
                 h00 = daten_local[y0][x0]
                 h01 = daten_local[y0][x1]
                 h10 = daten_local[y1][x0]
-                h11 = daten_local[y1][x1]  # Fehlte noch
+                h11 = daten_local[y1][x1]
                 
                 h0 = h00 * (1 - dx) + h01 * dx
                 h1 = h10 * (1 - dx) + h11 * dx
@@ -182,34 +184,25 @@ def harte_schatten_raymarch(karte: Tiefenkarte,
 
 
 def kombiniere_schatten(diffus: List[List[float]], hart: List[List[float]]) -> List[List[float]]:
-    """Multiplikativ: Beleuchtung * Sichtbarkeit."""
+    """Multiplikation: Hart schneidet Diffus aus (oder mischt).
+    Hier: Hart dominiert (0 gewinnt), sonst Diffus."""
     h = len(diffus)
     b = len(diffus[0])
     erg = []
     for y in range(h):
         reihe = []
         for x in range(b):
+            # Hart ist 0 oder 1. Diffus 0-1.
             reihe.append(diffus[y][x] * hart[y][x])
         erg.append(reihe)
     return erg
 
 
-def heatmap_ausgabe(daten: List[List[float]], titel: str = "") -> None:
-    """Gibt 2D-Array als ASCII-Heatmap aus (0=., 1=#)."""
-    if titel:
-        print(f"\n--- {titel} ---")
-    ramp = " .:-=+*#%@"
-    rlen = len(ramp) - 1
-    for reihe in daten:
-        zeile = ""
-        for v in reihe:
-            idx = int(max(0.0, min(1.0, v)) * rlen)
-            zeile += ramp[idx]
-        print(zeile)
-
-
-def beispiel_karte() -> Tiefenkarte:
-    """Eine kleine Testlandschaft: Hügel, Tal, Klippe."""
+def main() -> None:
+    print("🦤 Fifo meldet Dienst: Schatten-Simulator Teil 6 – Letzter Schliff")
+    print("Draußen tropft's. Drinnen flackert der Monitor. Raymarcher wird glattgezogen.")
+    
+    # Beispieldaten: Ein kleiner Hügelkrater
     daten = [
         [0.1, 0.2, 0.3, 0.2, 0.1],
         [0.2, 0.5, 0.6, 0.4, 0.2],
@@ -217,72 +210,44 @@ def beispiel_karte() -> Tiefenkarte:
         [0.2, 0.4, 0.5, 0.3, 0.2],
         [0.1, 0.2, 0.3, 0.2, 0.1],
     ]
-    return Tiefenkarte(daten)
-
-
-def licht_aus_winkel(azimut_grad: float, elev_grad: float) -> Vec3:
-    """Konvertiert Kugelkoordinaten in normierten Vektor (x, y, z).
-    Azimut: 0=Ost, 90=Nord (mathematisch positiv). Elevation: 0=Horizont, 90=Zenit."""
-    az = math.radians(azimut_grad)
-    el = math.radians(elev_grad)
-    lx = math.cos(el) * math.cos(az)
-    ly = math.cos(el) * math.sin(az)
-    lz = math.sin(el)
-    return (lx, ly, lz)
-
-
-def main() -> None:
-    print("🦤 Fifo meldet Dienst: Schatten-Simulator Teil 5 – Regenpause")
-    print("Draußen tropft's. Drinnen flackert der Monitor. Code ist fertig.")
     
-    karte = beispiel_karte()
-    print(f"\nAktuelle Tiefenkarte (Höhenwerte 0.00–1.00):")
+    karte = Tiefenkarte(daten)
+    print("\nAktuelle Tiefenkarte (Höhenwerte 0.00–1.00):")
     print(karte)
-    mn, mx, sp = karte.statistik()
-    print(f"Tiefenbereich: min={mn:.2f}, max={mx:.2f}, spanne={sp:.2f}")
     
-    # Standardlicht: etwas von der Seite, hoch genug für Schatten
-    licht = licht_aus_winkel(135, 45)  # Nord-West, 45° hoch
-    lx, ly, lz = licht
-    print(f"Lichtrichtung (normiert): ({lx:.3f}, {ly:.3f}, {lz:.3f})")
+    # Licht von schräg oben-links
+    licht = (0.5, -0.3, 1.0)
+    laenge = math.sqrt(licht[0]**2 + licht[1]**2 + licht[2]**2)
+    licht_norm = (licht[0]/laenge, licht[1]/laenge, licht[2]/laenge)
+    
+    print(f"\nLichtrichtung (normiert): {licht_norm[0]:.2f}, {licht_norm[1]:.2f}, {licht_norm[2]:.2f}")
     
     # 1. Diffus (Normalen)
     normals = karte.normalen()
-    diffus = diffuse_schatten(normals, licht)
-    heatmap_ausgabe(diffus, "Diffuses Licht (Lambert)")
+    diffus = diffuse_schatten(normals, licht_norm)
     
-    # 2. Hart (Raymarching)
-    print("\nRaymarching... (32 Schritte)")
-    hart = harte_schatten_raymarch(karte, licht, schritte=32)
-    heatmap_ausgabe(hart, "Harte Schatten (Raymarch)")
+    # 2. Hart (Raymarching) - Jetzt optimiert
+    print("\nRaymarching läuft (optimiert)...")
+    hart = harte_schatten_raymarch(karte, licht_norm, schritte=64, bias=0.005)
     
     # 3. Kombiniert
     final = kombiniere_schatten(diffus, hart)
-    heatmap_ausgabe(final, "Kombiniert (Final)")
     
-    # Interaktiver Mini-Loop – aber heute nur gucken
-    print("\n💤 Fifo legt den Kopf auf die Tastatur. zzz...")
-    print("   (Drück Enter zum Beenden oder 'n' für neues Licht, aber Fifo schläft schon.)")
+    print("\nErgebnis: Kombinierte Schattenkarte (0.00 = dunkel, 1.00 = hell):")
+    for reihe in final:
+        print("  " + "  ".join(f"{v:.2f}" for v in reihe))
     
+    # Eine kleine Interaktion vor dem Schlaf
+    print("\nDer Code steht. Die Schatten fallen. Fifo gähnt.")
     try:
-        # Ein einzelner Input, dann Ruhe
-        eingabe = input("> ").strip().lower()
-        if eingabe == 'n':
-            print("Wach? Okay, einmal noch... aber kurz.")
-            az = float(input("Azimut (Grad): ") or "135")
-            el = float(input("Elevation (Grad): ") or "45")
-            licht2 = licht_aus_winkel(az, el)
-            normals = karte.normalen()
-            diffus = diffuse_schatten(normals, licht2)
-            hart = harte_schatten_raymarch(karte, licht2, schritte=32)
-            final = kombiniere_schatten(diffus, hart)
-            heatmap_ausgabe(final, f"Neues Licht ({az}°, {el}°)")
+        antwort = input("Alles gut für heute? (j/n) ").strip().lower()
+        if antwort.startswith('j'):
+            print("🦤 Gute Nacht, Pixel. Der Dodo schläft.")
         else:
-            print("Ruhe jetzt. Gute Nacht.")
-    except (EOFError, KeyboardInterrupt):
-        print("\n🦤 Strom aus. Fifo träumt von Voxeln.")
-    except ValueError:
-        print("Zahlen, Federn, Zahlen... egal. Schlaf gut.")
+            print("🦤 Okay, noch eine Runde... aber morgen. Gute Nacht.")
+    except EOFError:
+        print("\n🦤 Keine Antwort. Der Dodo schläft trotzdem.")
+
 
 if __name__ == "__main__":
     main()
