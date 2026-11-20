@@ -961,3 +961,67 @@ Schritt: 17 | Eingaben: 16/20 | Fütterungen: 2
 
 Dodo kuschelt sich ins Nest. Bis bald!
 ```
+
+## Teil 16 (20.11.2026 02:04, Nachtschicht)
+Die abgebrochene main()-Schleife wurde vollständig implementiert: Wärme-Abbau, Input-Handling für Beere (1), Tee (2), Enter (Warten) und q/EOF (Beenden). Statistiken werden korrekt aktualisiert, das Zertifikat wird am Ende ausgegeben. EOFError wird sanft abgefangen.
+
+```
+.) (Könnte 'ne Beere vertragen)
+
+[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+> ❓ Dodo versteht 'hallo' nicht. Versuche 1, 2, Enter oder q.
+
+--- Schritt 16 ---
+[########................]  36%
+
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+   /\/\
+   o.o 
+   (._.) (Könnte 'ne Beere vertragen)
+
+[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+> ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
+
+--- Schritt 17 ---
+[######..................]  29%
+
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+   /\/\
+   o.o 
+   (._.) (Könnte 'ne Beere vertragen)
+
+[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
+> 
+🌅 Dodo streckt die Flügel. Aufwachen!
+
+╔═══════════════════════════════════════════════╗
+║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
+╠═══════════════════════════════════════════════╣
+║ Träumer: Fifo der Dodo                  ║
+║ Traumuhr:   0.4 Sek                       ║
+╠═══════════════════════════════════════════════╣
+║ Beeren genascht:       1                     ║
+║ Tassen Tee getrunken:   1                    ║
+║ Magenknurren gehört:   0                    ║
+║ Höchste Sättigung:   100%                    ║
+║ Tiefste Sättigung:    29%                    ║
+╠═══════════════════════════════════════════════╣
+║ 🌙 Guter Traumwächter                   ║
+╚═══════════════════════════════════════════════╝
+
+Dodo kuschelt sich ins Nest. Bis bald!
+```
