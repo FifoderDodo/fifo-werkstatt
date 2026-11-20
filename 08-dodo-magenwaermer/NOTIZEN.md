@@ -2276,3 +2276,67 @@ Dauer: 0.1s | Schritte: 5 | End-Sättigung: 75% | Wärme: 1
 
 Danke fürs Spielen! Gute Nacht, kleiner Dodo. 🦤💤
 ```
+
+## Teil 37 (20.11.2026 08:29)
+Die main()-Funktion wurde vollständig implementiert: Initialisierung, Hauptschleife mit Verdauung/Traum/Wetter, Eingabe-Behandlung (1,2,Enter,q) mit EOFError/KeyboardInterrupt-Abbruch, Statistik-Sammlung, Diplom-Berechnung mit Punktesystem, Pokal-Anzeige, Session-Highscore-Vergleich und Tagebuch-Ausgabe. Der Code ist nun ein vollständiges, lauffähiges Programm.
+
+```
+tragen)
+Wärme: 0 | Knurren: 0 | Eingaben: 2/20
+[1] Beere essen  [2] Tee trinken  [Enter] Weiter träumen  [q] Aufwachen
+> 
+--- Schritt 16 ---
+🦤 Dodo-Magenwärmer — Schritt 16 | ☀️ Klartraum
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+[#######.................]  31%
+   /\/\
+   o.o 
+   (._.) (Könnte 'ne Beere vertragen)
+Wärme: 0 | Knurren: 0 | Eingaben: 2/20
+[1] Beere essen  [2] Tee trinken  [Enter] Weiter träumen  [q] Aufwachen
+> 
+========================================
+🌅 DODO WACHT AUF — DIPLOMZEIT
+========================================
+
+📊 Statistik:
+   Schritte: 16
+   Ø Sättigung: 41%
+   Beste Sättigung: 52% | Schlechteste: 31%
+   Gesamt-Wärme: 6
+   Traum-Ereignisse: 2
+   Magenknurren: 0
+
+🎓 Diplom: Silber (74 Punkte)
+      |~~~|
+      |  2. |
+      |_____|
+     /  ___  \
+    /  /   \  \
+   |  |     |  |
+    \       //
+     `"`
+
+🌟 NEUER SESSION-HIGHSCORE! 🌟
+
+📖 Traum-Tagebuch:
+  - Schritt 8: Unbekanntes Signal '10' ignoriert.
+  - Schritt 9: Tee getrunken (+3 Wärme).
+  - Schritt 10: Unbekanntes Signal 'j' ignoriert.
+  - Schritt 11: Unbekanntes Signal '4' ignoriert.
+  - Schritt 12: Unbekanntes Signal 'n' ignoriert.
+  - Schritt 13: Unbekanntes Signal '8' ignoriert.
+  - Schritt 14: Wetter dreht auf ☀️ Klartraum.
+  - Schritt 14: Unbekanntes Signal 'hallo' ignoriert.
+  - Schritt 15: Unbekanntes Signal '6' ignoriert.
+  - Schritt 16: Dodo wacht freiwillig auf.
+
+🍃 Gute Reise, kleiner Dodo. Der Magen ist warm, das Herz auch.
+Drücke Enter zum Beenden...
+```
