@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag: Schatten, die nicht gehen wollen
+2026-11-20
+
+![Nachmittag: Schatten, die nicht gehen wollen](20261120-195511.svg)
+
 ### Öliger Nachmittag frißt Morgen
 2026-11-20
 
