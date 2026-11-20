@@ -1,6 +1,6 @@
-# main.py - Dodo-Magenwärmer Teil 22 (Traum-Edition)
-# Fifo der Dodo träumt weiter: Bugfixes vervollständigt, Traum-Ereignisse hinzugefügt.
-# Fix: Abgebrochener Wärme-Block, Input-Loop, Zertifikat. Neu: Zufällige Traum-Ereignisse.
+# main.py - Dodo-Magenwärmer Teil 23 (Traum-Edition)
+# Fifo der Dodo träumt weiter: Hauptschleife fertiggestellt, sanftes Aufwachen, Statistik robust.
+# Fix: Unvollständige main() vervollständigt, EOF-Handling, Sättigungsklammern, Traum-Wetter.
 
 import random
 import time
@@ -87,15 +87,17 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
     result = [header]
     
     for i, line in enumerate(lines):
+        # Füllung zeichnen
         if i >= fill_start and level > 0 and i < 5:
             left = line.find('\\')
             right = line.find('//')
             if left != -1 and right != -1 and right > left:
-                mid = line[left+1:right]
+                mid = line[left+2:right] # skip escaped backslash
                 filled = (wave * (len(mid) // 3 + 1))[:len(mid)]
-                line = line[:left+1] + filled + line[right:]
+                line = line[:left+2] + filled + line[right:]
+        # Farbe anwenden
         if magen_farbe and waerme > 0:
-             line = line.replace('\\', magen_farbe + '\\' + reset).replace('//', magen_farbe + '//' + reset).replace('V', magen_farbe + 'V' + reset)
+            line = line.replace('\\', magen_farbe + '\\' + reset).replace('//', magen_farbe + '//' + reset).replace('V', magen_farbe + 'V' + reset)
         result.append(line)
     return "\n".join(result)
 
@@ -172,9 +174,8 @@ def main() -> None:
     schritt = 0
     eingaben_zaehler = 0
     waerme = 0          # Wärme durch Tee (Schritte)
-    start_time = time.time()
+    start = time.time()
     
-    # Statistik für Zertifikat
     stats = {
         'beeren': 0,
         'tee': 0,
@@ -184,82 +185,88 @@ def main() -> None:
         'events': 0
     }
     
-    print("🦤 Dodo-Magenwärmer erwacht im Traum... (q = Ende)")
-    pause(0.8)
+    nachricht = "💤 Traum beginnt..."
     
-    while saettigung > 0 and eingaben_zaehler < MAX_EINGABEN:
+    while eingaben_zaehler < MAX_EINGABEN and saettigung > 0:
         schritt += 1
-        clear_screen(schritt)
         
-        # Natürlicher Hungeranstieg pro Zeiteinheit
-        saettigung = max(0, saettigung - random.randint(3, 8))
-        knurrt = satte_pruefung(saettigung)
+        # Natürlicher Verbrauch
+        saettigung -= 1
+        if waerme > 0:
+            waerme -= 1
+        
+        # Traum-Ereignis
+        delta_sat, delta_waerme, event_msg = traum_ereignis(stats)
+        if event_msg:
+            nachricht = event_msg
+        saettigung += delta_sat
+        waerme += delta_waerme
+        
+        # Klammern
+        saettigung = max(0, min(100, saettigung))
         
         # Stats aktualisieren
         stats['max_sat'] = max(stats['max_sat'], saettigung)
         stats['min_sat'] = min(stats['min_sat'], saettigung)
+        
+        # Knurren prüfen
+        knurrt = satte_pruefung(saettigung)
         if knurrt:
             stats['knurren'] += 1
         
-        # Wärme abbauen & Effekt (Bonus-Sättigung wenn warm)
-        if waerme > 0:
-            waerme -= 1
-            # Warmer Magen verdaut besser / verliert weniger -> kleiner Bonus
-            bonus = random.randint(1, 3)
-            saettigung = min(100, saettigung + bonus)
-        
-        # Traum-Ereignis prüfen
-        delta_sat, delta_waerme, event_msg = traum_ereignis(stats)
-        saettigung = min(100, max(0, saettigung + delta_sat))
-        waerme += delta_waerme
-        
-        # UI Zeichnen
+        # Zeichnen
+        clear_screen(schritt)
+        print(draw_bar(saettigung, waerme=waerme))
         print(draw_stomach(saettigung, knurrt, waerme, schritt))
-        print()
         print(draw_dodo(saettigung, schritt, waerme))
-        print()
-        print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
-        print(f"Wärme:     {'🔥' * waerme}{' ' * (5-waerme)} ({waerme} Schritte)")
-        print(f"Schritt {schritt} | Eingaben {eingaben_zaehler}/{MAX_EINGABEN}")
-        if event_msg:
-            print(f"💭 {event_msg}")
-        print("-" * 40)
+        print(f"\nSättigung: {saettigung}%  |  Wärme: {waerme} Schritte  |  Schritt {schritt}  |  Eingaben {eingaben_zaehler}/{MAX_EINGABEN}")
+        if nachricht:
+            print(f"{nachricht}")
+        print("----------------------------------------")
         print("[1] Beere essen  [2] Tee trinken  [Enter] Träumen  [q] Aufwachen")
         
-        # Input Handling
         try:
             eingabe = input("> ").strip().lower()
         except EOFError:
-            print("\n🌙 Traum endet sanft (EOF).")
+            print("\n🌙 Eingabe-Schluss. Dodo wacht sanft auf.")
             break
         
+        nachricht = "" # Nachricht nur einmal anzeigen
+        
         if eingabe == 'q':
-            print("\n🦤 Dodo wacht freiwillig auf.")
+            print("🌅 Dodo streckt die Flügel. Aufwachen!")
             break
         elif eingabe == '1':
             saettigung = min(100, saettigung + 15)
             stats['beeren'] += 1
-            print("🍇 Mmmh, saftige Traum-Beere! +15%")
+            nachricht = "🍇 Mmmh, saftige Traum-Beere! +15%"
             eingaben_zaehler += 1
-            pause(0.4)
         elif eingabe == '2':
             waerme += 4
             stats['tee'] += 1
-            print("🍵 Heißer Tee wärmt den Bauch! +4 Wärme")
+            nachricht = "🍵 Heißer Tee wärmt den Bauch. +4 Wärme"
             eingaben_zaehler += 1
-            pause(0.4)
         elif eingabe == '':
-            # Nur träumen, Zeit vergeht (Schleife läuft weiter)
-            print("💤 Dodo träumt weiter...")
-            pause(0.3)
+            nachricht = "💭 Dodo träumt weiter..."
+            # Enter zählt nicht als 'Eingabe' für Zähler, aber Schritt vergeht
         else:
-            print(f"❓ Dodo versteht '{eingabe}' nicht. Versuche 1, 2, Enter oder q.")
-            pause(0.5)
-            # Kein Eingaben-Zähler für falsche Eingaben
+            nachricht = "❓ Dodo versteht nur 1, 2, Enter oder q."
+            # Kein Zähler-Inkrement bei Falscheingabe
+            continue # Schritt nicht zählen? Nein, Schritt schon passiert. Nur Input-Zähler nicht.
+            
+        pause(0.3)
     
-    # Ende erreicht
-    dauer = time.time() - start_time
+    # Ende-Schleife (Sättigung 0 oder Max Eingaben)
+    if saettigung <= 0:
+        clear_screen()
+        print(draw_stomach(0, True, 0, schritt))
+        print(draw_dodo(0, schritt, 0))
+        print("\n💥 Der Magen ist ganz leer! Dodo wacht hungrig auf.\n")
+        pause(1)
+    
+    dauer = time.time() - start
     print_zertifikat(stats, dauer)
+
 
 if __name__ == "__main__":
     main()
