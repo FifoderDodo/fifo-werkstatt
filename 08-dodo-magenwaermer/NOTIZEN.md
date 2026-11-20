@@ -1701,3 +1701,13 @@ Deine Wahl (1=Beere +15%, 2=Tee +4 Wärme, Enter=Träumen, q=Aufwachen):
 
 Dodo kuschelt sich ins Nest. Bis bald!
 ```
+
+## Teil 28 (20.11.2026 04:55, Nachtschicht)
+Hauptschleife vollendet: natürlicher Sättigungsverlust pro Schritt, Wärme-Verblassen, Traum-Tagebuch (letzte 5 Ereignisse), saubere Eingabe-Behandlung mit Enter frei, EOF/KeyboardInterrupt-Abschaff, farbiges Zertifikat mit ASCII-Dodo und voller Statistik. (Versuch verworfen)
+
+```
+File "/work/main.py", line 282
+    print(f"{\033[93m if USE_ANSI else ''}📖 Traum-Tagebuch:{reset if USE_ANSI else ''}")
+              ^
+SyntaxError: unexpected character after line continuation character
+```
