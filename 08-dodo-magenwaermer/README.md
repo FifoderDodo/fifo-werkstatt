@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 34 von etwa 15
+Stand: fertig
 
 ## Ausprobieren
 
@@ -15,10 +15,36 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-. Träume einfach weiter...
-
+       //
+   \     //
+    \ ~~//
+     \ //
+      \///
+       V
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+Wärme: 0 | Knurren: 0 | Eingaben: 14/20
+[1] Beere  [2] Tee  [Enter] Weiter  [q] Aufwachen
+> 
 --- Schritt 16 ---
-🦤 Dodo-Magenwärmer — Schritt 16 — 🌫️ Nebeltraum
+🦤 Dodo-Magenwärmer — Schritt 16 — ☀️ Klartraum
+[###############.........]  65%
+    ( ~ )
+  \       //
+   \     //
+    \ ~~//
+     \ //
+      \///
+       V
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+Wärme: 0 | Knurren: 0 | Eingaben: 15/20
+[1] Beere  [2] Tee  [Enter] Weiter  [q] Aufwachen
+> 
+--- Schritt 17 ---
+🦤 Dodo-Magenwärmer — Schritt 17 — ☀️ Klartraum
 [###############.........]  63%
     ( ~ )
   \       //
@@ -30,55 +56,31 @@ python3 main.py
    /\/\
    o.o 
    (^_^) (Pummelig & warm)
-Wärme: 0 | Knurren: 0 | Eingaben: 2/20
+Wärme: 0 | Knurren: 0 | Eingaben: 16/20
+[1] Beere  [2] Tee  [Enter] Weiter  [q] Aufwachen
+> Dodo wacht auf... 
 
-[1] Beere  [2] Tee  [Enter] Träumen  [q] Aufwachen > 🤔 Unbekannter Befehl. Träume einfach weiter...
+🦤 Dodo-Magenwärmer — Aufwachen
+Geträumt: 17 Schritte in 0.0 Sekunden.
+End-Sättigung: 63% | Wärme: 0 | Knurren: 0
+Beeren: 1 | Tees: 1 | Ereignisse: 3
 
---- Schritt 17 ---
-🦤 Dodo-Magenwärmer — Schritt 17 — 🌫️ Nebeltraum
-[##############..........]  60%
-    ( ~ )
-  \       //
-   \     //
-    \ ~~//
-     \ //
-      \///
-       V
-   /\/\
-   o.o 
-   (^_^) (Pummelig & warm)
-Wärme: 0 | Knurren: 0 | Eingaben: 2/20
+📖 Traum-Tagebuch (letzte 10):
+  Schritt 7: 🍇 Beere gegessen! +10% Sättigung
+  Schritt 9: ✨ Traum-Beere gefunden! +10% Sättigung
+  Schritt 10: 🍵 Tee getrunken! +3 Wärme
+  Schritt 13: 👻 Albtraum! Magen zieht sich zusammen -5% Sättigung
+  Schritt 15: ✨ Traum-Beere gefunden! +10% Sättigung
 
-[1] Beere  [2] Tee  [Enter] Träumen  [q] Aufwachen > 
-🦤 Dodo beschließt aufzuwachen. Gute Reise!
+🌤️ Wetter-Statistik:
+  ☀️ Klartraum: 6 Schritte
+  ⛈️ Sturmtraum: 11 Schritte
 
-🌅 Dodo wacht auf. Federn sortieren, Magen prüfen...
-
-📖 Traum-Tagebuch (letzte 10 Einträge):
-  Schritt 7: 🍵 Dampfender Traum-Tee erscheint! +3 Wärme
-  Schritt 7: 🍇 Beere genascht (+15%, +1 Wärme)
-  Schritt 10: 🍵 Tee getrunken (+5%, +5 Wärme)
-
-🌤️ Traum-Wetter-Statistik:
-  🌫️ Nebeltraum: 7 Schritte
-  ⛈️ Sturmtraum: 10 Schritte
-
-========================================
-🎓 DODO-DIPLOM — OFFIZIELLES ZERTIFIKAT
-========================================
-Name: Fifo der Dodo
-Traumdauer: 0.3 Sekunden (17 Schritte)
-Beeren genascht: 1
-Tee getrunken: 1
-Traum-Ereignisse: 1
-Magen-Knurren: 0
-Höchste Sättigung: 71%
-Niedrigste Sättigung: 57%
-
-🏆 TITEL: Meister der Sättigung
-========================================
-
-🦤 Gute Erholung, kleiner Dodo. Bis zum nächsten Traum.
+🎓 Dodo-Diplom
+   Meister der Beeren
+   Ausgestellt an Fifo, der Dodo
+   Max Sättigung: 70%  Min Sättigung: 56%
+   Möge dein Magen immer warm sein.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
