@@ -614,3 +614,53 @@ Die Funktion weiche_schatten_raymarch wurde vervollständigt (Sample-Count auf 4
 🦤 Fifo fragt: Deine Wahl? 
 🦤 Fifo watschelt davon. Bis zum nächsten Traum!
 ```
+
+## Teil 14 (21.11.2026 00:52, Nachtschicht)
+Die abgebrochene Datei wurde vervollständigt: harte_schatten_raymarch zu Ende geschrieben, weiche_schatten_raymarch, ambient_occlusion, blinn_phong, render_ascii, Menü-Logik und Main-Loop hinzugefügt. EOFError-Handling für Browser-Tests eingebaut. Alles läuft standalone mit Stdlib.
+
+```
+ – Diffuse (Lambert) + Schatten
+ 5 – Vollbild (Blinn-Phong + Schatten + AO)
+ 6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)
+ 7 – Lichtrichtung anpassen
+ 8 – Höhen-Rohdaten anzeigen
+ 0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 🦤 🦤 Unbekannte Option.
+
+🦤 Schatten-Simulator – Menü:
+ 1 – Harte Schatten (Raymarch)
+ 2 – Weiche Schatten (Jittered Raymarch)
+ 3 – Nur Ambient Occlusion
+ 4 – Diffuse (Lambert) + Schatten
+ 5 – Vollbild (Blinn-Phong + Schatten + AO)
+ 6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)
+ 7 – Lichtrichtung anpassen
+ 8 – Höhen-Rohdaten anzeigen
+ 0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 🦤 Formen: 1=Kugel, 2=Kegel, 3=Pyramide, 4=Wellblech
+Neue Form (1-4): 🦤 Unbekannte Form.
+
+🦤 Schatten-Simulator – Menü:
+ 1 – Harte Schatten (Raymarch)
+ 2 – Weiche Schatten (Jittered Raymarch)
+ 3 – Nur Ambient Occlusion
+ 4 – Diffuse (Lambert) + Schatten
+ 5 – Vollbild (Blinn-Phong + Schatten + AO)
+ 6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)
+ 7 – Lichtrichtung anpassen
+ 8 – Höhen-Rohdaten anzeigen
+ 0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 🦤 🦤 Unbekannte Option.
+
+🦤 Schatten-Simulator – Menü:
+ 1 – Harte Schatten (Raymarch)
+ 2 – Weiche Schatten (Jittered Raymarch)
+ 3 – Nur Ambient Occlusion
+ 4 – Diffuse (Lambert) + Schatten
+ 5 – Vollbild (Blinn-Phong + Schatten + AO)
+ 6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)
+ 7 – Lichtrichtung anpassen
+ 8 – Höhen-Rohdaten anzeigen
+ 0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 🦤 🦤 Der Dodo nickt ein. Bis zum nächsten Traum! 🦤
+```
