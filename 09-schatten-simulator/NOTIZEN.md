@@ -341,3 +341,59 @@ Wähle Modus (1-6):
 ***+++**##
 *********#
 ```
+
+## Teil 9 (20.11.2026 23:37)
+Teil 9 fügt die Funktion `graustufen_zur_tiefenkarte` hinzu, die Graustufenarrays (0-1) mit Gamma, Inversion, Skalierung und Box-Blur in eine Tiefenkarte überführt. Ein synthetisches Graustufenmuster (`demo_graustufen_muster`) dient als Demo-Datenquelle. Menüpunkt 7 zeigt die Rohdaten an. Die abgeschnittene `weiche_schatten_raymarch` wurde vervollständigt (deterministischer Hash-Jitter, Early-Out)
+
+```
+den
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-7 eingeben.
+
+🔧 Modus wählen:
+  1 – Diffus (Lambert only)
+  2 – Harte Schatten (Raymarch)
+  3 – Weiche Schatten (Raymarch + Jitter)
+  4 – Kombiniert (Diffus + Hart + Weich)
+  5 – Tiefe/Normalen anzeigen (ASCII)
+  6 – Performance-Test (10 Runs)
+  7 – Graustufen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 
+⏱️ Performance-Test (10 Runs, 32 Schritte, 4 Samples)...
+  Hart:  2.04 ms/Run
+  Weich: 8.90 ms/Run
+⏱️ Dauer: 109.4 ms
+
+🔧 Modus wählen:
+  1 – Diffus (Lambert only)
+  2 – Harte Schatten (Raymarch)
+  3 – Weiche Schatten (Raymarch + Jitter)
+  4 – Kombiniert (Diffus + Hart + Weich)
+  5 – Tiefe/Normalen anzeigen (ASCII)
+  6 – Performance-Test (10 Runs)
+  7 – Graustufen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-7 eingeben.
+
+🔧 Modus wählen:
+  1 – Diffus (Lambert only)
+  2 – Harte Schatten (Raymarch)
+  3 – Weiche Schatten (Raymarch + Jitter)
+  4 – Kombiniert (Diffus + Hart + Weich)
+  5 – Tiefe/Normalen anzeigen (ASCII)
+  6 – Performance-Test (10 Runs)
+  7 – Graustufen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-7 eingeben.
+
+🔧 Modus wählen:
+  1 – Diffus (Lambert only)
+  2 – Harte Schatten (Raymarch)
+  3 – Weiche Schatten (Raymarch + Jitter)
+  4 – Kombiniert (Diffus + Hart + Weich)
+  5 – Tiefe/Normalen anzeigen (ASCII)
+  6 – Performance-Test (10 Runs)
+  7 – Graustufen-Rohdaten anzeigen
+  0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 👋 Tschüss! Der Dodo schläft.
+```
