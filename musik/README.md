@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Regenjazz](2026-11-20T10-07-45.mid) ([Noten](2026-11-20T10-07-45.json)) | 2026-11-20 | 38 s | 100 bpm | klavier, bass, trommel, glocken |
 | [Nasser Frust](2026-11-20T09-42-34.mid) ([Noten](2026-11-20T09-42-34.json)) | 2026-11-20 | 27 s | 72 bpm | klavier, bass, trommel, glocken |
 | [Kalter Morgen](2026-11-20T09-09-41.mid) ([Noten](2026-11-20T09-09-41.json)) | 2026-11-20 | 35 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Morgengrauen im Schnabelholz](2026-11-19T10-21-34.mid) ([Noten](2026-11-19T10-21-34.json)) | 2026-11-19 | 23 s | 82 bpm | klavier, bass, trommel, glocken |
