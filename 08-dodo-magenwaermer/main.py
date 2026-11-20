@@ -1,7 +1,6 @@
-# main.py - Dodo-Magenwärmer Teil 15 (Final)
-# Fifo der Dodo beendet den Traum und poliert den Code auf Hochglanz.
-# Fix: Abgebrochene Hauptschleife (Wärme, Input, Logik, Ende) vervollständigt.
-# Neu: Sanfter EOF-Schutz, letzte Statistik-Rundung, sauberer Ausstieg.
+# main.py - Dodo-Magenwärmer Teil 16 (Final+)
+# Fifo der Dodo träumt den Code zu Ende: Hauptschleife, Input, Stats, Zertifikat.
+# Fix: Wärme-Abbau, Eingabe-Handling (1/2/Enter/q/EOF), Sättigungs-Logik, sauberes Ende.
 
 import random
 import time
@@ -176,6 +175,7 @@ def main() -> None:
         # Wärme abbauen
         if waerme > 0:
             waerme -= 1
+            # Wärme gibt leichtes Sättigungs-Gefühl (kein echter Anstieg, nur Anzeige)
         
         # UI zeichnen
         print(draw_bar(saettigung, waerme=waerme))
@@ -184,53 +184,46 @@ def main() -> None:
         print()
         print(draw_dodo(saettigung, schritt))
         print()
-        print(f"Schritt: {schritt} | Eingaben: {eingaben_zaehler}/{MAX_EINGABEN} | Fütterungen: {fuetterungen}")
         
-        # Input
+        if saettigung <= 0:
+            print("\n💤 Dodo ist vor Hunger eingeschlafen... Magen leer.")
+            break
+        
+        # Menü
+        print("[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen")
         try:
-            eingabe = input("[1] Beere  [2] Tee  [Enter] Weiterträumen  [q] Ende > ").strip().lower()
+            raw = input("> ").strip().lower()
         except EOFError:
-            print("\nKein Eingang mehr... Dodo wacht sanft auf.")
+            print("\n🌙 Traum durch EOF unterbrochen. Dodo wacht sanft auf.")
             break
         
-        eingaben_zaehler += 1
-        
-        if eingabe == 'q':
-            print("Dodo gähnt und endet den Traum.")
+        if raw == 'q':
+            print("\n🌅 Dodo streckt die Flügel. Aufwachen!")
             break
-        elif eingabe == '1':
-            # Beere: +15-25%
-            menge = random.randint(15, 25)
-            saettigung = min(100, saettigung + menge)
-            fuetterungen += 1
+        elif raw == '1':
+            saettigung = min(100, saettigung + random.randint(15, 25))
             stats['beeren'] += 1
-            print(f"🍓 *schluck* +{menge}% Sättigung!")
+            eingaben_zaehler += 1
+            print("🍇 Mmmh, saftige Traumbeere!")
             pause(0.5)
-        elif eingabe == '2':
-            # Tee: +5-10% + Wärme für 3 Schritte
-            menge = random.randint(5, 10)
-            saettigung = min(100, saettigung + menge)
-            waerme = 3
-            fuetterungen += 1
+        elif raw == '2':
+            waerme = 5  # 5 Schritte Wärme
             stats['tee'] += 1
-            print(f"🍵 *schlürf* +{menge}% Sättigung & wohlige Wärme für 3 Atemzüge!")
+            eingaben_zaehler += 1
+            print("🍵 Wärmender Schluck Tee... *schlürf*")
             pause(0.5)
-        elif eingabe == '':
-            # Nur warten
-            print("💤 *traumm...*")
-            pause(0.3)
+        elif raw == '':
+            # Enter: einfach weiterträumen, zählt nicht als Eingabe für Limit
+            pass
         else:
-            print(f"❓ Dodo versteht '{eingabe}' nicht. Versuche 1, 2, Enter oder q.")
-            pause(0.5)
-            # Nicht als gültige Eingabe werten? Doch, zählt zum Limit.
-            continue
-            
-        # Sicherheitsnetz: Wenn Magen voll, bisschen träumen lassen
-        if saettigung >= 100:
-            print("🎉 Magen rund! Dodo schnurrt.")
-            pause(0.5)
-
-    # Ende der Schleife -> Zertifikat
+            print(f"❓ Dodo versteht '{raw}' nicht. Versuche 1, 2, Enter oder q.")
+            pause(0.8)
+            continue # Schritt nicht als 'verbrauchte Eingabe' werten, aber Zeit verstreicht
+        
+        # Kurze Pause für Lesbarkeit im TTY
+        pause(0.3)
+    
+    # Ende-Schleife (Zeitlimit oder Sättigung 0 oder q/EOF)
     dauer = time.time() - start_time
     print_zertifikat(stats, dauer)
 
