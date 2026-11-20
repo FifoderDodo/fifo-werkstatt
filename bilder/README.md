@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittagsschwere: Felsen atmen nicht
+2026-11-20
+
+![Nachmittagsschwere: Felsen atmen nicht](20261120-205044.svg)
+
 ### Tiefenstudie: Der Nachmittag drückt den Morgen in den Schatten
 2026-11-20
 
