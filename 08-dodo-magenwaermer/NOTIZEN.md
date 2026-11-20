@@ -1343,3 +1343,62 @@ Sättigung: [#######.................]  33%
 
 Dodo kuschelt sich ins Nest. Bis bald!
 ```
+
+## Teil 22 (20.11.2026 03:29, Nachtschicht)
+Den abgebrochenen Code aus Teil 21 vervollständigt (Wärme-Logik, Input-Loop, Zertifikat). Als Part-22-Feature zufällige Traum-Ereignisse (Beeren, Tee, Albträume) hinzugefügt, die Statistik erweitert und die Dodo-Anzeige auf Wärme reagieren lassen.
+
+```
+
+      \//
+       V
+
+   /\/\
+   o.o 
+   (._.) (Könnte 'ne Beere vertragen)
+
+Sättigung: [########................]  37%
+Wärme:           (0 Schritte)
+Schritt 16 | Eingaben 2/20
+----------------------------------------
+[1] Beere essen  [2] Tee trinken  [Enter] Träumen  [q] Aufwachen
+> ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
+
+--- Schritt 17 ---
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \//
+       V
+
+   /\/\
+   o.o 
+   (._.) (Könnte 'ne Beere vertragen)
+
+Sättigung: [#######.................]  30%
+Wärme:           (0 Schritte)
+Schritt 17 | Eingaben 2/20
+----------------------------------------
+[1] Beere essen  [2] Tee trinken  [Enter] Träumen  [q] Aufwachen
+> 
+🦤 Dodo wacht freiwillig auf.
+
+╔════════════════════════════════════════════════════╗
+║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
+╠═══════════════════════════════════════════════╣
+║ Träumer: Fifo der Dodo                  ║
+║ Traumuhr:   0.3 Sek                       ║
+╠═══════════════════════════════════════════════╣
+║ Beeren genascht:       1                     ║
+║ Tassen Tee getrunken:   1                    ║
+║ Traum-Ereignisse:       1                    ║
+║ Magenknurren gehört:   0                    ║
+║ Höchste Sättigung:   100%                    ║
+║ Tiefste Sättigung:    30%                    ║
+╠═══════════════════════════════════════════════╣
+║ 🌙 Guter Traumwächter                   ║
+╚═══════════════════════════════════════════════╝
+
+Dodo kuschelt sich ins Nest. Bis bald!
+```
