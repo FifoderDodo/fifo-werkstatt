@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 51 von etwa 53
+Stand: in Arbeit, Teil 52 von etwa 53
 
 ## Ausprobieren
 
@@ -15,74 +15,78 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-#########..........]  60%
+en  [q] Quit
+> 🦤 *versteht nicht* - 1, 2, 3 oder q eingeben
 
-Hunger: [------------------------▶----------------] 60%
+--- Schritt 10 ---
+        MAGEN         
+  ~ ~ ~ ~  
+(  ................)
+(                  )
+( ################ )
+( ________________ )
 
-Status: [92mGut gesättigt.[0m
-[90mSchritt 12 | Eingaben: 12/20[0m
 
-Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
-> 
-❓ Unbekannt: 'n'. Versuche f, w, oder q.
+[############............]  50%
+[............] 0/10
 
---- Schritt 13 ---
-Magen: [############........] 60%
+Hunger: [-------------------▶--------------------] 50%
 
-[##############..........]  60%
+Schritt 10 | Feder: -~
 
-Hunger: [------------------------▶----------------] 60%
+Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
+> 🦤 *kuschelt sich an die Wärmequelle* +3 Wärme
 
-Status: [92mGut gesättigt.[0m
-[90mSchritt 13 | Eingaben: 13/20[0m
+--- Schritt 11 ---
+        MAGEN         
+  ~ ~ ~ ~  
+(  ................)
+(                  )
+( ################ )
+( ________________ )
 
-Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
-> 
-❓ Unbekannt: '8'. Versuche f, w, oder q.
 
---- Schritt 14 ---
-Magen: [############........] 60%
+[##########..............]  45%
+[##..........] 2/10
 
-[##############..........]  60%
+Hunger: [-----------------▶----------------------] 45%
 
-Hunger: [------------------------▶----------------] 60%
+Schritt 11 | Feder: ~
 
-Status: [92mGut gesättigt.[0m
-[90mSchritt 14 | Eingaben: 14/20[0m
+Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
+> 🦤 *versteht nicht* - 1, 2, 3 oder q eingeben
 
-Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
-> 
-❓ Unbekannt: 'hallo'. Versuche f, w, oder q.
+--- Schritt 12 ---
+        MAGEN         
+   ~   ~   
+(                  )
+(  ................)
+( ################ )
+( ________________ )
 
---- Schritt 15 ---
-Magen: [############........] 60%
 
-[##############..........]  60%
+[##########..............]  42%
+[#...........] 1/10
 
-Hunger: [------------------------▶----------------] 60%
+Hunger: [----------------▶-----------------------] 42%
 
-Status: [92mGut gesättigt.[0m
-[90mSchritt 15 | Eingaben: 15/20[0m
+Schritt 12 | Feder: ~
 
-Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
-> 
-❓ Unbekannt: '6'. Versuche f, w, oder q.
+Aktionen: [1] Füttern (+15-25%)  [2] Wärmen (+3 Wärme)  [3] Warten  [q] Quit
+> 🦤 Dodo watschelt weg. Tschüss!
 
---- Schritt 16 ---
-Magen: [############........] 60%
+        MAGEN         
+   ~   ~   
+(                  )
+(  ................)
+( ################ )
+( ________________ )
 
-[##############..........]  60%
 
-Hunger: [------------------------▶----------------] 60%
+[##########..............]  42%
+Hunger: [----------------▶-----------------------] 42%
 
-Status: [92mGut gesättigt.[0m
-[90mSchritt 16 | Eingaben: 16/20[0m
-
-Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
-> 
-🦤 Dodo watschelt davon. Tschüss!
-
---- Ende der Session ---
+Endstand: 42% Sättigung, 1 Wärme nach 12 Schritten.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
