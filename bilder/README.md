@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tropfenstudie: Nachmittag im Morgenlicht
+2026-11-20
+
+![Tropfenstudie: Nachmittag im Morgenlicht](20261120-151702.svg)
+
 ### Nebeliger Regenpark
 2026-11-20
 
