@@ -1,5 +1,5 @@
-# main.py – Schatten-Simulator, Teil 3
-# Fifo, der Dodo, repariert den Lichtvektor und baut das Grundgerüst für echten Schattenwurf (Raymarching).
+# main.py – Schatten-Simulator, Teil 4
+# Fifo, der Dodo, optimiert das Raymarching: weniger Overhead, schnellere Bilinear-Interpolation, sauberere Schleife.
 
 from __future__ import annotations
 import math
@@ -105,35 +105,43 @@ def harte_schatten_raymarch(karte: Tiefenkarte,
                              schritte: int = 32,
                              bias: float = 0.005) -> List[List[float]]:
     """
-    Echter Schattenwurf durch Raymarching auf dem Höhenfeld.
-    Für jedes Pixel: Starte leicht über Oberfläche, marschiere Richtung Licht.
-    Wenn Höhenfeld den Strahl schneidet -> Schatten (0.0), sonst beleuchtet (1.0).
+    Echter Schattenwurf durch Raymarching auf dem Höhenfeld (optimiert).
+    - Lokale Variablen für heiße Schleife
+    - Inline-Bilinear ohne Clamping (Bounds-Check vorher)
+    - Vorgezogener Reziproke für Division
     """
     lx, ly, lz = licht_dir
+    daten = karte.daten
+    h = karte.h
+    b = karte.b
+    
     # Licht kommt von oben (lz > 0). Wir marschieren ENTGEGEN der Lichtrichtung (zum Licht hin).
-    # Schritt in XY-Ebene pro Schritt:
-    # Wir wollen 'schritte' Schritte bis zum Rand der Karte oder Horizont.
-    # Max Distanz in Pixel: Diagonale der Karte.
-    max_dist = math.sqrt(karte.h ** 2 + karte.b ** 2)
+    max_dist = math.sqrt(h * h + b * b)
     step_xy = max_dist / schritte
     
-    # Richtung zum Licht (XY-Anteil normiert)
     l_xy_len = math.sqrt(lx * lx + ly * ly)
     if l_xy_len < 1e-6: # Licht genau von oben -> keine harten Schatten durch Horizont
-        return [[1.0 for _ in range(karte.b)] for _ in range(karte.h)]
+        return [[1.0 for _ in range(b)] for _ in range(h)]
     
-    dir_x = -lx / l_xy_len * step_xy # Negativ, weil wir vom Pixel ZUM Licht marschieren
-    dir_y = -ly / l_xy_len * step_xy
+    inv_l_xy = 1.0 / l_xy_len
+    # Richtung zum Licht (XY-Anteil normiert), negativ weil wir vom Pixel ZUM Licht marschieren
+    dir_x = -lx * inv_l_xy * step_xy
+    dir_y = -ly * inv_l_xy * step_xy
     
     # Z-Anstieg pro Schritt: Steigung = lz / l_xy_len
-    # Wir bewegen uns step_xy in XY, also steigen wir in Z um:
-    step_z = (lz / l_xy_len) * step_xy
+    step_z = lz * inv_l_xy * step_xy
     
     schattenkarte = []
-    for y in range(karte.h):
+    # Lokale Referenzen für Speed
+    daten_local = daten
+    h_minus_1 = h - 1
+    b_minus_1 = b - 1
+    
+    for y in range(h):
         reihe = []
-        for x in range(karte.b):
-            start_h = karte.daten[y][x] + bias
+        row_data = daten_local[y] # Zugriff auf Zeile für Start-Höhe
+        for x in range(b):
+            start_h = row_data[x] + bias
             cur_x = float(x)
             cur_y = float(y)
             cur_h = start_h
@@ -145,11 +153,29 @@ def harte_schatten_raymarch(karte: Tiefenkarte,
                 cur_h += step_z
                 
                 # Abbruch wenn außerhalb der Karte (Licht erreicht)
-                if not (0 <= cur_x < karte.b - 1 and 0 <= cur_y < karte.h - 1):
+                # Wir prüfen gegen 0 und b-1/h-1, da wir bilinear y0,y1/x0,x1 brauchen
+                if not (0 <= cur_x < b_minus_1 and 0 <= cur_y < h_minus_1):
                     break
                 
-                # Höhenfeld an neuer Position abfragen (bilinear für Qualität)
-                feld_h = karte.get_bilinear(cur_y, cur_x)
+                # --- Inline Bilinear Interpolation (Ohne Clamping, da In-Bounds) ---
+                y0 = int(cur_y)
+                x0 = int(cur_x)
+                y1 = y0 + 1
+                x1 = x0 + 1
+                
+                dy = cur_y - y0
+                dx = cur_x - x0
+                
+                # Direktzugriff auf Listen (schneller als Methode)
+                h00 = daten_local[y0][x0]
+                h01 = daten_local[y0][x1]
+                h10 = daten_local[y1][x0]
+                h11 = daten_local[y1][x1]
+                
+                h0 = h00 * (1 - dx) + h01 * dx
+                h1 = h10 * (1 - dx) + h11 * dx
+                feld_h = h0 * (1 - dy) + h1 * dy
+                # ----------------------------------------------------------------
                 
                 if feld_h > cur_h:
                     im_schatten = True
@@ -160,10 +186,41 @@ def harte_schatten_raymarch(karte: Tiefenkarte,
     return schattenkarte
 
 
-def main() -> None:
-    """Einstiegspunkt: Tiefenkarte laden, Normalen, Lambert, Echter Schatten."""
-    print("🦤 Fifo meldet Dienst: Schatten-Simulator Teil 3 – Raymarching & Reparatur")
+def kombiniere(lambert: List[List[float]],
+               occlusion: List[List[float]],
+               ambient: float = 0.15) -> List[List[float]]:
+    """Kombiniert diffus (Lambert) und harten Schatten (Occlusion) mit Ambient-Anteil."""
+    h = len(lambert)
+    b = len(lambert[0]) if h > 0 else 0
+    ergebnis = []
+    for y in range(h):
+        reihe = []
+        for x in range(b):
+            # Ambient + (Diffuse * Shadow)
+            val = ambient + (1.0 - ambient) * lambert[y][x] * occlusion[y][x]
+            reihe.append(max(0.0, min(1.0, val)))
+        ergebnis.append(reihe)
+    return ergebnis
 
+
+def drucke_heatmap(daten: List[List[float]], titel: str) -> None:
+    """Gibt 2D-Array als ASCII-Heatmap aus (0.0 bis 1.0)."""
+    print(f"\n{titel}:")
+    chars = " .:-=+*#%@"
+    n = len(chars) - 1
+    for reihe in daten:
+        zeile = "  "
+        for v in reihe:
+            idx = int(max(0.0, min(1.0, v)) * n)
+            zeile += chars[idx] + " "
+        print(zeile)
+
+
+def main() -> None:
+    """Einstiegspunkt: Tiefenkarte laden, Normalen, Lambert, Echter Schatten, Kombinieren, Interaktion."""
+    print("🦤 Fifo meldet Dienst: Schatten-Simulator Teil 4 – Raymarching optimiert")
+
+    # Beispieldaten: Ein kleiner Hügel mit Kante
     hoehen_daten = [
         [0.10, 0.20, 0.30, 0.20],
         [0.20, 0.50, 0.60, 0.30],
@@ -172,129 +229,76 @@ def main() -> None:
     ]
 
     karte = Tiefenkarte(hoehen_daten)
-
-    print("\nAktuelle Tiefenkarte (Höhenwerte 0.00–1.00):")
+    print("Aktuelle Tiefenkarte (Höhenwerte 0.00–1.00):")
     print(karte)
-
     mn, mx, sp = karte.statistik()
-    print(f"\nTiefenbereich: min={mn:.2f}, max={mx:.2f}, spanne={sp:.2f}")
+    print(f"Tiefenbereich: min={mn:.2f}, max={mx:.2f}, spanne={sp:.2f}")
 
-    try:
-        eingabe = input("\nNeue Höhe für [2][2] (0.0-1.0) oder Enter für Behalten: ").strip()
-        if eingabe:
-            val = float(eingabe)
-            if karte.setze(2, 2, val):
-                print(f"  → Geändert auf {val:.2f}")
-            else:
-                print("  → Wert außerhalb oder Index ungültig, bleibt unverändert.")
-    except (ValueError, EOFError):
-        print("  → Keine gültige Eingabe, Fifo macht weiter.")
+    # Lichtvektor: Normiert, zeigt ZUR Lichtquelle (von Oberfläche weg). Z > 0 = von oben.
+    # Beispiel: Leicht schräg von vorn-links-oben
+    licht_roh = (-0.5, -0.3, 1.0)
+    l_len = math.sqrt(licht_roh[0]**2 + licht_roh[1]**2 + licht_roh[2]**2)
+    licht_dir = (licht_roh[0]/l_len, licht_roh[1]/l_len, licht_roh[2]/l_len)
+    print(f"Lichtrichtung (normiert): ({licht_dir[0]:.3f}, {licht_dir[1]:.3f}, {licht_dir[2]:.3f})")
 
+    # 1. Normalen
     normals = karte.normalen()
-    print("\nNormalenvektoren (x, y, z) an den vier Ecken:")
-    ecken = [(0, 0), (0, 3), (3, 0), (3, 3)]
-    for y, x in ecken:
-        nx, ny, nz = normals[y][x]
-        print(f"  [{y}][{x}]: ({nx:+.3f}, {ny:+.3f}, {nz:+.3f})")
+    
+    # 2. Lambert (Diffuse)
+    lambert = diffuse_schatten(normals, licht_dir)
+    drucke_heatmap(lambert, "Lambert (Diffuse)")
 
-    # REPARATUR: Lichtvektor zeigt NACH OBEN (positives Z), damit N·L > 0 wird.
-    # "Von oben-links-hinten" -> Richtung zum Licht: (-X, -Y, +Z)
-    licht = (-0.5, -0.5, 1.0)
-    l_len = math.sqrt(licht[0]**2 + licht[1]**2 + licht[2]**2)
-    licht_norm = (licht[0]/l_len, licht[1]/l_len, licht[2]/l_len)
-    print(f"\nLichtrichtung (normiert): ({licht_norm[0]:+.3f}, {licht_norm[1]:+.3f}, {licht_norm[2]:+.3f})")
+    # 3. Harte Schatten (Raymarching optimiert)
+    occlusion = harte_schatten_raymarch(karte, licht_dir, schritte=32, bias=0.005)
+    drucke_heatmap(occlusion, "Occlusion (Harter Schatten)")
 
-    # 1. Diffuse Beleuchtung (Lambert)
-    helligkeit = diffuse_schatten(normals, licht_norm)
-    print("\nDiffuse Helligkeit (Lambert, 0.0–1.0) an den Ecken:")
-    for y, x in ecken:
-        print(f"  [{y}][{x}]: {helligkeit[y][x]:.3f}")
+    # 4. Kombination
+    final = kombiniere(lambert, occlusion, ambient=0.15)
+    drucke_heatmap(final, "Final (Kombiniert + Ambient)")
 
-    # 2. Echter Schattenwurf (Raymarching)
-    print("\n🦤 Fifo marschiert Strahlen... (Raymarching für harte Schatten)")
-    schatten = harte_schatten_raymarch(karte, licht_norm, schritte=32)
-    print("Schattenfaktor (1.0=Licht, 0.0=Schatten) an den Ecken:")
-    for y, x in ecken:
-        print(f"  [{y}][{x}]: {schatten[y][x]:.3f}")
-
-    # 3. Kombiniert
-    print("\nKombiniert (Diffuse * Schatten) an den Ecken:")
-    for y, x in ecken:
-        komb = helligkeit[y][x] * schatten[y][x]
-        print(f"  [{y}][{x}]: {komb:.3f}")
-
-    print("\n🦤 Fifo pickt sich den nächsten Wurm – Teil 3 erledigt. Grundgerüst steht.")
-
-
-def main() -> None:
-    """Einstiegspunkt: Tiefenkarte laden, Normalen, Lambert, Echter Schatten."""
-    print("🦤 Fifo meldet Dienst: Schatten-Simulator Teil 3 – Raymarching & Reparatur")
-
-    hoehen_daten = [
-        [0.10, 0.20, 0.30, 0.20],
-        [0.20, 0.50, 0.60, 0.30],
-        [0.30, 0.70, 0.90, 0.40],
-        [0.20, 0.40, 0.50, 0.30],
-    ]
-
-    karte = Tiefenkarte(hoehen_daten)
-
-    print("\nAktuelle Tiefenkarte (Höhenwerte 0.00–1.00):")
-    print(karte)
-
-    mn, mx, sp = karte.statistik()
-    print(f"\nTiefenbereich: min={mn:.2f}, max={mx:.2f}, spanne={sp:.2f}")
-
-    try:
-        eingabe = input("\nNeue Höhe für [2][2] (0.0-1.0) oder Enter für Behalten: ").strip()
-        if eingabe:
-            val = float(eingabe)
-            if karte.setze(2, 2, val):
-                print(f"  → Geändert auf {val:.2f}")
-            else:
-                print("  → Wert außerhalb oder Index ungültig, bleibt unverändert.")
-    except (ValueError, EOFError):
-        print("  → Keine gültige Eingabe, Fifo macht weiter.")
-
-    normals = karte.normalen()
-    print("\nNormalenvektoren (x, y, z) an den vier Ecken:")
-    ecken = [(0, 0), (0, 3), (3, 0), (3, 3)]
-    for y, x in ecken:
-        nx, ny, nz = normals[y][x]
-        print(f"  [{y}][{x}]: ({nx:+.3f}, {ny:+.3f}, {nz:+.3f})")
-
-    # REPARATUR: Lichtvektor zeigt NACH OBEN (positives Z), damit N·L > 0 wird.
-    # "Von oben-links-hinten" -> Richtung zum Licht: (-X, -Y, +Z)
-    licht = (-0.5, -0.5, 1.0)
-    l_len = math.sqrt(licht[0]**2 + licht[1]**2 + licht[2]**2)
-    licht_norm = (licht[0]/l_len, licht[1]/l_len, licht[2]/l_len)
-    print(f"\nLichtrichtung (normiert): ({licht_norm[0]:+.3f}, {licht_norm[1]:+.3f}, {licht_norm[2]:+.3f})")
-
-    # 1. Diffuse Beleuchtung (Lambert)
-    helligkeit = diffuse_schatten(normals, licht_norm)
-    print("\nDiffuse Helligkeit (Lambert, 0.0–1.0) an den Ecken:")
-    for y, x in ecken:
-        print(f"  [{y}][{x}]: {helligkeit[y][x]:.3f}")
-
-    # 2. Echter Schattenwurf (Raymarching)
-    print("\n🦤 Fifo marschiert Strahlen... (Raymarching für harte Schatten)")
-    schatten = harte_schatten_raymarch(karte, licht_norm, schritte=32)
-    print("Schattenfaktor (1.0=Licht, 0.0=Schatten) an den Ecken:")
-    for y, x in ecken:
-        print(f"  [{y}][{x}]: {schatten[y][x]:.3f}")
-
-    # 3. Kombiniert
-    print("\nKombiniert (Diffuse * Schatten) an den Ecken:")
-    for y, x in ecken:
-        komb = helligkeit[y][x] * schatten[y][x]
-        print(f"  [{y}][{x}]: {komb:.3f}")
-
-    print("\n🦤 Fifo pickt sich den nächsten Wurm – Teil 3 erledigt. Grundgerüst steht.")
-
+    # Interaktive Schleife: Höhe ändern -> Neu berechnen
+    print("\n🦤 Tipp neue Höhenwerte ein (y x wert), 'q' zum Beenden.")
+    print("   Beispiel: 2 2 0.5  (setzt Zentrum auf 0.5)")
+    
+    while True:
+        try:
+            eingabe = input("🦤 > ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\n🦤 Fifo watschelt davon. Tschüss!")
+            break
+        
+        if not eingabe or eingabe.lower() == 'q':
+            print("🦤 Fifo watschelt davon. Tschüss!")
+            break
+        
+        teile = eingabe.split()
+        if len(teile) != 3:
+            print("🦤 Drei Werte erwartet: y x wert")
+            continue
+        
+        try:
+            y = int(teile[0])
+            x = int(teile[1])
+            wert = float(teile[2])
+        except ValueError:
+            print("🦤 Zahlen bitte: y x wert")
+            continue
+        
+        if karte.setze(y, x, wert):
+            print(f"🦤 Höhe [{y}][{x}] = {wert:.2f} gesetzt. Rechne neu...")
+            # Nur betroffene Normalen aktualisieren? Einfach: Alles neu (klein).
+            normals = karte.normalen()
+            lambert = diffuse_schatten(normals, licht_dir)
+            occlusion = harte_schatten_raymarch(karte, licht_dir, schritte=32, bias=0.005)
+            final = kombiniere(lambert, occlusion, ambient=0.15)
+            
+            drucke_heatmap(lambert, "Lambert (Diffuse)")
+            drucke_heatmap(occlusion, "Occlusion (Harter Schatten)")
+            drucke_heatmap(final, "Final (Kombiniert + Ambient)")
+            mn, mx, sp = karte.statistik()
+            print(f"Tiefenbereich: min={mn:.2f}, max={mx:.2f}, spanne={sp:.2f}")
+        else:
+            print(f"🦤 Ungültig: y 0-{karte.h-1}, x 0-{karte.b-1}, wert 0.0-1.0")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\n🦤 Fifo flattert davon – Tschüss!")
-        sys.exit(0)
+    main()
