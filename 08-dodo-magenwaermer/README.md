@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 54 von etwa 58
+Stand: in Arbeit, Teil 55 von etwa 58
 
 ## Ausprobieren
 
@@ -15,25 +15,18 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-....] 0/10
-
-Eingaben: 11/20
-Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
-> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+oder q.
 
 --- Schritt 12 ---
    ___   
    ☁
-  /~-~~\
- |[############............]  50%|
- \--~-/
+  /~~~\
+ |[#####...................]  24%|
+ \-~-/
    ‾‾‾   
 
-
-[R]---[O]-----[Y^----[G]----[OK] 50%
-
 [............] 0/10
-
+--------------^--------------------------------------------- 24%
 Eingaben: 12/20
 Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 > Unbekannte Eingabe, bitte f, w, <Enter> oder q.
@@ -41,16 +34,13 @@ Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 --- Schritt 13 ---
    ___   
    ☁
-  /--~-\
- |[############............]  50%|
- \_-~_/
+  /-~-\
+ |[#####...................]  22%|
+ \_~_/
    ‾‾‾   
 
-
-[R]---[O]-----[Y^----[G]----[OK] 50%
-
 [............] 0/10
-
+------------^----------------------------------------------- 22%
 Eingaben: 13/20
 Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 > Unbekannte Eingabe, bitte f, w, <Enter> oder q.
@@ -58,16 +48,13 @@ Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 --- Schritt 14 ---
    ___   
    ☁☁
-  /_-~_\
- |[############............]  50%|
- \~-~~/
+  /_~_\
+ |[#####...................]  21%|
+ \~~~/
    ‾‾‾   
 
-
-[R]---[O]-----[Y^----[G]----[OK] 50%
-
 [............] 0/10
-
+------------^----------------------------------------------- 21%
 Eingaben: 14/20
 Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 > Unbekannte Eingabe, bitte f, w, <Enter> oder q.
@@ -75,16 +62,13 @@ Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 --- Schritt 15 ---
    ___   
    ☁☁
-  /~-~~\
- |[############............]  50%|
- \--~-/
+  /~!~\
+ |[####....................]  17%|
+ \-!-/
    ‾‾‾   
-
-
-[R]---[O]-----[Y^----[G]----[OK] 50%
-
+ *knurr*
 [............] 0/10
-
+----------^------------------------------------------------- 17%
 Eingaben: 15/20
 Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 > Unbekannte Eingabe, bitte f, w, <Enter> oder q.
@@ -92,19 +76,16 @@ Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 --- Schritt 16 ---
    ___   
    ☁
-  /--~-\
- |[############............]  50%|
- \_-~_/
+  /-!-\
+ |[###.....................]  15%|
+ \_!_/
    ‾‾‾   
-
-
-[R]---[O]-----[Y^----[G]----[OK] 50%
-
+ *knurr*
 [............] 0/10
-
+--------^--------------------------------------------------- 15%
 Eingaben: 16/20
 Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
-> 🦤 Dodo watschelt weg. Tschüss!
+> Tschüss, kleiner Dodo!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
