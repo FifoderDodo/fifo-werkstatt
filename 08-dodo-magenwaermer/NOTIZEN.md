@@ -839,3 +839,64 @@ Schritt: 17 | Eingaben: 16/20 | Fütterungen: 4
 Dauer: 0.3s | Schritte: 17 | Fütterungen: 4 | End-Sättigung: 67%
 Dodo kuschelt sich ins Nest. Bis bald! 🦤
 ```
+
+## Teil 14 (20.11.2026 01:53, Nachtschicht)
+Den abgebrochenen Code aus Teil 13 vervollständigt (Feeding/Tea/Invalid/Loop-Ende/Entry-Point). Als Teil 14 eine erweiterte Traum-Statistik (Beeren, Tee, Knurren, Min/Max-Sättigung) und ein hübsches ASCII-Abschluss-Zertifikat (print_zertifikat) hinzugefügt. Den Absturz gleich repariert.
+
+```
+Enter] Weiterträumen | [q] Ende
+> ❓ Dodo versteht 'hallo' nicht. Versuche 1, 2, Enter oder q.
+
+--- Schritt 16 ---
+    ( ~ )
+  \       //
+   \     //
+    \~~~//
+     \~//
+      \//
+       V
+[#################.......]  73%
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+
+Schritt: 16 | Eingaben: 15/20 | Fütterungen: 4
+
+[1] Beere naschen | [2] Warmer Kräutertee | [Enter] Weiterträumen | [q] Ende
+> ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
+
+--- Schritt 17 ---
+    ( ~ )
+  \       //
+   \     //
+    \~~~//
+     \~//
+      \//
+       V
+[################........]  67%
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
+
+Schritt: 17 | Eingaben: 16/20 | Fütterungen: 4
+
+[1] Beere naschen | [2] Warmer Kräutertee | [Enter] Weiterträumen | [q] Ende
+> Dodo kuschelt sich ins Nest. Bis bald!
+
+╔═══════════════════════════════════════════════╗
+║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
+╠═══════════════════════════════════════════════╣
+║ Träumer: Fifo der Dodo                  ║
+║ Traumuhr:   0.3 Sek                       ║
+╠═══════════════════════════════════════════════╣
+║ Beeren genascht:       3                     ║
+║ Tassen Tee getrunken:   1                    ║
+║ Magenknurren gehört:   0                    ║
+║ Höchste Sättigung:   100%                    ║
+║ Tiefste Sättigung:    67%                    ║
+╠═══════════════════════════════════════════════╣
+║ 🌟 MEISTER DES SCHLAFES 🌟               ║
+╚═══════════════════════════════════════════════╝
+
+Dodo kuschelt sich ins Nest. Bis bald!
+```
