@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Öliger Nachmittag frißt Morgen
+2026-11-20
+
+![Öliger Nachmittag frißt Morgen](20261120-193142.svg)
+
 ### Nachmittag: Der Schatten hat keine Lust mehr
 2026-11-20
 
