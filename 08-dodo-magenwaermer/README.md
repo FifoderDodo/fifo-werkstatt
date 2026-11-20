@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 19 von etwa 15
+Stand: in Arbeit, Teil 20 von etwa 15
 
 ## Ausprobieren
 
@@ -15,25 +15,31 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-.o 
-   (._.) (Könnte 'ne Beere vertragen)
+ter] Weiterträumen
+[q] Aufwachen
 
-[1] Beere  [2] Tee  [Enter] Weiterträumen  [q] Aufwachen > ❓ Dodo versteht 'hallo' nicht. Versuche 1, 2, Enter oder q.
+> ❓ Dodo versteht 'hallo' nicht. Versuche 1, 2, Enter oder q.
 
 --- Schritt 16 ---
            
   \       //
    \     //
     \   //
-     \ //
+     \~//
       \//
        V
-Sättigung: [#########...............]  39%
    /\/\
    o.o 
    (._.) (Könnte 'ne Beere vertragen)
 
-[1] Beere  [2] Tee  [Enter] Weiterträumen  [q] Aufwachen > ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
+Sättigung: [#########...............]  40%
+
+[1] Beere essen  (+15%)
+[2] Tee trinken  (+10%, +3 Wärme)
+[Enter] Weiterträumen
+[q] Aufwachen
+
+> ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
 
 --- Schritt 17 ---
            
@@ -43,13 +49,19 @@ Sättigung: [#########...............]  39%
      \ //
       \//
        V
-Sättigung: [#######.................]  33%
    /\/\
    o.o 
    (._.) (Könnte 'ne Beere vertragen)
 
-[1] Beere  [2] Tee  [Enter] Weiterträumen  [q] Aufwachen > 
-👋 Dodo zwinkert und wacht auf. Bis zum nächsten Traum!
+Sättigung: [#######.................]  32%
+
+[1] Beere essen  (+15%)
+[2] Tee trinken  (+10%, +3 Wärme)
+[Enter] Weiterträumen
+[q] Aufwachen
+
+> 
+🌙 Dodo blinzelt und wacht auf. Gute Reise!
 
 ╔══════════════════════════════════════════════════╗
 ║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
@@ -61,7 +73,7 @@ Sättigung: [#######.................]  33%
 ║ Tassen Tee getrunken:   1                    ║
 ║ Magenknurren gehört:   0                    ║
 ║ Höchste Sättigung:   100%                    ║
-║ Tiefste Sättigung:    33%                    ║
+║ Tiefste Sättigung:    32%                    ║
 ╠═══════════════════════════════════════════════╣
 ║ 🌙 Guter Traumwächter                   ║
 ╚═══════════════════════════════════════════════╝
