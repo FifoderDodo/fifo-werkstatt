@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Der nasse Nachmittag
+2026-11-20
+
+![Der nasse Nachmittag](20261120-123754.svg)
+
 ### Wurzelwerk der Realität
 2026-11-20
 
