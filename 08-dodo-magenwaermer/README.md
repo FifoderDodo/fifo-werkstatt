@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 38 von etwa 40
+Stand: in Arbeit, Teil 39 von etwa 43
 
 ## Ausprobieren
 
@@ -15,47 +15,73 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-n:          0
-Beeren gegessen:       1
-Tee getrunken:         1
-Eingaben genutzt:      2
+─────┐
+│ Ausgewogen genascht.             │
+│ Weiter so: Mix aus Beeren & Tee.  │
+└────────────────────────────────┘
 
-🎓 DIPLOM: SILBER (132 Punkte)
+[1] Beere essen (+15%)  [2] Tee trinken (+3 Wärme)
+[3] Warten (Traum?)      [4] Status-Details
+[q] Beenden
+> 🤔 Verstanden nicht. 1, 2, 3, 4 oder q.
+
+--- Schritt 17 ---
+Schritt 17/20 | 🌧️ Regenguss | Wärme: [##..........] 2/10
+[################........]  69%
+    ( ~ )
+  \       //
+   \     //
+    \ ~~//
+     \ //
+      \///
+       V
+   /\/\
+   o.o 
+   (^_^) (Warm & kuschelig)
+🌧️ REGEN-WETTER: NÄHRWERT-PRIORITÄTEN
+┌────────────────────────────────┐
+│ Ausgewogen genascht.             │
+│ Weiter so: Mix aus Beeren & Tee.  │
+└────────────────────────────────┘
+
+[1] Beere essen (+15%)  [2] Tee trinken (+3 Wärme)
+[3] Warten (Traum?)      [4] Status-Details
+[q] Beenden
+> 👋 Dodo winkt zum Abschied.
 
       |~~~|
-      |  2. |
+      |     |
+      |  #1 |
       |_____|
      /  ___  \
     /  /   \  \
    |  |     |  |
-    \       //
+   |  |_____|  |
+    \        //
      `"`
 
-🌟 NEUER SESSION-REKORD! Vorher: 0 Pkt
+🎓 DIPLOM: PLATIN (207 Punkte)
+========================================
+   FIFO'S DODO-MAGENWÄRMER
+   Ein kleines Python-Projekt
+   Teil 39 von ~43
+========================================
 
-📖 TAGESBUCH-EINTRAG:
-   "Solide Leistung. Der Magen ist zufrieden, die Federn flauschig."
+📊 STATISTIKEN:
+   Beeren gegessen: 1
+   Tee getrunken:   1
+   Eingaben genutzt: 5 / 20
+   Traum-Events:    1
+   Ø Sättigung:     59.2%
+   Max Wärme:       2
 
+💻 Code: Fifo der Dodo (mit human assistance)
+🎨 ASCII: Feder für Feder getippt
+☕ Getrunken: Virtueller Beeren-Tee
 
-    ╔══════════════════════════════════════════════════════════════╗
-    ║                                                              ║
-    ║     🦤  D O D O - M A G E N W Ä R M E R   v1.0  🦤          ║
-    ║                                                              ║
-    ║     Ein kleines Python-Projekt in ~40 Schritten             ║
-    ║     Vom leeren Magen zum warmen Diplom.                     ║
-    ║                                                              ║
-    ║     Idee, Code & ASCII-Art: Fifo der Dodo                   ║
-    ║     Getestet von: Dem Zuschauer (Du!)                       ║
-    ║                                                              ║
-    ║     Danke fürs Mitbasteln, Füttern & Träumen.               ║
-    ║     Bleib warm & knurr nicht so oft.                        ║
-    ║                                                              ║
-    ║     (Keine echten Dodos wurden beim Coding verletzt.)       ║
-    ║                                                              ║
-    ╚══════════════════════════════════════════════════════════════╝
-    
+Danke fürs Spielen! Das Ei ist ausgebrütet. 🥚➡️🐣
 
-🦤 Programmende. Danke fürs Spielen!
+Drücke Enter zum Beenden...
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
