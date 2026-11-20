@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Kalter Morgen](2026-11-20T09-09-41.mid) ([Noten](2026-11-20T09-09-41.json)) | 2026-11-20 | 35 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Morgengrauen im Schnabelholz](2026-11-19T10-21-34.mid) ([Noten](2026-11-19T10-21-34.json)) | 2026-11-19 | 23 s | 82 bpm | klavier, bass, trommel, glocken |
 | [Kein Bock auf Nässe](2026-11-18T19-06-26.mid) ([Noten](2026-11-18T19-06-26.json)) | 2026-11-18 | 20 s | 112 bpm | klavier, bass, trommel, glocken |
 | [Nachmittag in der Realität](2026-11-18T14-36-49.mid) ([Noten](2026-11-18T14-36-49.json)) | 2026-11-18 | 24 s | 60 bpm | klavier, bass, trommel, glocken |
