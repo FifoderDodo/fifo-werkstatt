@@ -1,7 +1,7 @@
-# main.py - Dodo-Magenwärmer Teil 38 (Finaler Schliff & Projektabschluss)
-# Fifo der Dodo putzt die letzte Feder zurecht: Diplom-Logik vollendet, Highscore dauerhaft im RAM,
-# schicker Abspann, saubere Statuszeile. Das Ei ist ausgebrütet – das Projekt ist fertig!
+# main.py - Dodo-Magenwärmer Teil 39 (Nährwert-Prioritäten bei Regenwetter)
+# Fifo der Dodo hängt eine Regenrinne an die PC-Ecke: Neues Wetter 'regnerisch' mit Nährwert-Anzeige.
 # Fix: berechne_diplom vervollständigt, main() robust, Abspann-Funktion neu, Statusanzeige poliert.
+# Neu: wetter_text erweitert, traum_ereignis angepasst, zeige_naehrwert_prioritaet() implementiert.
 
 import random
 import time
@@ -54,6 +54,19 @@ def draw_bar(wert: int, breite: int = 24, waerme: int = 0) -> str:
         reset = "\033[0m"
         return f"{rand}[{reset}{farbe}{'#' * voll}{'.' * leer}{rand}]{reset} {wert:3d}%"
     return f"[{'#' * voll}{'.' * leer}] {wert:3d}%"
+
+
+def draw_waerme_bar(waerme: int, max_waerme: int = 10, breite: int = 12) -> str:
+    """Visualisiert den Wärme-Level als kleinen Balken."""
+    if max_waerme <= 0:
+        return ""
+    voll = int((waerme / max_waerme) * breite)
+    leer = breite - voll
+    if USE_ANSI:
+        farbe = "\033[93m"  # Gelb/Orange für Wärme
+        reset = "\033[0m"
+        return f"{farbe}[{'#' * voll}{'.' * leer}]{reset} {waerme}/{max_waerme}"
+    return f"[{'#' * voll}{'.' * leer}] {waerme}/{max_waerme}"
 
 
 def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> str:
@@ -128,8 +141,54 @@ def wetter_text(wetter: str) -> str:
     return {
         "klar": "☀️ Klartraum",
         "neblig": "🌫️ Nebeltraum",
-        "stürmisch": "⛈️ Sturmtraum"
+        "stürmisch": "⛈️ Sturmtraum",
+        "regnerisch": "🌧️ Regenguss"
     }.get(wetter, "🌈 Traum")
+
+
+def zeige_naehrwert_prioritaet(wetter: str, stats: dict) -> str:
+    """Zeigt Nährwert-Prioritäten basierend auf Wetter. Nur bei Regen aktiv."""
+    if wetter != "regnerisch":
+        return ""
+    
+    # Analyse der Stats für Empfehlung
+    beeren = stats.get('beeren', 0)
+    tee = stats.get('tee', 0)
+    gesamt = stats.get('eingaben', 1)
+    
+    if USE_ANSI:
+        reset = "\033[0m"
+        bold = "\033[1m"
+        cyan = "\033[96m"
+        yellow = "\033[93m"
+    else:
+        reset = bold = cyan = yellow = ""
+    
+    lines = [f"{bold}{cyan}🌧️ REGEN-WETTER: NÄHRWERT-PRIORITÄTEN{reset}"]
+    lines.append(f"{yellow}┌────────────────────────────────┐{reset}")
+    
+    if beeren == 0 and tee == 0:
+        lines.append(f"│ {cyan}Erste Mahlzeit!{reset} Beeren für Basis, │")
+        lines.append(f"│ {cyan}Tee für Wärme bei Nässe.          {reset}│")
+    elif beeren > tee * 2:
+        lines.append(f"│ {yellow}Viel Fruchtzucker erkannt.{reset}       │")
+        lines.append(f"│ {cyan}Priorität: Tee (Wärme & Balance). {reset}│")
+    elif tee > beeren * 2:
+        lines.append(f"│ {yellow}Viel Flüssigkeit erkannt.         {reset}│")
+        lines.append(f"│ {cyan}Priorität: Beeren (Energie & Sätt.).{reset}│")
+    else:
+        lines.append(f"│ {cyan}Ausgewogen genascht.             {reset}│")
+        lines.append(f"│ {cyan}Weiter so: Mix aus Beeren & Tee.  {reset}│")
+    
+    # Spezial-Tipp bei niedriger Sättigung
+    if stats.get('sat_history'):
+        avg_sat = sum(stats['sat_history']) / len(stats['sat_history'])
+        if avg_sat < 30:
+            lines.append(f"│ {yellow}⚠ Chronisch hungrig!{reset}             │")
+            lines.append(f"│ {cyan}Fokus: Beeren (Sättigung pur).    {reset}│")
+    
+    lines.append(f"{yellow}└────────────────────────────────┘{reset}")
+    return "\n".join(lines)
 
 
 def traum_ereignis(stats: dict, wetter: str) -> tuple[int, int, str]:
@@ -139,6 +198,8 @@ def traum_ereignis(stats: dict, wetter: str) -> tuple[int, int, str]:
         chance = 0.25
     elif wetter == "neblig":
         chance = 0.10
+    elif wetter == "regnerisch":
+        chance = 0.20  # Etwas höher bei Regen
     
     if random.random() < chance:
         stats['events'] = stats.get('events', 0) + 1
@@ -205,257 +266,204 @@ def draw_pokal(grad: str) -> str:
 def berechne_diplom(stats: dict) -> tuple[str, int]:
     """Berechnet Diplom-Grad basierend auf Stats. Gibt (Grad, Punkte)."""
     punkte = 0
-    # Basis: Durchschnittliche Sättigung (0-100 Pkt)
-    avg_sat = stats.get('sat_sum', 0) / max(1, stats.get('steps', 1))
-    punkte += int(avg_sat * 0.5)
+    # Basis: Durchschnittliche Sättigung 
+    if stats.get('sat_history'):
+        avg_sat = sum(stats['sat_history']) / len(stats['sat_history'])
+        punkte += int(avg_sat * 0.5)  # Max ~50 Pkt
     
-    # Wärme-Phasen Bonus (pro Schritt mit Wärme > 0)
-    punkte += stats.get('warm_phases', 0) * 10
+    # Wärme-Bonus
+    punkte += stats.get('max_waerme_reached', 0) * 5  # Max ~50 Pkt bei 10 Wärme
     
-    # Events erlebt
-    punkte += stats.get('events', 0) * 5
+    # Event-Bonus
+    punkte += stats.get('events', 0) * 10
     
-    # Knurr-Count Malus (weniger ist besser)
-    punkte -= stats.get('knurr_count', 0) * 3
+    # Effizienz: Wenig Eingaben, hohe Sättigung
+    eingaben = max(1, stats.get('eingaben', 1))
+    final_sat = stats.get('final_sat', 0)
+    if eingaben > 0:
+        punkte += int((final_sat / max(1, eingaben)) * 10)
     
-    # Eingaben-Effizienz (weniger Eingaben bei hohem Score = besser)
-    eingaben = stats.get('eingaben', 0)
-    if eingaben > 0 and stats.get('steps', 0) > 0:
-        effizienz = stats['steps'] / eingaben
-        punkte += int(effizienz * 2)
+    # Beeren/Tea Balance Bonus
+    beeren = stats.get('beeren', 0)
+    tee = stats.get('tee', 0)
+    if beeren > 0 and tee > 0:
+        balance = min(beeren, tee) / max(beeren, tee)
+        punkte += int(balance * 20)
     
-    # Beeren/Tees verbraucht
-    punkte += stats.get('beeren', 0) * 2
-    punkte += stats.get('tees', 0) * 3
-    
-    punkte = max(0, punkte)
-    
-    if punkte >= 300:
+    # Grad-Zuordnung
+    if punkte >= 200:
         return ("Platin", punkte)
-    elif punkte >= 200:
+    elif punkte >= 150:
         return ("Gold", punkte)
-    elif punkte >= 120:
+    elif punkte >= 100:
         return ("Silber", punkte)
-    elif punkte >= 60:
+    elif punkte >= 50:
         return ("Bronze", punkte)
     else:
         return ("Teilnahme", punkte)
 
 
-def zeige_abspann() -> None:
-    """Zeigt den finalen Abspann mit Credits."""
+def zeige_abspann(stats: dict, grad: str, punkte: int) -> None:
+    """Zeigt den finalen Abspann mit Credits und Statistiken."""
     clear_screen()
-    text = """
-    ╔══════════════════════════════════════════════════════════════╗
-    ║                                                              ║
-    ║     🦤  D O D O - M A G E N W Ä R M E R   v1.0  🦤          ║
-    ║                                                              ║
-    ║     Ein kleines Python-Projekt in ~40 Schritten             ║
-    ║     Vom leeren Magen zum warmen Diplom.                     ║
-    ║                                                              ║
-    ║     Idee, Code & ASCII-Art: Fifo der Dodo                   ║
-    ║     Getestet von: Dem Zuschauer (Du!)                       ║
-    ║                                                              ║
-    ║     Danke fürs Mitbasteln, Füttern & Träumen.               ║
-    ║     Bleib warm & knurr nicht so oft.                        ║
-    ║                                                              ║
-    ║     (Keine echten Dodos wurden beim Coding verletzt.)       ║
-    ║                                                              ║
-    ╚══════════════════════════════════════════════════════════════╝
-    """
-    if USE_ANSI:
-        # Bunt machen
-        lines = text.split('\n')
-        for i, line in enumerate(lines):
-            if 'DODO' in line:
-                print(f"\033[93m{line}\033[0m")
-            elif 'Fifo' in line or 'Zuschauer' in line:
-                print(f"\033[96m{line}\033[0m")
-            elif 'Danke' in line or 'warm' in line:
-                print(f"\033[92m{line}\033[0m")
-            else:
-                print(line)
-            pause(0.05)
-    else:
-        print(text)
-    pause(1.5)
+    print(draw_pokal(grad))
+    print(f"\n🎓 DIPLOM: {grad.upper()} ({punkte} Punkte)")
+    print("=" * 40)
+    print("   FIFO'S DODO-MAGENWÄRMER")
+    print("   Ein kleines Python-Projekt")
+    print("   Teil 39 von ~43")
+    print("=" * 40)
+    print("\n📊 STATISTIKEN:")
+    print(f"   Beeren gegessen: {stats.get('beeren', 0)}")
+    print(f"   Tee getrunken:   {stats.get('tee', 0)}")
+    print(f"   Eingaben genutzt: {stats.get('eingaben', 0)} / {MAX_EINGABEN}")
+    print(f"   Traum-Events:    {stats.get('events', 0)}")
+    if stats.get('sat_history'):
+        avg = sum(stats['sat_history']) / len(stats['sat_history'])
+        print(f"   Ø Sättigung:     {avg:.1f}%")
+    print(f"   Max Wärme:       {stats.get('max_waerme_reached', 0)}")
+    print("\n💻 Code: Fifo der Dodo (mit human assistance)")
+    print("🎨 ASCII: Feder für Feder getippt")
+    print("☕ Getrunken: Virtueller Beeren-Tee")
+    print("\nDanke fürs Spielen! Das Ei ist ausgebrütet. 🥚➡️🐣")
+    print("\nDrücke Enter zum Beenden...")
+    try:
+        input()
+    except (EOFError, KeyboardInterrupt):
+        pass
 
 
 def main() -> None:
-    """Hauptprogramm: Dodo-Magenwärmer Schleife."""
+    """Haupt-Loop: Füttern, Trinken, Träumen, Status."""
     random.seed()
     
     # State
     saettigung = 50
     waerme = 0
+    max_waerme = 10
     schritt = 0
-    eingaben = 0
-    wetter = random.choice(["klar", "neblig", "stürmisch"])
-    wetter_wechsel = random.randint(5, 10)
-    
-    # Stats für Diplom
     stats = {
-        'sat_sum': 0,
-        'steps': 0,
-        'warm_phases': 0,
-        'events': 0,
-        'knurr_count': 0,
-        'eingaben': 0,
         'beeren': 0,
-        'tees': 0,
-        'highscore': 0,
-        'highscore_grad': "Teilnahme"
+        'tee': 0,
+        'eingaben': 0,
+        'events': 0,
+        'sat_history': [],
+        'max_waerme_reached': 0,
+        'final_sat': 0
     }
     
-    # Highscore laden (Simuliert: Session-Gedächtnis)
-    # In einem echten File würde hier pickle/json stehen. Wir behalten es im RAM für die Session.
+    # Initiales Wetter
+    wetter_liste = ["klar", "neblig", "stürmisch", "regnerisch"]
+    wetter = random.choice(wetter_liste)
+    wetter_counter = 0
     
-    clear_screen()
-    print("🦤 Willkommen beim Dodo-Magenwärmer!")
-    print("Dein Dodo schläft. Der Magen knurrt leise. Drück Enter zum Träumen...")
-    try:
-        input()
-    except (EOFError, KeyboardInterrupt):
-        print("\nSchon weg? Tschüss! 👋")
-        return
-
-    while eingaben < MAX_EINGABEN:
+    print("🦤 FIFO'S DODO-MAGENWÄRMER - TEIL 39")
+    print("Tippe: 1=Beere, 2=Tee, 3=Warten, 4=Status, q=Ende")
+    pause(1.5)
+    
+    while stats['eingaben'] < MAX_EINGABEN:
         schritt += 1
-        stats['steps'] = schritt
-        stats['sat_sum'] += saettigung
-        if waerme > 0:
-            stats['warm_phases'] += 1
+        wetter_counter += 1
         
-        # Verdauung
-        saettigung = max(0, saettigung - random.randint(1, 3))
-        if waerme > 0:
-            waerme = max(0, waerme - 1)
+        # Wetterwechsel alle 5-8 Schritte
+        if wetter_counter >= random.randint(5, 8):
+            wetter = random.choice(wetter_liste)
+            wetter_counter = 0
+            clear_screen(schritt)
+            print(f"🌤️ Wetterumschwung: {wetter_text(wetter)}!")
+            pause(1.0)
         
-        # Wetterwechsel
-        wetter_wechsel -= 1
-        if wetter_wechsel <= 0:
-            wetter = random.choice(["klar", "neblig", "stürmisch"])
-            wetter_wechsel = random.randint(5, 10)
+        clear_screen(schritt)
+        
+        # Statuszeile
+        knurrt = satte_pruefung(saettigung)
+        if waerme > 0:
+            waerme = max(0, waerme - 0.1)  # Langsame Abkühlung
+        stats['max_waerme_reached'] = max(stats['max_waerme_reached'], int(waerme))
+        stats['sat_history'].append(saettigung)
+        
+        print(f"Schritt {schritt}/{MAX_EINGABEN} | {wetter_text(wetter)} | Wärme: {draw_waerme_bar(int(waerme), max_waerme)}")
+        print(draw_bar(saettigung, waerme=int(waerme)))
+        print(draw_stomach(saettigung, knurrt, int(waerme), schritt))
+        print(draw_dodo(saettigung, schritt, int(waerme)))
+        
+        # NEU: Nährwert-Prioritäten bei Regen
+        prioritaet = zeige_naehrwert_prioritaet(wetter, stats)
+        if prioritaet:
+            print(prioritaet)
         
         # Traum-Ereignis
-        delta_sat, delta_warm, msg = traum_ereignis(stats, wetter)
-        saettigung = min(100, max(0, saettigung + delta_sat))
-        waerme = min(10, waerme + delta_warm)
-        
-        knurrt = satte_pruefung(saettigung)
-        if knurrt:
-            stats['knurr_count'] += 1
-        
-        # Anzeige
-        clear_screen(schritt)
-        print(f"🦤 Dodo-Magenwärmer — Schritt {schritt} | {wetter_text(wetter)}")
-        print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
-        print(f"Wärme:     {'🔥' * waerme + '❄️' * (10 - waerme) if USE_ANSI else 'W' * waerme + '.' * (10 - waerme)} ({waerme}/10)")
-        print()
-        print(draw_stomach(saettigung, knurrt, waerme, schritt))
-        print()
-        print(draw_dodo(saettigung, schritt, waerme))
-        print()
+        delta_sat, delta_waerme, msg = traum_ereignis(stats, wetter)
         if msg:
-            print(f"💭 {msg}")
-        print(f"Eingaben: {eingaben}/{MAX_EINGABEN}  [1] Beere  [2] Tee  [Enter] Weiter  [q] Aufwachen")
+            print(f"\n{msg}")
+            saettigung = max(0, min(100, saettigung + delta_sat))
+            waerme = min(max_waerme, waerme + delta_waerme)
+            pause(1.5)
+            continue
         
-        # Highscore Anzeige (Session Best)
-        if stats['highscore'] > 0:
-            grad_short = stats['highscore_grad'][:3]
-            print(f"🏆 Session-Best: {stats['highscore']} Pkt ({grad_short})")
-
+        # Input
+        print("\n[1] Beere essen (+15%)  [2] Tee trinken (+3 Wärme)")
+        print("[3] Warten (Traum?)      [4] Status-Details")
+        print("[q] Beenden")
+        
         try:
-            raw = input("> ").strip().lower()
+            choice = input("> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
-            print("\n*Gähn* Wach geworden? Bis bald! 👋")
+            print("\n👋 Tschüss! Dodo winkt mit der Flügel.")
             break
         
-        if raw == 'q':
-            print("\n🦤 Dodo streckt die Flügel. Gute Reise!")
-            pause(0.5)
-            break
+        stats['eingaben'] += 1
         
-        if raw == '1':
-            saettigung = min(100, saettigung + random.randint(15, 25))
+        if choice == '1':
+            saettigung = min(100, saettigung + 15)
             stats['beeren'] += 1
-            stats['eingaben'] += 1
-            eingaben += 1
-            print("🍇 Mmmh, saftige Beere!")
+            print("🍓 Mmmh, saftige Beere!")
             pause(0.5)
-        elif raw == '2':
-            waerme = min(10, waerme + random.randint(2, 4))
-            stats['tees'] += 1
-            stats['eingaben'] += 1
-            eingaben += 1
+        elif choice == '2':
+            waerme = min(max_waerme, waerme + 3)
+            saettigung = min(100, saettigung + 5)  # Tee sättigt leicht
+            stats['tee'] += 1
             print("🍵 Wärmender Schluck Tee.")
             pause(0.5)
-        elif raw == '':
-            # Nur träumen, keine Eingabe gezählt
-            pass
-        else:
-            print("🤔 Verstehe ich nicht. 1, 2, Enter oder q.")
+        elif choice == '3':
+            saettigung = max(0, saettigung - 5)  # Warten macht hungrig
+            print("💤 Dodo döst... Magen knurrt leiser.")
+            pause(1.0)
+        elif choice == '4':
+            clear_screen(schritt)
+            print("📋 DETAIL-STATUS")
+            print(f"Sättigung: {saettigung}%")
+            print(f"Wärme: {int(waerme)}/{max_waerme}")
+            print(f"Wetter: {wetter_text(wetter)}")
+            print(f"Beeren: {stats['beeren']}, Tee: {stats['tee']}")
+            print(f"Träume: {stats['events']}")
+            print(f"Schritte: {schritt}")
+            if stats['sat_history']:
+                avg = sum(stats['sat_history']) / len(stats['sat_history'])
+                print(f"Ø Sättigung: {avg:.1f}%")
+            print("\nDrücke Enter...")
+            try:
+                input()
+            except (EOFError, KeyboardInterrupt):
+                break
+            continue
+        elif choice == 'q':
+            print("👋 Dodo winkt zum Abschied.")
             pause(0.5)
-    else:
-        # Loop normal beendet (Eingaben aufgebraucht)
-        print(f"\n🦤 {MAX_EINGABEN} Eingaben gemacht. Der Tag ist rum. Dodo wacht auf.")
-        pause(1)
+            break
+        else:
+            print("🤔 Verstanden nicht. 1, 2, 3, 4 oder q.")
+            pause(0.5)
+            stats['eingaben'] -= 1  # Nicht zählen bei Fehleingabe
+            continue
+        
+        # Natürlicher Sättigungsverlust pro Aktion
+        saettigung = max(0, saettigung - 2)
     
-    # --- AUSWERTUNG & DIPLOM ---
-    clear_screen()
-    print("📜 === DIPLOM-AUSWERTUNG ===")
-    print(f"Schritte geträumt:     {stats['steps']}")
-    print(f"Ø Sättigung:           {stats['sat_sum'] / max(1, stats['steps']):.1f}%")
-    print(f"Wärme-Phasen:          {stats['warm_phases']}")
-    print(f"Traum-Ereignisse:      {stats['events']}")
-    print(f"Magenknurren:          {stats['knurr_count']}")
-    print(f"Beeren gegessen:       {stats['beeren']}")
-    print(f"Tee getrunken:         {stats['tees']}")
-    print(f"Eingaben genutzt:      {stats['eingaben']}")
-    print()
-    
+    # Loop Ende / Abspann
+    stats['final_sat'] = saettigung
     grad, punkte = berechne_diplom(stats)
-    
-    print(f"🎓 DIPLOM: {grad.upper()} ({punkte} Punkte)")
-    print()
-    print(draw_pokal(grad))
-    print()
-    
-    # Highscore Vergleich
-    if punkte > stats['highscore']:
-        print(f"🌟 NEUER SESSION-REKORD! Vorher: {stats['highscore']} Pkt")
-        stats['highscore'] = punkte
-        stats['highscore_grad'] = grad
-    elif stats['highscore'] > 0:
-        print(f"🏆 Session-Best steht: {stats['highscore']} Pkt ({stats['highscore_grad']})")
-    
-    # Tagebuch
-    print("\n📖 TAGESBUCH-EINTRAG:")
-    if grad == "Platin":
-        print('   "Legende! Der Magen glüht wie ein Vulkan. Dodos erzählen sich davon."')
-    elif grad == "Gold":
-        print('   "Meisterhaft warm. Selbst der kälteste Nebeltraum schmilzt dahin."')
-    elif grad == "Silber":
-        print('   "Solide Leistung. Der Magen ist zufrieden, die Federn flauschig."')
-    elif grad == "Bronze":
-        print('   "Bestanden. Nächstes Mal mehr Beeren, weniger Knurren."')
-    else:
-        print('   "Teilnahme ist alles! Der Dodo hat geträumt. Das zählt."')
-    
-    pause(2)
-    
-    # Finaler Abspann
-    zeige_abspann()
-    print("\n🦤 Programmende. Danke fürs Spielen!")
-
+    zeige_abspann(stats, grad, punkte)
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        # Sicherheitsnetz für unerwartete Fehler
-        print(f"\n💥 Uups, ein Fehler schlich sich ein: {e}")
-        if not USE_ANSI:
-            import traceback
-            traceback.print_exc()
-        print("🦤 Dodo flüchtet sich ins Gebüsch. Tschüss!")
+    main()
