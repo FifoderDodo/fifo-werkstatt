@@ -1,4 +1,4 @@
-# main.py - Dodo-Magenwärmer Teil 23 (Traum-Edition)
+# main.py - Dodo-Magenwärmer Teil 24 (Traum-Edition)
 # Fifo der Dodo träumt weiter: Hauptschleife fertiggestellt, sanftes Aufwachen, Statistik robust.
 # Fix: Unvollständige main() vervollständigt, EOF-Handling, Sättigungsklammern, Traum-Wetter.
 
@@ -92,7 +92,7 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
             left = line.find('\\')
             right = line.find('//')
             if left != -1 and right != -1 and right > left:
-                mid = line[left+2:right] # skip escaped backslash
+                mid = line[left+2:right]
                 filled = (wave * (len(mid) // 3 + 1))[:len(mid)]
                 line = line[:left+2] + filled + line[right:]
         # Farbe anwenden
@@ -171,41 +171,35 @@ def traum_ereignis(stats: dict) -> tuple[int, int, str]:
 
 def main() -> None:
     saettigung = 100
+    waerme = 0
     schritt = 0
-    eingaben_zaehler = 0
-    waerme = 0          # Wärme durch Tee (Schritte)
-    start = time.time()
+    eingaben = 0
+    startzeit = time.time()
     
     stats = {
         'beeren': 0,
         'tee': 0,
+        'events': 0,
         'knurren': 0,
         'max_sat': 100,
-        'min_sat': 100,
-        'events': 0
+        'min_sat': 100
     }
     
-    nachricht = "💤 Traum beginnt..."
+    print("🦤 Dodo-Magenwärmer startet... Träum weiter, Fifo!")
+    pause(1.0)
     
-    while eingaben_zaehler < MAX_EINGABEN and saettigung > 0:
+    while True:
         schritt += 1
         
-        # Natürlicher Verbrauch
-        saettigung -= 1
+        # Natürlicher Sättigungsverlust
+        verlust = random.randint(1, 4)
+        saettigung = max(0, saettigung - verlust)
+        
+        # Wärmeabbau
         if waerme > 0:
             waerme -= 1
         
-        # Traum-Ereignis
-        delta_sat, delta_waerme, event_msg = traum_ereignis(stats)
-        if event_msg:
-            nachricht = event_msg
-        saettigung += delta_sat
-        waerme += delta_waerme
-        
-        # Klammern
-        saettigung = max(0, min(100, saettigung))
-        
-        # Stats aktualisieren
+        # Statistik aktualisieren
         stats['max_sat'] = max(stats['max_sat'], saettigung)
         stats['min_sat'] = min(stats['min_sat'], saettigung)
         
@@ -214,59 +208,72 @@ def main() -> None:
         if knurrt:
             stats['knurren'] += 1
         
+        # Traum-Ereignis
+        delta_sat, delta_waerme, msg = traum_ereignis(stats)
+        saettigung = max(0, min(100, saettigung + delta_sat))
+        waerme = max(0, waerme + delta_waerme)
+        
         # Zeichnen
         clear_screen(schritt)
-        print(draw_bar(saettigung, waerme=waerme))
         print(draw_stomach(saettigung, knurrt, waerme, schritt))
+        print()
         print(draw_dodo(saettigung, schritt, waerme))
-        print(f"\nSättigung: {saettigung}%  |  Wärme: {waerme} Schritte  |  Schritt {schritt}  |  Eingaben {eingaben_zaehler}/{MAX_EINGABEN}")
-        if nachricht:
-            print(f"{nachricht}")
+        print()
+        print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
+        print(f"Wärme:   {waerme} Schritte")
+        print(f"Schritt {schritt} | Eingaben {eingaben}/{MAX_EINGABEN}")
+        if msg:
+            print(msg)
         print("----------------------------------------")
-        print("[1] Beere essen  [2] Tee trinken  [Enter] Träumen  [q] Aufwachen")
+        print("[1] Beere essen  [2] Tee trinken  [Enter] Weiter  [q] Aufwachen")
         
+        # Abbruchbedingung: Magen ganz leer
+        if saettigung <= 0:
+            print("\nDer Magen ist ganz leer... Fifo wacht hungrig auf.")
+            pause(1.5)
+            break
+        
+        # Eingabe
         try:
             eingabe = input("> ").strip().lower()
         except EOFError:
-            print("\n🌙 Eingabe-Schluss. Dodo wacht sanft auf.")
+            print("\nTraumende (EOF).")
             break
         
-        nachricht = "" # Nachricht nur einmal anzeigen
-        
-        if eingabe == 'q':
-            print("🌅 Dodo streckt die Flügel. Aufwachen!")
-            break
-        elif eingabe == '1':
+        if eingabe == '1':
             saettigung = min(100, saettigung + 15)
             stats['beeren'] += 1
-            nachricht = "🍇 Mmmh, saftige Traum-Beere! +15%"
-            eingaben_zaehler += 1
+            eingaben += 1
+            print("🍇 Mmmh, saftige Traum-Beere!")
+            pause(0.5)
         elif eingabe == '2':
             waerme += 4
             stats['tee'] += 1
-            nachricht = "🍵 Heißer Tee wärmt den Bauch. +4 Wärme"
-            eingaben_zaehler += 1
+            eingaben += 1
+            print("🍵 Wärmender Schluck Traum-Tee.")
+            pause(0.5)
+        elif eingabe == 'q':
+            print("\nFifo streckt die Flügel... Aufwachen!")
+            pause(0.5)
+            break
         elif eingabe == '':
-            nachricht = "💭 Dodo träumt weiter..."
-            # Enter zählt nicht als 'Eingabe' für Zähler, aber Schritt vergeht
+            # Enter zählt nicht als Eingabe
+            pass
         else:
-            nachricht = "❓ Dodo versteht nur 1, 2, Enter oder q."
-            # Kein Zähler-Inkrement bei Falscheingabe
-            continue # Schritt nicht zählen? Nein, Schritt schon passiert. Nur Input-Zähler nicht.
-            
+            print("❓ Dodo versteht nur 1, 2, Enter oder q.")
+            pause(0.5)
+        
+        # Eingabe-Limit
+        if eingaben >= MAX_EINGABEN:
+            print(f"\n{MAX_EINGABEN} Eingaben erreicht. Der Traum verblasst.")
+            pause(1.0)
+            break
+        
         pause(0.3)
     
-    # Ende-Schleife (Sättigung 0 oder Max Eingaben)
-    if saettigung <= 0:
-        clear_screen()
-        print(draw_stomach(0, True, 0, schritt))
-        print(draw_dodo(0, schritt, 0))
-        print("\n💥 Der Magen ist ganz leer! Dodo wacht hungrig auf.\n")
-        pause(1)
-    
-    dauer = time.time() - start
+    # Abschluss
+    dauer = time.time() - startzeit
     print_zertifikat(stats, dauer)
-
 
 if __name__ == "__main__":
     main()
