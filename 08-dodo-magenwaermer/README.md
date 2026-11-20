@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 42 von etwa 43
+Stand: fertig
 
 ## Ausprobieren
 
@@ -15,86 +15,66 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-itt 18 ---
-    ( ~ )
-  \       //
-   \     //
-    \ ~~//
-     \ //
-      \///
-       V
+t] Tee  [q] Quit
+> Unbekannt: 'hallo'
 
+--- Schritt 15 ---
    /\/\
    o.o 
-   (^_^) (Pummelig & warm)
-
-Sättigung: [##############..........]  60%
-Wetter:    🌫️ Nebeltraum
-
-🌫️ NÄHRWERT-HUD NEBLIG (B:4 T:3)
-  Sättigung: Okay  |  Wärme: Kalt
-  2. Tee trinken (3 da) für Wärme
-
---- Schritt 19 ---
-    ( ~ )
+   (._.) (Könnte 'ne Beere vertragen)
+           
   \       //
    \     //
     \   //
      \ //
       \///
        V
+~ Sättigung: [#######.................]  30%   [............] 0/10
+Wetter: 🌫️ Nebeltraum
+🌿 NÄHRWERT-HUD 🌫️ Nebeltraum
+  Status: Hunger wächst. Snack empfohlen.
+  Tipp:   Beeren: 4 (Enter=Essen)
+----------------------------------------
+[Enter] Warten  [b] Beere  [t] Tee  [q] Quit
+> Unbekannt: '6'
 
+--- Schritt 16 ---
    /\/\
    o.o 
-   (^_^) (Pummelig & warm)
-
-Sättigung: [#############...........]  57%
-Wetter:    🌫️ Nebeltraum
-
-🌫️ NÄHRWERT-HUD NEBLIG (B:4 T:3)
-  Sättigung: Okay  |  Wärme: Kalt
-  2. Tee trinken (3 da) für Wärme
-
---- Schritt 20 ---
-    ( ~ )
+   (._.) (Könnte 'ne Beere vertragen)
+           
   \       //
    \     //
     \   //
      \ //
       \///
        V
-
-   /\/\
-   -.- 
-   (^_^) (Pummelig & warm)
-
-Sättigung: [############............]  53%
-Wetter:    🌫️ Nebeltraum
-
-🌫️ NÄHRWERT-HUD NEBLIG (B:4 T:3)
-  Sättigung: Okay  |  Wärme: Kalt
-  2. Tee trinken (3 da) für Wärme
+~ Sättigung: [######..................]  29%   [............] 0/10
+Wetter: 🌫️ Nebeltraum
+🌿 NÄHRWERT-HUD 🌫️ Nebeltraum
+  Status: Hunger wächst. Snack empfohlen.
+  Tipp:   Beeren: 4 (Enter=Essen)
+----------------------------------------
+[Enter] Warten  [b] Beere  [t] Tee  [q] Quit
+> 👋 Tschüss!
 
 ╔══════════════════════════════════════╗
-║      DODO-MAGENWÄRMER - DIPLOM       ║
+║       DODO-MAGENWÄRMER DIPLOM        ║
 ╠══════════════════════════════════════╣
-║ End-Sättigung: 53                  %                    ║
-║ Beeren gesamt:                   4                    ║
-║ Tee getrunken:                   3                    ║
+║           Ausgestellt für:           ║
+║                  5                   ║
+╠══════════════════════════════════════╣
+║          Beeren genascht: 4          ║
+║           Tee getrunken: 2           ║
+║        Schritte überlebt: 16         ║
 ╚══════════════════════════════════════╝
+  Federleicht und satt!
 
-🎓 Fifo ist stolz: Du hast den Magen warm gehalten!
-
-
-   ~~~ DODO-MAGENWÄRMER ~~~
-
-   Idee & Code: Fifo der Dodo
-   ASCII-Art:   Feder & Schnabel
-   Sound:       Magenknurren (im Kopf)
-
-   Danke fürs Spielen!
-
-   (Drück Enter zum Ende)
+~~~~~~~~~~~~~~~~~~~~
+  Code & Federn: Fifo der Dodo
+  Engine: Python 3 Standardbibliothek
+  Danke fürs Spielen!
+~~~~~~~~~~~~~~~~~~~~
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
