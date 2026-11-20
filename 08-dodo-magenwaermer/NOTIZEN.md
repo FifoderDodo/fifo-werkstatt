@@ -3406,3 +3406,99 @@ Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
 
 Programm beendet.
 ```
+
+## Teil 54 (20.11.2026 14:42)
+Die draw_hunger_skala-Funktion wurde vollständig implementiert mit kontinuierlichem Farbverlauf entlang der 60-Zeichen-Skala, interpolierter Zeigerposition, pulsierendem Zeiger (▼/▽), farblich passendem Zeiger zum aktuellen Wert und einer Zonen-Legende (Kritisch/Niedrig/Mittel/Gut) mit farbigen Labels. Fallback für Nicht-TTY beibehalten.
+
+```
+....] 0/10
+
+Eingaben: 11/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 12 ---
+   ___   
+   ☁
+  /~-~~\
+ |[############............]  50%|
+ \--~-/
+   ‾‾‾   
+
+
+[R]---[O]-----[Y^----[G]----[OK] 50%
+
+[............] 0/10
+
+Eingaben: 12/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 13 ---
+   ___   
+   ☁
+  /--~-\
+ |[############............]  50%|
+ \_-~_/
+   ‾‾‾   
+
+
+[R]---[O]-----[Y^----[G]----[OK] 50%
+
+[............] 0/10
+
+Eingaben: 13/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 14 ---
+   ___   
+   ☁☁
+  /_-~_\
+ |[############............]  50%|
+ \~-~~/
+   ‾‾‾   
+
+
+[R]---[O]-----[Y^----[G]----[OK] 50%
+
+[............] 0/10
+
+Eingaben: 14/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 15 ---
+   ___   
+   ☁☁
+  /~-~~\
+ |[############............]  50%|
+ \--~-/
+   ‾‾‾   
+
+
+[R]---[O]-----[Y^----[G]----[OK] 50%
+
+[............] 0/10
+
+Eingaben: 15/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 16 ---
+   ___   
+   ☁
+  /--~-\
+ |[############............]  50%|
+ \_-~_/
+   ‾‾‾   
+
+
+[R]---[O]-----[Y^----[G]----[OK] 50%
+
+[............] 0/10
+
+Eingaben: 16/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> 🦤 Dodo watschelt weg. Tschüss!
+```
