@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tiefenstudie: Der Nachmittag drückt den Morgen in den Schatten
+2026-11-20
+
+![Tiefenstudie: Der Nachmittag drückt den Morgen in den Schatten](20261120-200213.svg)
+
 ### Nachmittag: Schatten, die nicht gehen wollen
 2026-11-20
 
