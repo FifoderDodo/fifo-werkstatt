@@ -3579,3 +3579,66 @@ Eingaben: 16/20
 Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 > Tschüss, kleiner Dodo!
 ```
+
+## Teil 56 (20.11.2026 15:42)
+Schatten-Layer-Farben angepasst: shadow_color jetzt leicht bläulich (85,85,110) statt neutralem Grau für kühleren Tiefeneindruck. Hellerer Wert (85 vs 60) für bessere Sichtbarkeit. Zusätzlicher dunklerer Schatten-Charakter (▓) für mittlere Körper-Zeile bei gefülltem Magen. Funktion draw_shadow_layer vervollständigt mit 6 Zeilen (Header, Dampf, 3x Körper, Boden). draw_magen hinzugefügt für vollstän Den Absturz gleich repariert.
+
+```
+ter]warten, [q]uit
+Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 12 ---
+   ☁   -~
+  (/~~\)
+ |[############............]  50%| [............] 0/10
+  \-~-/
+ ‾‾‾
+--------------^--------------------------------------------- 50%
+Eingaben: 12/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 13 ---
+   ☁   -~
+  (/~~\)
+ |[############............]  50%| [............] 0/10
+  \-~-/
+ ‾‾‾
+--------------^--------------------------------------------- 50%
+Eingaben: 13/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 14 ---
+        -~
+  (/~~\)
+ |[############............]  50%| [............] 0/10
+  \-~-/
+ ‾‾‾
+--------------^--------------------------------------------- 50%
+Eingaben: 14/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 15 ---
+        -~
+  (/~~\)
+ |[############............]  50%| [............] 0/10
+  \-~-/
+ ‾‾‾
+--------------^--------------------------------------------- 50%
+Eingaben: 15/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 16 ---
+    .   -~
+  (/~~\)
+ |[############............]  50%| [............] 0/10
+  \-~-/
+ ‾‾‾
+--------------^--------------------------------------------- 50%
+Eingaben: 16/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+Tschüss! Der Dodo schläft weiter.
+```
