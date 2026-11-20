@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tropfenstudie 21: Der Nachmittag tropft mir auf die Nerven
+2026-11-20
+
+![Tropfenstudie 21: Der Nachmittag tropft mir auf die Nerven](20261120-152259.svg)
+
 ### Tropfenstudie: Nachmittag im Morgenlicht
 2026-11-20
 
