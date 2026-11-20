@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 36 von etwa 40
+Stand: in Arbeit, Teil 37 von etwa 40
 
 ## Ausprobieren
 
@@ -15,91 +15,64 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-r — Schritt 3 | ☀️ Klartraum
-   ( ~ ) 
+tragen)
+Wärme: 0 | Knurren: 0 | Eingaben: 2/20
+[1] Beere essen  [2] Tee trinken  [Enter] Weiter träumen  [q] Aufwachen
+> 
+--- Schritt 16 ---
+🦤 Dodo-Magenwärmer — Schritt 16 | ☀️ Klartraum
+           
   \       //
    \     //
-    \ ~~//
+    \   //
      \ //
       \///
        V
-
-[##################......]  79%
-
+[#######.................]  31%
    /\/\
    o.o 
-   (^_^) (Warm & kuschelig)
-
-Wärme: 3 | Knurren: 0 | Eingaben: 2/20
-[1] Beere  [2] Tee  [Enter] Weiter  [q] Aufwachen
+   (._.) (Könnte 'ne Beere vertragen)
+Wärme: 0 | Knurren: 0 | Eingaben: 2/20
+[1] Beere essen  [2] Tee trinken  [Enter] Weiter träumen  [q] Aufwachen
 > 
---- Schritt 4 ---
-🦤 Dodo-Magenwärmer — Schritt 4 | ☀️ Klartraum
-    ( ~ )
-  \       //
-   \     //
-    \ ~~//
-     \ //
-      \///
-       V
+========================================
+🌅 DODO WACHT AUF — DIPLOMZEIT
+========================================
 
-[##################......]  77%
+📊 Statistik:
+   Schritte: 16
+   Ø Sättigung: 41%
+   Beste Sättigung: 52% | Schlechteste: 31%
+   Gesamt-Wärme: 6
+   Traum-Ereignisse: 2
+   Magenknurren: 0
 
-   /\/\
-   o.o 
-   (^_^) (Warm & kuschelig)
-
-Wärme: 2 | Knurren: 0 | Eingaben: 2/20
-[1] Beere  [2] Tee  [Enter] Weiter  [q] Aufwachen
-> 
---- Schritt 5 ---
-🦤 Dodo-Magenwärmer — Schritt 5 | ☀️ Klartraum
-    ( ~ )
-  \       //
-   \     //
-    \ ~~//
-     \ //
-      \///
-       V
-
-[##################......]  75%
-
-   /\/\
-   o.o 
-   (^_^) (Warm & kuschelig)
-
-Wärme: 1 | Knurren: 0 | Eingaben: 2/20
-[1] Beere  [2] Tee  [Enter] Weiter  [q] Aufwachen
-> 
-🌅 Dodo streckt die Flügel: Aufwachen!
-
-🌅 === TRAUM ENDE ===
-Dauer: 0.1s | Schritte: 5 | End-Sättigung: 75% | Wärme: 1
-
-📖 Traum-Tagebuch (letzte 10):
-  Schritt 1: 🍇 Beere gegessen (+15%).
-  Schritt 2: 🍵 Tee getrunken (+4 Wärme).
-
-🌤️ Wetter-Statistik:
-  ☀️ Klartraum: 5 Schritte
-
-📊 Aktionen:
-  Beeren: 1 | Tee: 1 | Ereignisse: 0 | Knurren: 0
-  Sättigung Spanne: 68% – 81%
-
-🏆 Dodo-Diplom: Teilnahme (Score: 220)
-✨ NEUER SESSION-HIGHSCORE! ✨
-🏅 Session-Best: 220
-
+🎓 Diplom: Silber (74 Punkte)
       |~~~|
-      |     |
+      |  2. |
       |_____|
      /  ___  \
     /  /   \  \
+   |  |     |  |
     \       //
-     ``
+     `"`
 
-Danke fürs Spielen! Gute Nacht, kleiner Dodo. 🦤💤
+🌟 NEUER SESSION-HIGHSCORE! 🌟
+
+📖 Traum-Tagebuch:
+  - Schritt 8: Unbekanntes Signal '10' ignoriert.
+  - Schritt 9: Tee getrunken (+3 Wärme).
+  - Schritt 10: Unbekanntes Signal 'j' ignoriert.
+  - Schritt 11: Unbekanntes Signal '4' ignoriert.
+  - Schritt 12: Unbekanntes Signal 'n' ignoriert.
+  - Schritt 13: Unbekanntes Signal '8' ignoriert.
+  - Schritt 14: Wetter dreht auf ☀️ Klartraum.
+  - Schritt 14: Unbekanntes Signal 'hallo' ignoriert.
+  - Schritt 15: Unbekanntes Signal '6' ignoriert.
+  - Schritt 16: Dodo wacht freiwillig auf.
+
+🍃 Gute Reise, kleiner Dodo. Der Magen ist warm, das Herz auch.
+Drücke Enter zum Beenden...
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
