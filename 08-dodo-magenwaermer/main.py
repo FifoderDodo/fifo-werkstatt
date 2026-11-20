@@ -1,9 +1,10 @@
-# main.py - Dodo-Magenwärmer Teil 30 (Traum-Edition)
+# main.py - Dodo-Magenwärmer Teil 31 (Traum-Edition)
 # Fifo der Dodo träumt weiter: Fehler gefixt, Traum-Tagebuch eingebaut, Abschluss rund.
 # Fix: Syntaxfehler im f-String behoben (ANSI-Codes als Variablen).
 # Neu: Traum-Tagebuch sammelt Ereignisse und zeigt sie beim Aufwachen an.
 # Polier: Eingabe-Limit nur für Aktionen, Enter frei; EOFError sanft; Zertifikat hübsch.
-# Teil 30: Hauptschleife vervollständigt, Aufwachen-Logik, Traum-Tagebuch-Ausgabe, Zertifikat.
+# Teil 31: Hauptschleife vervollständigt, Aufwachen-Logik, Traum-Tagebuch-Ausgabe, Zertifikat,
+#          kleine Verbesserung: Wetter-Statistik im Tagebuch.
 
 import random
 import time
@@ -176,8 +177,10 @@ def main() -> None:
     }
     wetter = "klar"
     wetter_timer = 0
+    # Neu: Wetter-Statistik für Traum-Tagebuch
+    wetter_dauer = {"klar": 0, "neblig": 0, "stürmisch": 0}
     startzeit = time.time()
-    traum_tagebuch = []  # Neu: sammelt Ereignisse für das Traum-Tagebuch
+    traum_tagebuch = []  # sammelt Ereignisse für das Traum-Tagebuch
     
     clear_screen()
     print("🦤 Dodo-Magenwärmer — Traum-Edition")
@@ -193,12 +196,25 @@ def main() -> None:
         if wetter_timer <= 0:
             wetter = random.choice(["klar", "neblig", "stürmisch"])
             wetter_timer = random.randint(10, 20)
+            traum_tagebuch.append(f"Schritt {schritt}: Wetter wechselt zu {wetter_text(wetter)}")
         
-        # Knurren bestimmen
+        # Wetter-Dauer zählen
+        wetter_dauer[wetter] = wetter_dauer.get(wetter, 0) + 1
+        
+        # Knurren bei niedriger Sättigung
         knurrt = satte_pruefung(sat)
         if knurrt:
             knurr_zaehler += 1
             stats['knurren'] += 1
+        
+        # Natürliche Sättigungsabnahme: 1-3% pro Schritt
+        sat -= random.randint(1, 3)
+        if sat < 0:
+            sat = 0
+        
+        # Wärmedecay
+        if waerme > 0:
+            waerme -= 1
         
         # Traum-Ereignis
         delta_sat, delta_waerme, msg = traum_ereignis(stats, wetter)
@@ -207,19 +223,13 @@ def main() -> None:
         sat = max(0, min(100, sat + delta_sat))
         waerme = max(0, waerme + delta_waerme)
         
-        # Natürliche Sättigungsabnahme & Wärmedecay
-        sat = max(0, sat - random.randint(1, 3))
-        if waerme > 0:
-            waerme -= 1
-        
         # Stats aktualisieren
         stats['max_sat'] = max(stats['max_sat'], sat)
         stats['min_sat'] = min(stats['min_sat'], sat)
         
         # Zeichnen
         clear_screen(schritt)
-        print(f"🦤 Dodo-Magenwärmer — Schritt {schritt}")
-        print(f"{wetter_text(wetter)}")
+        print(f"🦤 Dodo-Magenwärmer — Schritt {schritt} {wetter_text(wetter)}")
         print(draw_bar(sat, waerme=waerme))
         print(draw_stomach(sat, knurrt, waerme, schritt))
         print(draw_dodo(sat, schritt, waerme))
@@ -227,70 +237,66 @@ def main() -> None:
         
         # Eingabe
         try:
-            raw = input("Deine Wahl (Enter/1/2/q): ").strip().lower()
+            choice = input("Deine Wahl (Enter/1/2/q): ").strip().lower()
         except (EOFError, KeyboardInterrupt):
-            print("\n🌅 Aufwachen... (Eingabe ende)")
+            print("\n🌅 Sanftes Aufwachen (Strg+C/EOF).")
             break
         
-        if raw == "q":
-            print("🌅 Dodo wacht sanft auf.")
-            break
-        elif raw == "1":
-            sat = min(100, sat + 15)
-            waerme = min(10, waerme + 1)
-            stats['beeren'] += 1
-            eingaben += 1
-            traum_tagebuch.append(f"Schritt {schritt}: 🍇 Beere gegessen! +15% Sättigung, +1 Wärme")
-        elif raw == "2":
-            waerme = min(10, waerme + 5)
-            stats['tee'] += 1
-            eingaben += 1
-            traum_tagebuch.append(f"Schritt {schritt}: 🍵 Tee getrunken! +5 Wärme")
-        elif raw == "":
-            # Enter = träumen, zählt nicht als Eingabe
+        if choice == '':
+            # Enter: einfach weiterschlafen
             pass
+        elif choice == '1':
+            sat = min(100, sat + 15)
+            stats['beeren'] += 1
+            traum_tagebuch.append(f"Schritt {schritt}: 🍇 Beere gegessen (+15% Sättigung)")
+            eingaben += 1
+        elif choice == '2':
+            waerme += 5
+            stats['tee'] += 1
+            traum_tagebuch.append(f"Schritt {schritt}: 🍵 Tee getrunken (+5 Wärme)")
+            eingaben += 1
+        elif choice == 'q':
+            print("\n🌅 Du wachst freiwillig auf.")
+            break
         else:
             print("Unbekannte Eingabe. Nur 1, 2, q oder Enter.")
             pause(0.5)
-            continue
         
-        pause(0.3)
+        pause(0.3)  # kleiner Atemzug
     
-    # Ende
+    # Traum beendet
     clear_screen()
     dauer = time.time() - startzeit
-    print("🌅 === AUFWACHEN ===")
-    print(f"Geträumt: {schritt} Schritte in {dauer:.1f} Sekunden")
-    print(f"Beeren: {stats['beeren']} | Tee: {stats['tee']} | Ereignisse: {stats['events']} | Knurren: {stats['knurren']}")
-    print(f"Sättigung: Max {stats['max_sat']}% | Min {stats['min_sat']}%")
-    print()
+    print("🌅 Der Traum verblasst... Du wachst auf.")
+    print(f"⏱️ Traumdauer: {dauer:.1f} Sekunden | Schritte: {schritt}")
+    print(f"📊 Sättigung: {sat}% (Min: {stats['min_sat']}%, Max: {stats['max_sat']}%)")
+    print(f"🍇 Beeren: {stats['beeren']} | 🍵 Tee: {stats['tee']} | 🎲 Ereignisse: {stats['events']} | 🐻 Knurren: {stats['knurren']}")
+    print(f"🌤️ Wetter: ☀️ {wetter_dauer.get('klar',0)} 🌫️ {wetter_dauer.get('neblig',0)} ⛈️ {wetter_dauer.get('stürmisch',0)}")
     
-    # Traum-Tagebuch
+    # Traum-Tagebuch (letzte 10 Einträge)
     if traum_tagebuch:
-        print("📖 Traum-Tagebuch:")
-        for eintrag in traum_tagebuch[-10:]:  # letzte 10 Einträge
+        print("\n📖 Traum-Tagebuch (letzte 10):")
+        for eintrag in traum_tagebuch[-10:]:
             print(f"  {eintrag}")
-        if len(traum_tagebuch) > 10:
-            print(f"  ... und {len(traum_tagebuch) - 10} weitere Träume.")
-    else:
-        print("📖 Traum-Tagebuch: (keine besonderen Träume)")
-    print()
     
     # Zertifikat
-    print("🏆 DODO-MAGENWÄRMER ZERTIFIKAT")
-    print("══════════════════════════════")
-    titel = "Traum-Dodo" if schritt > 30 else "Schlafmütze"
-    if stats['beeren'] > 5:
-        titel = "Beeren-Prinz" if stats['beeren'] > 10 else "Beeren-Freund"
-    if stats['tee'] > 5:
-        titel = "Tee-Meister" if stats['tee'] > 10 else "Tee-Liebhaber"
-    if waerme > 5:
-        titel = "Wärme-Wächter"
+    print("\n" + "="*40)
+    print("🏆 DODO-MAGENWÄRMER — TRAUM-ZERTIFIKAT")
+    print("="*40)
+    titel = "Traum-Dodo"
+    if sat >= 80 and waerme >= 5:
+        titel = "Kuschel-König"
+    elif sat >= 60:
+        titel = "Satter Träumer"
+    elif stats['knurren'] > 5:
+        titel = "Knurr-Magen"
+    elif stats['events'] > 3:
+        titel = "Ereignis-Reich"
     print(f"Titel: {titel}")
-    print(f"Schritte: {schritt} | Dauer: {dauer:.1f}s")
-    print(f"Finale Sättigung: {sat}% | Wärme: {waerme}")
-    print("══════════════════════════════")
-    print("Gute Reise, kleiner Dodo. 🦤\n")
+    print(f"Sättigung: {sat}%  Wärme: {waerme}  Schritte: {schritt}")
+    print(f"Beeren: {stats['beeren']}  Tee: {stats['tee']}  Ereignisse: {stats['events']}")
+    print("="*40)
+    print("🦤 Gute Reise, kleiner Dodo. Bis zum nächsten Traum.")
 
 if __name__ == "__main__":
     main()
