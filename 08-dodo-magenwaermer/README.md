@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 9 von etwa 15
+Stand: in Arbeit, Teil 10 von etwa 15
 
 ## Ausprobieren
 
@@ -15,108 +15,79 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
--.-
-   (._.)
+) (Pummelig & warm)
 
-Schritt 12 | Hunger: 27% | Fütterungen: 0
+Schritt: 14 | Eingaben: 13/20 | Fütterungen: 4
 
-Alles gut. Enter für nächsten Schritt, q zum Beenden.
-> 
---- Schritt 12 ---
-  \       //
-   \     //
-    \   //
-     \ //
-      \//
-       V
+[1] Beere naschen | [2] Warmer Kräutertee | [Enter] Weiterträumen | [q] Ende
+> Dodo beäugt '8' skeptisch und knabbert kurz daran...
 
-[######...................]  24%
-
-   o.o
-   (._.)
-
-Schritt 13 | Hunger: 24% | Fütterungen: 0
-
-Alles gut. Enter für nächsten Schritt, q zum Beenden.
-> 
---- Schritt 13 ---
-  \       //
-   \     //
-    \   //
-     \ //
-      \//
-       V
-
-[####.....................]  18%
-
-   o.o
-   (>_<)
-
-Schritt 14 | Hunger: 18% | Fütterungen: 0
-
-⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
-> 
---- Schritt 14 ---
-  \       //
-   \     //
-    \   //
-     \ //
-      \//
-       V
-
-[###......................]  14%
-
-   o.o
-   (>_<)
-
-Schritt 15 | Hunger: 14% | Fütterungen: 0
-
-⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
-> 
 --- Schritt 15 ---
+      ( ~ )
   \       //
-   \     //
-    \   //
-     \ //
+   \~~~~~//
+    \~~~//
+     \~//
       \//
        V
+[###################.....]  82%
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
 
-[##.......................]   9%
+Schritt: 15 | Eingaben: 14/20 | Fütterungen: 4
 
-   o.o
-   (>_<)
+[1] Beere naschen | [2] Warmer Kräutertee | [Enter] Weiterträumen | [q] Ende
+> Dodo beäugt 'hallo' skeptisch und knabbert kurz daran...
 
-Schritt 16 | Hunger: 9% | Fütterungen: 0
-
-⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
-> 
 --- Schritt 16 ---
+      ( ~ )
   \       //
-   \     //
-    \   //
-     \ //
+   \~~~~~//
+    \~~~//
+     \~//
       \//
        V
+[###################.....]  82%
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
 
-[.........................]   1%
+Schritt: 16 | Eingaben: 15/20 | Fütterungen: 4
 
-   o.o
-   (>_<)
+[1] Beere naschen | [2] Warmer Kräutertee | [Enter] Weiterträumen | [q] Ende
+> Dodo beäugt '6' skeptisch und knabbert kurz daran...
 
-Schritt 17 | Hunger: 1% | Fütterungen: 0
+--- Schritt 17 ---
+      ( ~ )
+  \       //
+   \~~~~~//
+    \~~~//
+     \~//
+      \//
+       V
+[###################.....]  80%
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
 
-⚠️  Magen knurrt laut! Füttern? (Enter = füttern, q = quittieren)
-> Bis zum nächsten Traum!
+Schritt: 17 | Eingaben: 16/20 | Fütterungen: 4
 
-   -.-
-   (>_<)
+[1] Beere naschen | [2] Warmer Kräutertee | [Enter] Weiterträumen | [q] Ende
+> Dodo kuschelt sich ins Nest. Bis bald!
 
-🦤 Dodo watschelt zufrieden weg. Gute Nacht.
+   /\/\
+   o.o 
+   (^_^) (Pummelig & warm)
 
---- Statistik ---
-Überlebt: 17 Schritte
-Dauer: 5.8 Sekunden
-Fütterungen: 0
+🦤 Dodo watschelt wohlig gewärmt durch den Morgentau.
+
+--- Dodo-Schlafstatistik ---
+Gelebte Schritte:    17
+Traum-Eingaben:      17
+Mahlzeiten gewärmt:  4
+End-Magenfüllung:    80%
+Dauer im Traum:      0.6 s
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
