@@ -1,7 +1,7 @@
-# main.py - Dodo-Magenwärmer Teil 13
+# main.py - Dodo-Magenwärmer Teil 14
 # Fifo der Dodo bastelt weiter im Traum.
-# Fix: Abgebrochener Code am Ende vervollständigt (Feeding/Tea-Logik, Loop-Ende, Statistik).
-# Neu: Eingabe '8' wird als ungültig erkannt, Tee gibt Wärme + Sättigung, Ende zeigt Statistik.
+# Fix: Abgebrochenen Code vervollständigt (Feeding/Tea/Invalid/Loop/Stats/Main-Guard).
+# Neu: Erweiterte Traum-Statistik (Beeren, Tee, Knurren, Min/Max) + hübsches Abschluss-Zertifikat.
 
 import random
 import time
@@ -46,7 +46,6 @@ def draw_bar(wert: int, breite: int = 24, waerme: int = 0) -> str:
         else:
             farbe = "\033[91m"      # Rot
         
-        # Wärme-Rahmen für den Balken
         rand = "\033[93m" if waerme > 0 else "\033[0m"
         reset = "\033[0m"
         return f"{rand}[{reset}{farbe}{'#' * voll}{'.' * leer}{rand}]{reset} {wert:3d}%"
@@ -57,9 +56,7 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
     level = max(0, min(5, int(wert / 20)))
     wave = "~~~"
     
-    # Dampf-Animation: zwei Rahmen wechseln sich ab
     if waerme > 0:
-        # Leichtes Wackeln beim Dampf
         if (schritt // 2) % 2 == 0:
             header = "    ( ~ )"
         else:
@@ -71,7 +68,6 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
     else:
         header = "           "
     
-    # Magen-Farbe bei Wärme
     magen_farbe = "\033[38;5;208m" if (waerme > 0 and USE_ANSI) else ""
     reset = "\033[0m" if USE_ANSI else ""
     
@@ -94,9 +90,7 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
                 mid = line[left+1:right]
                 filled = (wave * (len(mid) // 3 + 1))[:len(mid)]
                 line = line[:left+1] + filled + line[right:]
-        # Farbe nur auf die Magenwand anwenden, nicht auf Füllung
         if magen_farbe and waerme > 0:
-             # Einfaches Einfärben der Strukturzeichen
              line = line.replace('\\', magen_farbe + '\\' + reset).replace('//', magen_farbe + '//' + reset).replace('V', magen_farbe + 'V' + reset)
         result.append(line)
     return "\n".join(result)
@@ -114,7 +108,36 @@ def draw_dodo(wert: int, schritt: int) -> str:
     else:
         mund = "^_^"
         notiz = " (Pummelig & warm)"
-    return f"   /\\/\\\n   {augen}\n   ({mund}){notiz}"
+    return f"""   /\\/\\
+   {augen}
+   ({mund}){notiz}"""
+
+def print_zertifikat(stats: dict, dauer: float) -> None:
+    """Druckt ein kleines Abschluss-Zertifikat im Traum-Stil."""
+    clear_screen()
+    name = "Fifo der Dodo"
+    print("╔═══════════════════════════════════════════════╗")
+    print("║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║")
+    print("╠═══════════════════════════════════════════════╣")
+    print(f"║ Träumer: {name:<30} ║")
+    print(f"║ Traumuhr: {dauer:>5.1f} Sek{' ' * 23}║")
+    print("╠═══════════════════════════════════════════════╣")
+    print(f"║ Beeren genascht:     {stats['beeren']:>3}                     ║")
+    print(f"║ Tassen Tee getrunken: {stats['tee']:>3}                    ║")
+    print(f"║ Magenknurren gehört: {stats['knurren']:>3}                    ║")
+    print(f"║ Höchste Sättigung:   {stats['max_sat']:>3}%                    ║")
+    print(f"║ Tiefste Sättigung:   {stats['min_sat']:>3}%                    ║")
+    print("╠═══════════════════════════════════════════════╣")
+    # Bewertung
+    if stats['knurren'] == 0 and stats['min_sat'] > 50:
+        grad = "🌟 MEISTER DES SCHLAFES 🌟"
+    elif stats['knurren'] < 3:
+        grad = "🌙 Guter Traumwächter"
+    else:
+        grad = "💤 Unruhiger Schläfer"
+    print(f"║ {grad:<38} ║")
+    print("╚═══════════════════════════════════════════════╝")
+    print("\nDodo kuschelt sich ins Nest. Bis bald!\n")
 
 def main() -> None:
     saettigung = 100
@@ -123,6 +146,15 @@ def main() -> None:
     fuetterungen = 0
     waerme = 0          # Wärme durch Tee (Schritte)
     start_time = time.time()
+    
+    # Statistik für Zertifikat
+    stats = {
+        'beeren': 0,
+        'tee': 0,
+        'knurren': 0,
+        'max_sat': 100,
+        'min_sat': 100
+    }
     
     print("🦤 Dodo-Magenwärmer erwacht im Traum... (q = Ende)")
     pause(0.8)
@@ -134,6 +166,12 @@ def main() -> None:
         # Natürlicher Hungeranstieg pro Zeiteinheit
         saettigung = max(0, saettigung - random.randint(3, 8))
         knurrt = satte_pruefung(saettigung)
+        
+        # Stats aktualisieren
+        stats['max_sat'] = max(stats['max_sat'], saettigung)
+        stats['min_sat'] = min(stats['min_sat'], saettigung)
+        if knurrt:
+            stats['knurren'] += 1
         
         # Wärme abbauen
         if waerme > 0:
@@ -171,38 +209,32 @@ def main() -> None:
             gewinn = random.randint(18, 25)
             saettigung = min(100, saettigung + gewinn)
             fuetterungen += 1
-            print(f"\n🍇 Beere genossen! +{gewinn}% Sättigung.")
+            stats['beeren'] += 1
+            print(f"🍇 Beere genascht! +{gewinn}% Sättigung.")
             pause(0.5)
-        elif eingabe in ('2', 't', 'tee', 'kräutertee', 'magenwärmer'):
-            # Tee gibt Wärme und etwas Sättigung
-            waerme = 5  # 5 Schritte Wärme
-            gewinn = random.randint(10, 20)
+        elif eingabe in ('2', 't', 'tee', 'kräutertee', 'kaffee'):
+            gewinn = random.randint(35, 45)
             saettigung = min(100, saettigung + gewinn)
+            waerme = 3  # 3 Schritte Wärme
             fuetterungen += 1
-            print(f"\n🍵 Kräutertee wärmt den Magen! +{gewinn}% Sättigung, Wärme für {waerme} Schritte.")
-            pause(0.5)
+            stats['tee'] += 1
+            print(f"🍵 Magenwärmer-Tee getrunken! +{gewinn}% Sättigung & Wärme für 3 Schritte.")
+            pause(0.7)
         elif eingabe == '':
-            # Nur warten, Sättigung sank schon am Schleifenanfang
-            print("\n💤 Dodo träumt weiter...")
+            # Weiterträumen
+            print("💤 Dodo träumt weiter...")
             pause(0.3)
         else:
-            print(f"\n❓ Dodo versteht '{eingabe}' nicht. Versuche 1, 2, Enter oder q.")
+            print(f"❓ Dodo versteht '{eingabe}' nicht. Versuche 1, 2, Enter oder q.")
             pause(0.5)
     
-    # Traum-Ende mit Statistik
-    dauer = time.time() - start_time
-    clear_screen()
-    print(draw_stomach(saettigung, False, 0, schritt))
-    print(draw_bar(saettigung, waerme=0))
-    print(draw_dodo(saettigung, schritt))
-    print(f"\n=== Traum-Ende ===")
-    print(f"Dauer: {dauer:.1f}s | Schritte: {schritt} | Fütterungen: {fuetterungen} | End-Sättigung: {saettigung}%")
+    # Ende der Schleife (Aufwachen oder Verhungern)
     if saettigung <= 0:
-        print("Dodo ist vor Hunger aufgewacht... 🥱")
-    elif eingaben_zaehler >= MAX_EINGABEN:
-        print("Maximale Eingaben erreicht. Dodo schläft satt weiter. 🌙")
-    else:
-        print("Dodo kuschelt sich ins Nest. Bis bald! 🦤")
+        print("\n💀 Der Magen ist ganz leer... Dodo wacht hungrig auf.")
+        pause(1.0)
+    
+    dauer = time.time() - start_time
+    print_zertifikat(stats, dauer)
 
 if __name__ == "__main__":
     main()
