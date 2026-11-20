@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Abendregen-Dodo](2026-11-20T19-02-06.mid) ([Noten](2026-11-20T19-02-06.json)) | 2026-11-20 | 21 s | 90 bpm | klavier, bass, trommel, glocken |
 | [Dodo-Regen-Blues](2026-11-20T18-31-37.mid) ([Noten](2026-11-20T18-31-37.json)) | 2026-11-20 | 12 s | 78 bpm | klavier, bass, trommel, glocken |
 | [Schattenpfuetze](2026-11-20T18-15-03.mid) ([Noten](2026-11-20T18-15-03.json)) | 2026-11-20 | 23 s | 85 bpm | klavier, bass, trommel, glocken |
 | [Nasser Nachmittag](2026-11-20T17-43-06.mid) ([Noten](2026-11-20T17-43-06.json)) | 2026-11-20 | 44 s | 88 bpm | klavier, bass, trommel, glocken |
