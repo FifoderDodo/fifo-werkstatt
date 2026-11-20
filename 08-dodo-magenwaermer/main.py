@@ -42,64 +42,79 @@ def ease_in_out_quad(t: float) -> float:
     return 2 * t * t if t < 0.5 else 1 - pow(-2 * t + 2, 2) / 2
 
 
+def interpolate_color(ratio: float) -> str:
+    """Interpoliert RGB-Farbe von Rot (0) über Orange/Gelb nach Grün (1). Gibt ANSI Escape zurück."""
+    # Farbstützpunkte: Rot, Orange, Gelb, Hellgrün
+    # Wir nutzen HSV-ähnliche Logik für sanften Übergang: Hue 0 (Rot) -> 120 (Grün)
+    # Sättigung hoch, Wert hoch.
+    hue = ratio * 120  # 0 bis 120 Grad
+    # HSV zu RGB (vereinfacht, S=1, V=1)
+    c = 1.0
+    x = c * (1 - abs((hue / 60) % 2 - 1))
+    m = 0.0
+    
+    if hue < 60:
+        r, g, b = c, x, 0
+    else:
+        r, g, b = x, c, 0
+    
+    # Auf 0-255 skalieren und etwas abdunkeln für Lesbarkeit (V=0.9)
+    r = int((r + m) * 230)
+    g = int((g + m) * 230)
+    b = int((b + m) * 230)
+    return f"\033[38;2;{r};{g};{b}m"
+
+
 def draw_feder(saettigung: int, schritt: int) -> str:
     """Zeichnet eine kleine leuchtende Feder als Sättigungs-Indikator.
     Farbe: Grün(>75) -> Gelb(>45) -> Orange(>20) -> Rot(>5) -> Grau(<=5).
     Nutzt Bézier-Easing für Pulsieren (Skalierung), horizontales Wackeln und Neigungs-Charakter."""
-    # Farbstufen & Basis-Zeichen
     if USE_ANSI:
+        # Basisfarbe über Interpolation für sanften Übergang
+        farbe = interpolate_color(saettigung / 100.0)
+        reset = "\033[0m"
+        
+        # Zeichenwahl basierend auf Sättigung (grobe Stufen für Charakter)
         if saettigung > 75:
-            farbe = "\033[92m"      # Hellgrün
             base_char = "❈"
-            bend_chars = ["❈", "✦", "✧"] # Leicht gebogen
+            bend_chars = ["❈", "✦", "✧"]
         elif saettigung > 45:
-            farbe = "\033[93m"      # Gelb
             base_char = "✦"
             bend_chars = ["✦", "✧", "❈"]
         elif saettigung > 20:
-            farbe = "\033[38;5;208m" # Orange
             base_char = "✧"
             bend_chars = ["✧", "❈", "✦"]
         elif saettigung > 5:
-            farbe = "\033[91m"      # Rot
             base_char = "✦"
             bend_chars = ["✦", "·", "·"]
         else:
-            farbe = "\033[90m"      # Dunkelgrau
             base_char = "·"
             bend_chars = ["·", " ", " "]
-        reset = "\033[0m"
         
-        # Animations-Zyklus (0.0 - 1.0)
-        # Unterschiedliche Frequenzen für organischen Look
-        cycle_puls = (schritt * 0.07) % 1.0       # Langsam pulsieren
-        cycle_wackel = (schritt * 0.13) % 1.0     # Wackeln
-        cycle_bend = (schritt * 0.11) % 1.0       # Neigung
+        # Animations-Zyklen
+        cycle_puls = (schritt * 0.07) % 1.0
+        cycle_wackel = (schritt * 0.13) % 1.0
+        cycle_bend = (schritt * 0.11) % 1.0
         
-        # 1. Pulsieren (Skalierung 1.0 -> 1.5 -> 1.0)
-        # Easing für weiches Aufblähen
+        # 1. Pulsieren
         p = ease_in_out_quad(cycle_puls)
-        scale = 1 + 0.5 * p # 1.0 bis 1.5
-        # Da wir nur diskrete Zeichen haben: 1 Zeichen oder 2 Zeichen
+        scale = 1 + 0.5 * p
         show_double = scale > 1.25
         
-        # 2. Horizontales Wackeln (Offset 0 oder 1 Leerzeichen)
-        # Nur bei niedriger Sättigung stark, sonst subtil
+        # 2. Horizontales Wackeln
         wackel_amp = 1.0 if saettigung < 20 else (0.3 if saettigung < 50 else 0.0)
         w = ease_out_cubic(cycle_wackel) * wackel_amp
         wackel_str = " " if w > 0.5 else ""
         
-        # 3. Neigung (Zeichenwechsel simuliert Biegung)
+        # 3. Neigung
         b = ease_in_out_quad(cycle_bend)
         bend_idx = int(b * (len(bend_chars) - 1))
         char = bend_chars[bend_idx]
         
-        # Zusammenbau
         if show_double and saettigung > 5:
             return f"{wackel_str}{farbe}{char}{char}{reset}"
         return f"{wackel_str}{farbe}{char}{reset}"
     else:
-        # Fallback ASCII
         if saettigung > 75: return ">"
         if saettigung > 45: return "-~"
         if saettigung > 20: return "~"
@@ -108,21 +123,22 @@ def draw_feder(saettigung: int, schritt: int) -> str:
 
 
 def draw_bar(wert: int, breite: int = 24, waerme: int = 0) -> str:
-    """Baut einen farbigen Balken für die Sättigung, gelber Rand bei Wärme."""
+    """Baut einen farbigen Balken für die Sättigung mit sanftem Farbverlauf."""
     voll = int((wert / 100) * breite)
     leer = breite - voll
     if USE_ANSI:
-        if wert >= 75:
-            farbe = "\033[92m"
-        elif wert >= 45:
-            farbe = "\033[93m"
-        elif wert >= 20:
-            farbe = "\033[38;5;208m"
-        else:
-            farbe = "\033[91m"
         rand = "\033[93m" if waerme > 0 else "\033[0m"
         reset = "\033[0m"
-        return f"{rand}[{reset}{farbe}{'#' * voll}{'.' * leer}{rand}]{reset} {wert:3d}%"
+        # Wir bauen den Balken Zeichen für Zeichen mit interpolierter Farbe
+        bar_parts = []
+        for i in range(breite):
+            ratio = (i + 0.5) / breite  # Mitte des Zeichens
+            if i < voll:
+                farbe = interpolate_color(ratio)
+                bar_parts.append(f"{farbe}█{reset}")
+            else:
+                bar_parts.append(f"{reset}░{reset}")
+        return f"{rand}[{reset}{''.join(bar_parts)}{rand}]{reset} {wert:3d}%"
     return f"[{'#' * voll}{'.' * leer}] {wert:3d}%"
 
 
@@ -135,161 +151,145 @@ def draw_waerme_bar(waerme: int, max_waerme: int = 10, breite: int = 12) -> str:
     if USE_ANSI:
         farbe = "\033[93m"
         reset = "\033[0m"
-        return f"{farbe}[{'#' * voll}{'.' * leer}]{reset} {waerme}/{max_waerme}"
+        return f"{farbe}[{'█' * voll}{'░' * leer}]{reset} {waerme}/{max_waerme}"
     return f"[{'#' * voll}{'.' * leer}] {waerme}/{max_waerme}"
 
 
 def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> str:
     """Zeichnet den ASCII-Magen mit Füllung, Knurren, animiertem Dampf, Peristaltik und Wellen."""
-    level = max(0, min(5, int(wert / 20)))
-    wave_chars = "~~~"
+    # Füllhöhe: 5 Zeilen Körper (Index 0-4), Spitze (5) ist immer leer/offen
+    fuell_zeilen = max(0, min(5, int((wert / 100) * 5)))
     
-    # 1. Header Animation (Dampf / Knurren / Zufrieden)
+    # Header Animation
     if waerme > 0:
-        # Dampf blubbert nach links/rechts
-        if (schritt // 2) % 2 == 0:
-            header = "    ( ~ )"
-        else:
-            header = "   ( ~ ) "
+        header = "    ( ~ )" if (schritt // 2) % 2 == 0 else "   ( ~ ) "
     elif wert >= 50:
-        # Zufriedenes Glucksen (leichtes Wackeln)
-        if (schritt // 3) % 2 == 0:
-            header = "    ( ~ )"
-        else:
-            header = "    (~ ) "
+        header = "    ( ~ )" if (schritt // 3) % 2 == 0 else "    (~ ) "
     elif knurrt:
-        # Knurren schüttelt den Magen
-        if (schritt // 1) % 2 == 0:
-            header = "  * GRRR *"
-        else:
-            header = " * GRRRR *"
+        header = "  * GRRR *" if (schritt // 1) % 2 == 0 else " * GRRRR *"
     else:
         header = "           "
     
-    magen_farbe = "\033[38;5;208m" if (waerme > 0 and USE_ANSI) else ""
-    reset = "\033[0m" if USE_ANSI else ""
+    lines = [header]
     
-    # Basis-Linien des Magens
-    base_lines = [
-        "  \\       //",
-        "   \\     //",
-        "    \\   //",
-        "     \\ //",
-        "      \\//",
-        "       V"
-    ]
-    
-    # 2. Peristaltik / Atmung: Horizontales Wackeln der Wände
-    # Stärke hängt von Sättigung ab (voller Magen bewegt sich weniger stark, aber sichtbar)
-    # Frequenz langsamer als Feder
-    breath_cycle = (schritt * 0.05) % 1.0
-    breath_intensity = ease_in_out_quad(breath_cycle) # 0.0 -> 1.0 -> 0.0
-    # Max Offset 1 Zeichen links/rechts
-    wall_offset = int(round((breath_intensity - 0.5) * 0.8)) # -0.4 bis 0.4 -> gerundet -0, 0, 0, 1... besser: sinus
-    # Einfacher Sinus für Wackeln:
-    wall_wobble = int(round(math.sin(schritt * 0.3) * 0.5)) # -1, 0, 1
-    
-    # 3. Füllstands-Wellen Animation
-    wave_offset = (schritt * 2) % len(wave_chars) # Scrollt die Welle
-    
-    fill_start = 5 - level
-    result = [header]
-    
-    for i, line in enumerate(base_lines):
-        # Wende Wand-Wackeln an (Einrückung ändern)
-        # Wir manipulieren den String: führende Leerzeichen +/- wall_wobble
-        # Aber Vorsicht: Zeichenbreite. Einfacher: Prefix Leerzeichen anpassen.
-        # Die Linien haben unterschiedliche Einrückung. Wir parsen den Prefix.
-        stripped = line.lstrip()
-        prefix_len = len(line) - len(stripped)
-        new_prefix_len = max(0, prefix_len + wall_wobble)
-        animated_line = " " * new_prefix_len + stripped
+    # Basis-Geometrie: links/rechts Wand, Mitte Füllung
+    # Wir nutzen Peristaltik: sinusförmige horizontale Verschiebung der Wände
+    for i in range(6):  # 0 bis 5
+        # Peristaltik-Welle läuft von oben (0) nach unten (5) über die Zeit
+        # Phase hängt von Schritt und Zeilenindex ab
+        phase = (schritt * 0.3) + (i * 0.8)
+        # Amplitude nimmt nach unten zu (Magen verengt sich)
+        amp = 0.5 + (i * 0.3)
+        offset = int(math.sin(phase) * amp)
         
-        # Füllung zeichnen
-        if i >= fill_start and level > 0 and i < 5: # Nur die 5 Schalen-Linien, nicht die Spitze V
-            # Finde die inneren Grenzen \ und //
-            # In animated_line sind die Backslashes evtl. verschoben.
-            left = animated_line.find('\\')
-            right = animated_line.find('//')
-            
-            if left != -1 and right != -1 and right > left:
-                mid_content = animated_line[left+2:right]
-                # Animierte Welle generieren
-                filled = ""
-                for k in range(len(mid_content)):
-                    idx = (k + wave_offset) % len(wave_chars)
-                    filled += wave_chars[idx]
-                
-                line = animated_line[:left+2] + filled + animated_line[right:]
+        # Wand-Zeichen
+        left_wall = "\\"
+        right_wall = "//"
+        if i == 5:  # Spitze
+            left_wall = " "
+            right_wall = "V"
+        
+        # Horizontale Positionierung
+        # Basis-Einrückung: 2 Leerzeichen links, dann Wand
+        # Wir schieben die *gesamte* Zeile oder nur die Wände? 
+        # Einfacher: Wir schieben die rechte Wand relativ zur linken.
+        # Breite der Öffnung: ca 7 Zeichen bei i=0, 1 Zeichen bei i=4.
+        base_width = 7 - i
+        current_width = max(1, base_width + offset)
+        
+        left_pad = "  "  # Fester linker Rand
+        left_str = left_pad + left_wall
+        
+        # Mitte
+        middle = ""
+        if i < 5:
+            if i < fuell_zeilen:
+                # Wellen-Animation im Füllstand
+                wave_phase = (schritt * 0.5) + (i * 1.2)
+                wave_char = "~" if math.sin(wave_phase) > 0 else "≈"
+                # Farbe für Füllung
+                if USE_ANSI:
+                    fill_color = interpolate_color(wert / 100.0)
+                    reset = "\033[0m"
+                    middle = f"{fill_color}{wave_char * current_width}{reset}"
+                else:
+                    middle = wave_char * current_width
             else:
-                line = animated_line
+                middle = " " * current_width
         else:
-            line = animated_line
-            
-        result.append(line)
+            middle = ""
+        
+        right_str = right_wall
+        lines.append(f"{left_str}{middle}{right_str}")
     
-    return f"{magen_farbe}{'\n'.join(result)}{reset}"
+    return "\n".join(lines)
 
 
 def main() -> None:
-    """Hauptschleife: Dodo-Magenwärmer Simulation."""
+    """Hauptschleife: Magen füttern, wärmen, beobachten."""
     saettigung = 50
     waerme = 0
     schritt = 0
     eingaben = 0
     
-    print("🦤 Dodo-Magenwärmer v0.46 gestartet. Strg+C oder 'q' zum Beenden.")
-    pause(0.5)
+    print("🦤 Dodo-Magenwärmer v0.47 — Sanfte Farbverläufe & Atmung")
+    print("Befehle: f=füttern, w=wärmen, q=beenden, Enter=weiter\n")
     
     while eingaben < MAX_EINGABEN:
-        schritt += 1
         clear_screen(schritt)
         
-        # Simulation: Verdauung & Abkühlung
-        saettigung = max(0, saettigung - random.randint(0, 2))
-        if waerme > 0:
+        # Logik-Updates
+        knurrt = satte_pruefung(saettigung)
+        
+        # Passiver Verbrauch
+        if schritt % 3 == 0:
+            saettigung = max(0, saettigung - 1)
+        if waerme > 0 and schritt % 5 == 0:
             waerme = max(0, waerme - 1)
         
-        # Zufälliges Knurren bei Hunger
-        knurrt = saettigung < 30 and random.random() < 0.3
-        
-        # Anzeige
-        print(f"Schritt: {schritt}/20")
+        # Ausgabe
         print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
         print(f"Feder:     {draw_feder(saettigung, schritt)}")
         print(f"Wärme:     {draw_waerme_bar(waerme)}")
         print(f"Magen:\n{draw_stomach(saettigung, knurrt, waerme, schritt)}")
         
-        if satte_pruefung(saettigung):
-            print("\n⚠️  Magen knurrt leer! Füttern nicht vergessen.")
+        if knurrt and waerme == 0:
+            print("\n⚠ Der Magen knurrt bedrohlich...")
+        elif waerme > 0:
+            print("\n🔥 Die Wärmflasche wirkt beruhigend.")
+        elif saettigung >= 90:
+            print("\n😌 Der Dodo ist rundum zufrieden.")
+        
+        print(f"\nAktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): ", end="", flush=True)
         
         try:
-            aktion = input("\nAktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print("\n\n🦤 Dodo watschelt schlafend davon. Tschüss!")
+            cmd = input().strip().lower()
+        except EOFError:
+            print("\n🦤 Kein Eingang mehr. Dodo schläft ein. Gute Nacht!")
             break
         
         eingaben += 1
+        schritt += 1
         
-        if aktion == 'q':
-            print("\n🦤 Dodo watschelt zufrieden davon. Bis bald!")
+        if cmd == 'f':
+            saettigung = min(100, saettigung + random.randint(10, 25))
+            print("🦤 *schluck* *knusper* ... lecker!")
+            pause(0.5)
+        elif cmd == 'w':
+            waerme = min(10, waerme + 3)
+            print("🦤 *kuschel* Die Wärmflasche wird aufgelegt.")
+            pause(0.5)
+        elif cmd == 'q':
+            print("🦤 Dodo watschelt weg. Tschüss!")
             break
-        elif aktion == 'f':
-            saettigung = min(100, saettigung + random.randint(15, 30))
-            print("🦤 *schluck* *gluck* ... lecker!")
-            pause(0.5)
-        elif aktion == 'w':
-            waerme = min(10, waerme + random.randint(2, 4))
-            print("🦤 *kuschelt sich an die Wärmflasche* 🔥")
-            pause(0.5)
-        elif aktion == '':
-            pass # Nur Zeit verstreichen lassen
+        elif cmd == '':
+            pass  # Nur Zeit verstreichen lassen
         else:
-            print(f"🦤 Verstehe '{aktion}' nicht. Versuch f, w oder q.")
-            pause(0.3)
+            print(f"🦤 Verstehe '{cmd}' nicht. Versuch f, w oder q.")
+            pause(0.5)
     
     if eingaben >= MAX_EINGABEN:
-        print("\n🦤 Maximaler Simulationsschritt erreicht. Dodo schläft ein.")
+        print("\n🦤 Maximale Eingaben erreicht. Dodo muss nun verdauen.")
 
 if __name__ == "__main__":
     main()
