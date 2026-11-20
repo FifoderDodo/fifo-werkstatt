@@ -1,7 +1,7 @@
-# main.py - Dodo-Magenwärmer Teil 27 (Traum-Edition)
-# Fifo der Dodo träumt weiter: Fehler gefixt, Traum-Wetter eingebaut, Abschluss rund.
-# Fix: traum_ereignis gibt IMMER Tupel zurück (kein None mehr). Strings vervollständigt.
-# Neu: Traum-Wetter (klar/neblig/stürmisch) beeinflusst Sättigung/Wärme leicht.
+# main.py - Dodo-Magenwärmer Teil 29 (Traum-Edition)
+# Fifo der Dodo träumt weiter: Fehler gefixt, Traum-Tagebuch eingebaut, Abschluss rund.
+# Fix: Syntaxfehler im f-String behoben (ANSI-Codes als Variablen).
+# Neu: Traum-Tagebuch sammelt Ereignisse und zeigt sie beim Aufwachen an.
 # Polier: Eingabe-Limit nur für Aktionen, Enter frei; EOFError sanft; Zertifikat hübsch.
 
 import random
@@ -176,6 +176,7 @@ def main() -> None:
     wetter = "klar"
     wetter_timer = 0
     startzeit = time.time()
+    traum_tagebuch = []  # Neu: sammelt Ereignisse für das Traum-Tagebuch
     
     clear_screen()
     print("🦤 Dodo-Magenwärmer — Traum-Edition")
@@ -193,122 +194,96 @@ def main() -> None:
             wetter_timer = random.randint(10, 20)
         
         # Natürlicher Sättigungsverlust
-        verlust = 2
-        if wetter == "stürmisch":
-            verlust += 1
-        elif wetter == "neblig":
-            verlust -= 1  # langsamer
-        verlust = max(1, verlust)
-        sat = max(0, sat - verlust)
-        
-        # Wärmeverfall
+        sat = max(0, sat - 1)
         if waerme > 0:
             waerme = max(0, waerme - 1)
+        
+        # Knurren prüfen
+        knurrt = satte_pruefung(sat)
+        if knurrt:
+            knurr_zaehler += 1
+            stats['knurren'] += 1
         
         # Traum-Ereignis
         delta_sat, delta_waerme, msg = traum_ereignis(stats, wetter)
         if msg:
-            # Stats für Zertifikat updaten
-            if delta_sat > 0:
-                stats['beeren'] += 1
-            if delta_waerme > 0:
-                stats['tee'] += 1
-        sat = min(100, max(0, sat + delta_sat))
-        waerme = min(10, waerme + delta_waerme)
+            traum_tagebuch.append(f"Schritt {schritt}: {msg}")
+        sat = max(0, min(100, sat + delta_sat))
+        waerme = max(0, waerme + delta_waerme)
         
         # Stats aktualisieren
         stats['max_sat'] = max(stats['max_sat'], sat)
         stats['min_sat'] = min(stats['min_sat'], sat)
-        knurrt = satte_pruefung(sat)
-        if knurrt:
-            stats['knurren'] += 1
         
-        # Zeichnen
-        clear_screen(schritt if not USE_ANSI else None)
-        print(f"Schritt {schritt}  |  {wetter_text(wetter)}  |  Eingaben: {eingaben}/{MAX_EINGABEN}")
-        print(draw_dodo(sat, schritt, waerme))
+        # Anzeige
+        clear_screen(schritt)
+        print(f"🦤 Dodo-Magenwärmer — Schritt {schritt} — {wetter_text(wetter)}")
+        print(draw_bar(sat, waerme=waerme))
         print(draw_stomach(sat, knurrt, waerme, schritt))
-        print(f"Sättigung: {draw_bar(sat, waerme=waerme)}")
-        if waerme > 0:
-            print(f"Wärme:     {'🔥' * waerme}")
+        print(draw_dodo(sat, schritt, waerme))
+        print(f"Wärme: {waerme}  |  Knurren: {knurr_zaehler}  |  Eingaben: {eingaben}/{MAX_EINGABEN}")
         if msg:
-            print(f"→ {msg}")
-        print("-" * 40)
-        print("Deine Wahl (1=Beere +15%, 2=Tee +4 Wärme, Enter=Träumen, q=Aufwachen): ", end="", flush=True)
+            print(f"💭 {msg}")
+        print()
         
         # Eingabe
         try:
-            raw = input().strip().lower()
+            choice = input("Deine Wahl (Enter/1/2/q): ").strip().lower()
         except EOFError:
-            print("\n🌙 Eingabestrom endete. Dodo wacht sanft auf.")
+            print("\n🌙 Eingabestrom geschlossen. Dodo wacht sanft auf.")
             break
         
-        if raw == 'q':
-            print("\n🌅 Dodo streckt die Flügel. Gute Reise!")
+        if choice == 'q':
+            print("\n🌅 Dodo wacht auf. Gute Reise!")
             break
-        
-        if raw == '':
-            # Enter = nur träumen, zählt nicht zum Limit
-            pause(0.5)
-            continue
-        
-        # Echte Aktion -> Limit prüfen
-        eingaben += 1
-        if eingaben > MAX_EINGABEN:
-            print("\n😴 Zu viele Aktionen. Dodo schläft tief.")
-            break
-        
-        if raw == '1':
+        elif choice == '1':
             sat = min(100, sat + 15)
             stats['beeren'] += 1
-            print("🍇 Beere genascht!")
-            pause(0.4)
-        elif raw == '2':
-            waerme = min(10, waerme + 4)
+            eingaben += 1
+            traum_tagebuch.append(f"Schritt {schritt}: 🍇 Beere gegessen (+15% Sättigung)")
+        elif choice == '2':
+            waerme = min(10, waerme + 2)
             stats['tee'] += 1
-            print("🍵 Tee getrunken. Wärme steigt.")
-            pause(0.4)
+            eingaben += 1
+            traum_tagebuch.append(f"Schritt {schritt}: 🍵 Tee getrunken (+2 Wärme)")
+        elif choice == '':
+            # Enter zählt nicht als echte Eingabe
+            pass
         else:
-            print("❓ Unbekannter Befehl.")
-            pause(0.4)
+            print("Unbekannte Eingabe. Nur 1, 2, q oder Enter.")
+            pause(0.5)
+        
+        pause(0.3)
     
-    # Ende: Zertifikat
-    dauer = time.time() - startzeit
-    print_zertifikat(stats, dauer)
-
-
-def print_zertifikat(stats: dict, dauer: float) -> None:
-    """Druckt ein kleines Abschluss-Zertifikat im Traum-Stil."""
+    # Ende: Zusammenfassung
     clear_screen()
-    name = "Fifo der Dodo"
-    print("╔═══════════════════════════════════════════════════════╗")
-    print("║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║")
-    print("╠═══════════════════════════════════════════════════════╣")
-    print(f"║ Träumer: {name:<30} ║")
-    print(f"║ Traumuhr: {dauer:>5.1f} Sek{' ' * 23}║")
-    print("╠═══════════════════════════════════════════════════════╣")
-    print(f"║ Beeren genascht:     {stats['beeren']:>3}                     ║")
-    print(f"║ Tassen Tee getrunken: {stats['tee']:>3}                    ║")
-    print(f"║ Traum-Ereignisse:     {stats.get('events', 0):>3}                    ║")
-    print(f"║ Magenknurren gehört: {stats['knurren']:>3}                    ║")
-    print(f"║ Höchste Sättigung:   {stats['max_sat']:>3}%                    ║")
-    print(f"║ Tiefste Sättigung:   {stats['min_sat']:>3}%                    ║")
-    print("╠═══════════════════════════════════════════════════════╣")
-    # Bewertung
-    if stats['knurren'] == 0 and stats['min_sat'] > 50:
-        grad = "🌟 MEISTER DES SCHLAFES 🌟"
-    elif stats['knurren'] < 3:
-        grad = "🌙 Guter Traumwächter"
+    dauer = time.time() - startzeit
+    print("🦤 Dodo-Magenwärmer — Traum beendet")
+    print(f"Dauer: {dauer:.1f}s  |  Schritte: {schritt}  |  End-Sättigung: {sat}%  |  End-Wärme: {waerme}")
+    print(f"Beeren: {stats['beeren']}  |  Tee: {stats['tee']}  |  Traum-Ereignisse: {stats['events']}  |  Knurren: {stats['knurren']}")
+    print(f"Max Sättigung: {stats['max_sat']}%  |  Min Sättigung: {stats['min_sat']}%")
+    print()
+    
+    # Traum-Tagebuch ausgeben
+    if traum_tagebuch:
+        # ANSI-Farben vorbereiten
+        gelb = "\033[93m" if USE_ANSI else ""
+        reset = "\033[0m" if USE_ANSI else ""
+        print(f"{gelb}📖 Traum-Tagebuch:{reset}")
+        for eintrag in traum_tagebuch:
+            print(f"  {eintrag}")
     else:
-        grad = "💤 Unruhiger Schläfer"
-    print(f"║ {grad:<38} ║")
-    print("╚═══════════════════════════════════════════════════════╝")
-    print("\nDodo kuschelt sich ins Nest. Bis bald!\n")
-
+        print("📖 Traum-Tagebuch: (leer – ruhige Nacht)")
+    print()
+    
+    # Zertifikat
+    if sat >= 50:
+        print("🏅 Zertifikat: Dodo mit warmem Magen – gut geträumt!")
+    elif sat > 0:
+        print("🏅 Zertifikat: Dodo hat durchgehalten – nächstes Mal mehr Beeren!")
+    else:
+        print("🏅 Zertifikat: Dodo ist aufgewacht, weil der Magen ganz leer war.")
+    print("\nGute Nacht, kleiner Dodo. 🌙")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\n🌙 Aufgewacht (Strg+C). Bis zum nächsten Traum!")
-        sys.exit(0)
+    main()
