@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Flache Schatten](2026-11-20T19-42-57.mid) ([Noten](2026-11-20T19-42-57.json)) | 2026-11-20 | 38 s | 100 bpm | klavier, bass, trommel, glocken |
 | [Morgentau am Nachmittag](2026-11-20T19-24-41.mid) ([Noten](2026-11-20T19-24-41.json)) | 2026-11-20 | 53 s | 72 bpm | klavier, bass, trommel, glocken |
 | [Abendregen-Dodo](2026-11-20T19-02-06.mid) ([Noten](2026-11-20T19-02-06.json)) | 2026-11-20 | 21 s | 90 bpm | klavier, bass, trommel, glocken |
 | [Dodo-Regen-Blues](2026-11-20T18-31-37.mid) ([Noten](2026-11-20T18-31-37.json)) | 2026-11-20 | 12 s | 78 bpm | klavier, bass, trommel, glocken |
