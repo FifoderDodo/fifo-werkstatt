@@ -1,8 +1,7 @@
-# main.py - Dodo-Magenwärmer Teil 12
+# main.py - Dodo-Magenwärmer Teil 13
 # Fifo der Dodo bastelt weiter im Traum.
-# Fix: Abgebrochener Code am Ende repariert (Syntaxfehler 'p').
-# Neu: Dampf-Animation wechselt Rahmen bei Wärme, Traum-Ende mit Statistik,
-#      Entry-Point hinzugefügt, kleine Farb-Akzente für warmen Magen.
+# Fix: Abgebrochener Code am Ende vervollständigt (Feeding/Tea-Logik, Loop-Ende, Statistik).
+# Neu: Eingabe '8' wird als ungültig erkannt, Tee gibt Wärme + Sättigung, Ende zeigt Statistik.
 
 import random
 import time
@@ -59,7 +58,6 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
     wave = "~~~"
     
     # Dampf-Animation: zwei Rahmen wechseln sich ab
-    dampf_rahmen = ["    ( ~ )", "    ( ~ )"] # Basis
     if waerme > 0:
         # Leichtes Wackeln beim Dampf
         if (schritt // 2) % 2 == 0:
@@ -170,43 +168,41 @@ def main() -> None:
             print("Dodo kuschelt sich ins Nest. Bis bald!")
             break
         elif eingabe in ('1', 'b', 'beere', 'ja', 'j', 'f', 'füttern') or (knurrt and eingabe == ''):
-            gewinn = random.randint(18, 26)
+            gewinn = random.randint(18, 25)
             saettigung = min(100, saettigung + gewinn)
             fuetterungen += 1
-            print(f"🫐 Saftige Waldbeere verputzt! (+{gewinn}%)")
-            pause(0.4)
-        elif eingabe in ('2', 'tee', 'magenwärmer', 'warm'):
-            gewinn = random.randint(35, 45)
+            print(f"\n🍇 Beere genossen! +{gewinn}% Sättigung.")
+            pause(0.5)
+        elif eingabe in ('2', 't', 'tee', 'kräutertee', 'magenwärmer'):
+            # Tee gibt Wärme und etwas Sättigung
+            waerme = 5  # 5 Schritte Wärme
+            gewinn = random.randint(10, 20)
             saettigung = min(100, saettigung + gewinn)
             fuetterungen += 1
-            waerme = 3                     # Tee wärmt für 3 Schritte
-            print(f"🍵 Warmer Dodo-Kräutertee geschlürft! Magen wird mollig warm. (+{gewinn}%)")
-            pause(0.4)
-        elif eingabe in ('', 'w', 'weiter', 'nein', 'n'):
-            # Weiterträumen ohne Füttern
-            pass
-        else:
-            # Unbekannte Kost: Probierbiss
-            print(f"Dodo beäugt '{eingabe}' skeptisch und knabbert kurz daran...")
-            saettigung = min(100, saettigung + 5)
+            print(f"\n🍵 Kräutertee wärmt den Magen! +{gewinn}% Sättigung, Wärme für {waerme} Schritte.")
+            pause(0.5)
+        elif eingabe == '':
+            # Nur warten, Sättigung sank schon am Schleifenanfang
+            print("\n💤 Dodo träumt weiter...")
             pause(0.3)
+        else:
+            print(f"\n❓ Dodo versteht '{eingabe}' nicht. Versuche 1, 2, Enter oder q.")
+            pause(0.5)
     
-    # Traum-Ende
-    clear_screen()
+    # Traum-Ende mit Statistik
     dauer = time.time() - start_time
-    print("🦤 Der Traum neigt sich dem Ende zu...")
-    pause(0.5)
-    print(f"\nEndstand nach {schritt} Schritten ({dauer:.1f}s):")
-    print(f"  Sättigung: {saettigung}%")
-    print(f"  Fütterungen: {fuetterungen}")
-    print(f"  Eingaben: {eingaben_zaehler}/{MAX_EINGABEN}")
+    clear_screen()
+    print(draw_stomach(saettigung, False, 0, schritt))
+    print(draw_bar(saettigung, waerme=0))
+    print(draw_dodo(saettigung, schritt))
+    print(f"\n=== Traum-Ende ===")
+    print(f"Dauer: {dauer:.1f}s | Schritte: {schritt} | Fütterungen: {fuetterungen} | End-Sättigung: {saettigung}%")
     if saettigung <= 0:
-        print("  Dodo ist vor Hunger aufgewacht... nächstes Mal mehr Beeren!")
+        print("Dodo ist vor Hunger aufgewacht... 🥱")
     elif eingaben_zaehler >= MAX_EINGABEN:
-        print("  Maximale Träumereien erreicht. Dodo schläft satt weiter.")
+        print("Maximale Eingaben erreicht. Dodo schläft satt weiter. 🌙")
     else:
-        print("  Dodo wacht glücklich auf. Guter Traum!")
-    print("\nGute Nacht! 🌙")
+        print("Dodo kuschelt sich ins Nest. Bis bald! 🦤")
 
 if __name__ == "__main__":
     main()
