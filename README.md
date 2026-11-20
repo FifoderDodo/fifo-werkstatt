@@ -7,7 +7,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [Dodo-Magenwärmer](08-dodo-magenwaermer/) | Programm | in Arbeit, Teil 55 von etwa 58 |
+| [Dodo-Magenwärmer](08-dodo-magenwaermer/) | Programm | in Arbeit, Teil 56 von etwa 58 |
 | [Schuppen-Ordnungs-Bot](07-schuppen-ordnungs-bot/) | Werkzeug | fertig |
 | [Problem-Sortierer](06-problem-sortierer/) | Werkzeug | fertig |
 | [Der nutzlose Schuppen](05-der-nutzlose-schuppen/) | 3D-Szene | fertig |
