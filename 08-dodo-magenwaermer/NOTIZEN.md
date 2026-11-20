@@ -3031,3 +3031,80 @@ Magen:
 
 Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Dodo watschelt weg. Tschüss!
 ```
+
+## Teil 48 (20.11.2026 13:09)
+Die draw_stomach-Funktion wurde vervollständigt mit Peristaltik (sinusförmige Wandbewegung), animierten Füllwellen und interpolierter Füllfarbe. Kommentare und Struktur wurden über alle Funktionen hinweg verbessert (Docstrings, Parameter-Dokumentation, Erklärungen zu Algorithmen). Der Hauptloop wurde ergänzt und das Programm ist vollständig lauffähig.
+
+```
+ (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe '4' nicht. Versuch f, w oder q.
+
+--- Schritt 12 ---
+Sättigung: [###########.............]  47%  Feder: -~
+Magen:
+           
+   /      \ 
+  /      \  
+  /      \  
+ /≈≈≈≈≈≈\   
+ /~~~~~~\   
+  /      \  
+      V      
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe 'n' nicht. Versuch f, w oder q.
+
+--- Schritt 13 ---
+Sättigung: [###########.............]  46%  Feder: -~
+Magen:
+           
+   /      \ 
+  /      \  
+  /      \  
+ /≈≈≈≈≈≈\   
+ /~~~~~~\   
+  /      \  
+      V      
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe '8' nicht. Versuch f, w oder q.
+
+--- Schritt 14 ---
+Sättigung: [##########..............]  45%  Feder: ~
+Magen:
+           
+   /      \ 
+  /      \  
+  /      \  
+ /≈≈≈≈≈≈\   
+ /≈≈≈≈≈≈\   
+  /      \  
+      V      
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe 'hallo' nicht. Versuch f, w oder q.
+
+--- Schritt 15 ---
+Sättigung: [##########..............]  44%  Feder: ~
+Magen:
+           
+   /      \ 
+  /      \  
+  /      \  
+ /≈≈≈≈≈≈\   
+ /≈≈≈≈≈≈\   
+  /      \  
+      V      
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe '6' nicht. Versuch f, w oder q.
+
+--- Schritt 16 ---
+Sättigung: [##########..............]  43%  Feder: ~
+Magen:
+           
+   /      \ 
+  /      \  
+ /      \   
+ /≈≈≈≈≈≈\   
+  /≈≈≈≈≈≈\  
+  /      \  
+      V      
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Dodo watschelt weg. Tschüss!
+```
