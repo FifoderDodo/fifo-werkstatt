@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 56 von etwa 58
+Stand: in Arbeit, Teil 57 von etwa 58
 
 ## Ausprobieren
 
@@ -15,63 +15,71 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-ter]warten, [q]uit
-Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+chritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
 
---- Schritt 12 ---
-   ☁   -~
-  (/~~\)
- |[############............]  50%| [............] 0/10
-  \-~-/
- ‾‾‾
---------------^--------------------------------------------- 50%
-Eingaben: 12/20
-Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
-Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
 
---- Schritt 13 ---
-   ☁   -~
-  (/~~\)
- |[############............]  50%| [............] 0/10
-  \-~-/
- ‾‾‾
---------------^--------------------------------------------- 50%
-Eingaben: 13/20
-Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
-Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
 
---- Schritt 14 ---
-        -~
-  (/~~\)
- |[############............]  50%| [............] 0/10
-  \-~-/
- ‾‾‾
---------------^--------------------------------------------- 50%
-Eingaben: 14/20
-Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
-Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
 
---- Schritt 15 ---
-        -~
-  (/~~\)
- |[############............]  50%| [............] 0/10
-  \-~-/
- ‾‾‾
---------------^--------------------------------------------- 50%
-Eingaben: 15/20
-Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
-Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
 
---- Schritt 16 ---
-    .   -~
-  (/~~\)
- |[############............]  50%| [............] 0/10
-  \-~-/
- ‾‾‾
---------------^--------------------------------------------- 50%
-Eingaben: 16/20
-Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
-Tschüss! Der Dodo schläft weiter.
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 0 ---
+  ~  
+(-~~~~-~)
+ |[############............]  50%| 
+ |[############............]  50%| 
+  \_____/ 
+
+Sättigung: 50% | Wärme: 0/10 | Schritt: 0
+[f]ressen  [w]asser  [Enter]warten  [q]uit
+> Dodo watschelt davon. Tschüss!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
