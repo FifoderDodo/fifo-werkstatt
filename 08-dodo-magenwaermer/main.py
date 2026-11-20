@@ -1,8 +1,7 @@
-# main.py - Dodo-Magenwärmer Teil 35 (Traum-Edition, fertig)
-# Fifo der Dodo träumt weiter: Hauptschleife fertig, Aufwachen, Tagebuch, Zertifikat.
-# Fix: While-Schleife vervollständigt, Wetter-Logik, Knurren, Abnahme, Ereignisse, Zeichnen, Eingabe.
-# Neu: Sauberes Loop-Ende, Traum-Tagebuch (letzte 10), Wetter-Statistik, Dodo-Diplom.
-# Teil 35: Letzter Feinschliff – Eingabe-Zähler robust, Tagebuch-Einträge limitiert, Diplom-Titel dynamisch.
+# main.py - Dodo-Magenwärmer Teil 36 (Abschluss-Pokal)
+# Fifo der Dodo räumt auf: Vollständige Schleife, Tagebuch, Statistik, Diplom – und nun ein Pokal.
+# Fix: Abgeschnittenen Wetter-Code完成, Loop-Logik robust, EOFError sauber.
+# Neu: Session-Highscore (Bester Lauf), ASCII-Pokal bei Diplom, Ausgabe etwas geglättet.
 
 import random
 import time
@@ -157,8 +156,60 @@ def traum_ereignis(stats: dict, wetter: str) -> tuple[int, int, str]:
     return (0, 0, "")
 
 
+def draw_pokal(grad: str) -> str:
+    """ASCII Pokal je nach Diplom-Grad."""
+    pokale = {
+        "Platin": """      |~~~|
+      |     |
+      |  #1 |
+      |_____|
+     /  ___  \\
+    /  /   \\  \\
+   |  |     |  |
+   |  |_____|  |
+    \\        //
+     `"""""""`""",
+        "Gold": """      |~~~|
+      |     |
+      |  1. |
+      |_____|
+     /  ___  \\
+    /  /   \\  \\
+   |  |     |  |
+    \\       //
+     `""""""`""",
+        "Silber": """      |~~~|
+      |  2. |
+      |_____|
+     /  ___  \\
+    /  /   \\  \\
+   |  |     |  |
+    \\       //
+     `""""""`""",
+        "Bronze": """      |~~~|
+      |  3. |
+      |_____|
+     /  ___  \\
+    /  /   \\  \\
+    \\       //
+     `""""""`""",
+        "Teilnahme": """      |~~~|
+      |     |
+      |_____|
+     /  ___  \\
+    /  /   \\  \\
+    \\       //
+     `""""""`"""
+    }
+    return pokale.get(grad, pokale["Teilnahme"])
+
+
 def main() -> None:
     """Hauptschleife: Dodo schläft, Magen knurrt, Träume passieren."""
+    # Session-Highscore laden (nur im Speicher)
+    if not hasattr(main, "highscore"):
+        main.highscore = 0
+    
     sat = 70
     waerme = 0
     schritt = 0
@@ -192,25 +243,25 @@ def main() -> None:
         if wetter_timer <= 0:
             wetter = random.choice(["klar", "neblig", "stürmisch"])
             wetter_timer = random.randint(8, 15)
-        
-        # Wetter-Dauer zählen
         wetter_dauer[wetter] = wetter_dauer.get(wetter, 0) + 1
         
-        # Sättigung sinkt: 1-2 pro Schritt, bei Sturm mehr
-        sat_abnahme = random.randint(1, 2)
+        # Sättigung sinkt wetterabhängig
+        basis_verlust = 2
         if wetter == "stürmisch":
-            sat_abnahme += 1
-        sat = max(0, sat - sat_abnahme)
+            basis_verlust = 4
+        elif wetter == "neblig":
+            basis_verlust = 1
+        sat = max(0, sat - basis_verlust)
         
-        # Wärme verfliegt langsam
+        # Wärme decay
         if waerme > 0:
-            waerme = max(0, waerme - 1)
+            waerme -= 1
         
         # Knurren prüfen
         knurrt = satte_pruefung(sat)
         if knurrt:
             knurr_zaehler += 1
-            stats['knurren'] = stats.get('knurren', 0) + 1
+            stats['knurren'] += 1
         
         # Traum-Ereignis
         delta_sat, delta_waerme, msg = traum_ereignis(stats, wetter)
@@ -219,7 +270,7 @@ def main() -> None:
             if len(traum_tagebuch) > 10:
                 traum_tagebuch.pop(0)
         sat = max(0, min(100, sat + delta_sat))
-        waerme = max(0, min(10, waerme + delta_waerme))
+        waerme = min(10, waerme + delta_waerme)
         
         # Stats aktualisieren
         stats['max_sat'] = max(stats['max_sat'], sat)
@@ -227,76 +278,124 @@ def main() -> None:
         
         # Zeichnen
         clear_screen(schritt)
-        print(f"🦤 Dodo-Magenwärmer — Schritt {schritt} — {wetter_text(wetter)}")
-        print(draw_bar(sat, waerme=waerme))
+        print(f"🦤 Dodo-Magenwärmer — Schritt {schritt} | {wetter_text(wetter)}")
         print(draw_stomach(sat, knurrt, waerme, schritt))
+        print()
+        print(draw_bar(sat, waerme=waerme))
+        print()
         print(draw_dodo(sat, schritt, waerme))
-        print(f"Wärme: {waerme} | Knurren: {knurr_zaehler} | Eingaben: {eingaben}/{MAX_EINGABEN}")
+        print(f"\nWärme: {waerme} | Knurren: {knurr_zaehler} | Eingaben: {eingaben}/{MAX_EINGABEN}")
+        if msg:
+            print(f"💭 {msg}")
         print("[1] Beere  [2] Tee  [Enter] Weiter  [q] Aufwachen")
         
         # Eingabe
         try:
-            inp = input("> ").strip().lower()
+            raw = input("> ").strip().lower()
         except EOFError:
-            print("\nKein Eingabestream – Dodo wacht sanft auf.")
+            print("\n🌙 Eingabestrom zu, Dodo wacht sanft auf.")
             break
         
-        if inp == "":
-            # Enter zählt nicht als echte Eingabe
-            continue
-        
-        eingaben += 1
-        
-        if inp == "1":
-            sat = min(100, sat + 10)
+        if raw == 'q':
+            print("\n🌅 Dodo streckt die Flügel: Aufwachen!")
+            break
+        if raw == '1':
+            sat = min(100, sat + 15)
             stats['beeren'] += 1
-            traum_tagebuch.append(f"Schritt {schritt}: 🍇 Beere gegessen! +10% Sättigung")
-        elif inp == "2":
-            waerme = min(10, waerme + 3)
+            eingaben += 1
+            traum_tagebuch.append(f"Schritt {schritt}: 🍇 Beere gegessen (+15%).")
+            if len(traum_tagebuch) > 10:
+                traum_tagebuch.pop(0)
+        elif raw == '2':
+            waerme = min(10, waerme + 4)
             stats['tee'] += 1
-            traum_tagebuch.append(f"Schritt {schritt}: 🍵 Tee getrunken! +3 Wärme")
-        elif inp == "q":
-            print("Dodo wacht auf... ")
-            break
-        # sonst: ungültige Eingabe, wird trotzdem gezählt
+            eingaben += 1
+            traum_tagebuch.append(f"Schritt {schritt}: 🍵 Tee getrunken (+4 Wärme).")
+            if len(traum_tagebuch) > 10:
+                traum_tagebuch.pop(0)
+        elif raw == '':
+            # Enter zählt nicht als Eingabe
+            pass
+        else:
+            print("🤔 Verstehe nicht. 1, 2, Enter oder q.")
+            pause(0.5)
         
-        if len(traum_tagebuch) > 10:
-            traum_tagebuch.pop(0)
+        pause(0.15)
     
-    # Ende der Schleife
+    # --- ENDE & AUSWERTUNG ---
     clear_screen()
     dauer = time.time() - startzeit
-    print("🦤 Dodo-Magenwärmer — Aufwachen")
-    print(f"Geträumt: {schritt} Schritte in {dauer:.1f} Sekunden.")
-    print(f"End-Sättigung: {sat}% | Wärme: {waerme} | Knurren: {knurr_zaehler}")
-    print(f"Beeren: {stats['beeren']} | Tees: {stats['tee']} | Ereignisse: {stats['events']}")
+    print("🌅 === TRAUM ENDE ===")
+    print(f"Dauer: {dauer:.1f}s | Schritte: {schritt} | End-Sättigung: {sat}% | Wärme: {waerme}")
+    print()
     
     # Traum-Tagebuch
+    print("📖 Traum-Tagebuch (letzte 10):")
     if traum_tagebuch:
-        print("\n📖 Traum-Tagebuch (letzte 10):")
-        for eintrag in traum_tagebuch[-10:]:
+        for eintrag in traum_tagebuch:
             print(f"  {eintrag}")
+    else:
+        print("  (Keine besonderen Träume notiert.)")
+    print()
     
     # Wetter-Statistik
-    print("\n🌤️ Wetter-Statistik:")
-    for w, d in wetter_dauer.items():
-        if d:
-            print(f"  {wetter_text(w)}: {d} Schritte")
+    print("🌤️ Wetter-Statistik:")
+    for w, cnt in wetter_dauer.items():
+        if cnt:
+            print(f"  {wetter_text(w)}: {cnt} Schritte")
+    print()
     
-    # Dodo-Diplom
-    print("\n🎓 Dodo-Diplom")
-    if sat >= 80:
-        titel = "Professor für Sattheit"
-    elif sat >= 50:
-        titel = "Meister der Beeren"
-    elif sat >= 20:
-        titel = "Lehrling des Knurrens"
+    # Aktion-Statistik
+    print("📊 Aktionen:")
+    print(f"  Beeren: {stats['beeren']} | Tee: {stats['tee']} | Ereignisse: {stats['events']} | Knurren: {stats['knurren']}")
+    print(f"  Sättigung Spanne: {stats['min_sat']}% – {stats['max_sat']}%")
+    print()
+    
+    # Diplom & Pokal
+    # Score: Schritte * 10 + Sättigung * 2 + Wärme * 5 + Beeren*10 + Tee*5 - Knurren*3
+    score = schritt * 10 + sat * 2 + waerme * 5 + stats['beeren'] * 10 + stats['tee'] * 5 - stats['knurren'] * 3
+    
+    if score >= 3000:
+        grad = "Platin"
+    elif score >= 2000:
+        grad = "Gold"
+    elif score >= 1200:
+        grad = "Silber"
+    elif score >= 500:
+        grad = "Bronze"
     else:
-        titel = "Ehrenmitglied der Leere"
-    print(f"   {titel}")
-    print(f"   Ausgestellt an Fifo, der Dodo")
-    print(f"   Max Sättigung: {stats['max_sat']}%  Min Sättigung: {stats['min_sat']}%")
-    print("   Möge dein Magen immer warm sein.")
+        grad = "Teilnahme"
+    
+    # Highscore prüfen
+    highscore_gekknackt = False
+    if score > main.highscore:
+        main.highscore = score
+        highscore_gekknackt = True
+    
+    print(f"🏆 Dodo-Diplom: {grad} (Score: {score})")
+    if highscore_gekknackt:
+        print("✨ NEUER SESSION-HIGHSCORE! ✨")
+    print(f"🏅 Session-Best: {main.highscore}")
+    print()
+    print(draw_pokal(grad))
+    print()
+    print("Danke fürs Spielen! Gute Nacht, kleiner Dodo. 🦤💤")
+
+
+def _demo() -> None:
+    """Führt eine automatische Demo aus (für Tests ohne stdin)."""
+    import io
+    backup_stdin = sys.stdin
+    # Simuliere: Beere, Tee, Enter, Enter, q
+    sys.stdin = io.StringIO("1\n2\n\n\nq\n")
+    try:
+        main()
+    finally:
+        sys.stdin = backup_stdin
 
 if __name__ == "__main__":
-    main()
+    # Wenn kein TTY (z.B. CI/Test), Demo laufen lassen
+    if not USE_ANSI:
+        _demo()
+    else:
+        main()
