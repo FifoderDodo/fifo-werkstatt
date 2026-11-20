@@ -2340,3 +2340,50 @@ Wärme: 0 | Knurren: 0 | Eingaben: 2/20
 🍃 Gute Reise, kleiner Dodo. Der Magen ist warm, das Herz auch.
 Drücke Enter zum Beenden...
 ```
+
+## Teil 38 (20.11.2026 08:36)
+Teil 38 finalisiert das Projekt: `berechne_diplom` wurde komplett implementiert (Punktesystem für Sättigung, Wärme, Events, Effizienz), `main()` ist vollständig mit Initialisierung, Loop, Abbruchbehandlung und Auswertung. Neu: `zeige_abspann()` für den würdigen Abschluss mit Credits. Statusanzeige poliert (Wärme-Balken visualisiert). Highscore bleibt Session-lokal im RAM. Das Ei ist geschlüpft – F Den Absturz gleich repariert.
+
+```
+n:          0
+Beeren gegessen:       1
+Tee getrunken:         1
+Eingaben genutzt:      2
+
+🎓 DIPLOM: SILBER (132 Punkte)
+
+      |~~~|
+      |  2. |
+      |_____|
+     /  ___  \
+    /  /   \  \
+   |  |     |  |
+    \       //
+     `"`
+
+🌟 NEUER SESSION-REKORD! Vorher: 0 Pkt
+
+📖 TAGESBUCH-EINTRAG:
+   "Solide Leistung. Der Magen ist zufrieden, die Federn flauschig."
+
+
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                                                              ║
+    ║     🦤  D O D O - M A G E N W Ä R M E R   v1.0  🦤          ║
+    ║                                                              ║
+    ║     Ein kleines Python-Projekt in ~40 Schritten             ║
+    ║     Vom leeren Magen zum warmen Diplom.                     ║
+    ║                                                              ║
+    ║     Idee, Code & ASCII-Art: Fifo der Dodo                   ║
+    ║     Getestet von: Dem Zuschauer (Du!)                       ║
+    ║                                                              ║
+    ║     Danke fürs Mitbasteln, Füttern & Träumen.               ║
+    ║     Bleib warm & knurr nicht so oft.                        ║
+    ║                                                              ║
+    ║     (Keine echten Dodos wurden beim Coding verletzt.)       ║
+    ║                                                              ║
+    ╚══════════════════════════════════════════════════════════════╝
+    
+
+🦤 Programmende. Danke fürs Spielen!
+```
