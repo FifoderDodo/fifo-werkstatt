@@ -397,3 +397,60 @@ den
   0 – Beenden
 🦤 Fifo fragt: Deine Wahl? 👋 Tschüss! Der Dodo schläft.
 ```
+
+## Teil 10 (20.11.2026 23:59)
+Teil 10 fügt analytische Generatoren für primitive Formen (Kugel und Kegel) hinzu, um direkt mathematisch definierte Tiefenkarten in den Simulator einzuspeisen. Menüpunkt 6 erweitert. Den Absturz gleich repariert.
+
+```
+el)
+7 – Rohdaten (Z-Höhen) anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ ❓ Unbekannt. Bitte 0-7 eingeben.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 10) ---
+1 – Diffus (Lambert only)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch)
+4 – Lichtrichtung anpassen
+5 – Graustufen-Muster laden
+6 – Primitive Form erzeugen (Kugel / Kegel)
+7 – Rohdaten (Z-Höhen) anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ ❓ Unbekannt. Bitte 0-7 eingeben.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 10) ---
+1 – Diffus (Lambert only)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch)
+4 – Lichtrichtung anpassen
+5 – Graustufen-Muster laden
+6 – Primitive Form erzeugen (Kugel / Kegel)
+7 – Rohdaten (Z-Höhen) anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Wähle Primitive:
+  [1] Kugel
+  [2] Kegel
+Wahl (1/2): ❌ Unbekannte Form.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 10) ---
+1 – Diffus (Lambert only)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch)
+4 – Lichtrichtung anpassen
+5 – Graustufen-Muster laden
+6 – Primitive Form erzeugen (Kugel / Kegel)
+7 – Rohdaten (Z-Höhen) anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ ❓ Unbekannt. Bitte 0-7 eingeben.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 10) ---
+1 – Diffus (Lambert only)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch)
+4 – Lichtrichtung anpassen
+5 – Graustufen-Muster laden
+6 – Primitive Form erzeugen (Kugel / Kegel)
+7 – Rohdaten (Z-Höhen) anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ 🦤 Tschüss! Bis zum nächsten Mal in der Werkstatt!
+```
