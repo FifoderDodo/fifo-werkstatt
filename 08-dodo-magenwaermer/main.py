@@ -140,26 +140,37 @@ def draw_waerme_bar(waerme: int, max_waerme: int = 10, breite: int = 12) -> str:
 
 
 def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> str:
-    """Zeichnet den ASCII-Magen mit Füllung, Knurren und animiertem Dampf bei Wärme."""
+    """Zeichnet den ASCII-Magen mit Füllung, Knurren, animiertem Dampf, Peristaltik und Wellen."""
     level = max(0, min(5, int(wert / 20)))
-    wave = "~~~"
+    wave_chars = "~~~"
     
+    # 1. Header Animation (Dampf / Knurren / Zufrieden)
     if waerme > 0:
+        # Dampf blubbert nach links/rechts
         if (schritt // 2) % 2 == 0:
             header = "    ( ~ )"
         else:
             header = "   ( ~ ) "
     elif wert >= 50:
-        header = "    ( ~ )"
+        # Zufriedenes Glucksen (leichtes Wackeln)
+        if (schritt // 3) % 2 == 0:
+            header = "    ( ~ )"
+        else:
+            header = "    (~ ) "
     elif knurrt:
-        header = "   *GRRRR*"
+        # Knurren schüttelt den Magen
+        if (schritt // 1) % 2 == 0:
+            header = "  * GRRR *"
+        else:
+            header = " * GRRRR *"
     else:
         header = "           "
     
     magen_farbe = "\033[38;5;208m" if (waerme > 0 and USE_ANSI) else ""
     reset = "\033[0m" if USE_ANSI else ""
     
-    lines = [
+    # Basis-Linien des Magens
+    base_lines = [
         "  \\       //",
         "   \\     //",
         "    \\   //",
@@ -167,98 +178,118 @@ def draw_stomach(wert: int, knurrt: bool, waerme: int = 0, schritt: int = 0) -> 
         "      \\//",
         "       V"
     ]
+    
+    # 2. Peristaltik / Atmung: Horizontales Wackeln der Wände
+    # Stärke hängt von Sättigung ab (voller Magen bewegt sich weniger stark, aber sichtbar)
+    # Frequenz langsamer als Feder
+    breath_cycle = (schritt * 0.05) % 1.0
+    breath_intensity = ease_in_out_quad(breath_cycle) # 0.0 -> 1.0 -> 0.0
+    # Max Offset 1 Zeichen links/rechts
+    wall_offset = int(round((breath_intensity - 0.5) * 0.8)) # -0.4 bis 0.4 -> gerundet -0, 0, 0, 1... besser: sinus
+    # Einfacher Sinus für Wackeln:
+    wall_wobble = int(round(math.sin(schritt * 0.3) * 0.5)) # -1, 0, 1
+    
+    # 3. Füllstands-Wellen Animation
+    wave_offset = (schritt * 2) % len(wave_chars) # Scrollt die Welle
+    
     fill_start = 5 - level
     result = [header]
     
-    for i, line in enumerate(lines):
-        if i >= fill_start and level > 0 and i < 5:
-            left = line.find('\\')
-            right = line.find('//')
+    for i, line in enumerate(base_lines):
+        # Wende Wand-Wackeln an (Einrückung ändern)
+        # Wir manipulieren den String: führende Leerzeichen +/- wall_wobble
+        # Aber Vorsicht: Zeichenbreite. Einfacher: Prefix Leerzeichen anpassen.
+        # Die Linien haben unterschiedliche Einrückung. Wir parsen den Prefix.
+        stripped = line.lstrip()
+        prefix_len = len(line) - len(stripped)
+        new_prefix_len = max(0, prefix_len + wall_wobble)
+        animated_line = " " * new_prefix_len + stripped
+        
+        # Füllung zeichnen
+        if i >= fill_start and level > 0 and i < 5: # Nur die 5 Schalen-Linien, nicht die Spitze V
+            # Finde die inneren Grenzen \ und //
+            # In animated_line sind die Backslashes evtl. verschoben.
+            left = animated_line.find('\\')
+            right = animated_line.find('//')
+            
             if left != -1 and right != -1 and right > left:
-                mid = line[left+2:right]
-                filled = (wave * (len(mid) // 3 + 1))[:len(mid)]
-                line = line[:left+2] + filled + line[right:]
+                mid_content = animated_line[left+2:right]
+                # Animierte Welle generieren
+                filled = ""
+                for k in range(len(mid_content)):
+                    idx = (k + wave_offset) % len(wave_chars)
+                    filled += wave_chars[idx]
+                
+                line = animated_line[:left+2] + filled + animated_line[right:]
+            else:
+                line = animated_line
+        else:
+            line = animated_line
+            
         result.append(line)
-    return "\n".join(result)
+    
+    return f"{magen_farbe}{'\n'.join(result)}{reset}"
 
 
 def main() -> None:
-    """Hauptprogramm: Dodo-Magenwärmer Simulation."""
-    saettigung = 100
+    """Hauptschleife: Dodo-Magenwärmer Simulation."""
+    saettigung = 50
     waerme = 0
     schritt = 0
-    max_schritte = 20
     eingaben = 0
     
-    print("Dodo-Magenwärmer gestartet. Drücke Enter für nächsten Schritt,")
-    print("'f' zum Füttern, 'q' zum Beenden.")
-    pause(1.5)
+    print("🦤 Dodo-Magenwärmer v0.46 gestartet. Strg+C oder 'q' zum Beenden.")
+    pause(0.5)
     
-    while schritt < max_schritte and saettigung > 0:
+    while eingaben < MAX_EINGABEN:
         schritt += 1
         clear_screen(schritt)
         
-        # Knurren prüfen
-        knurrt = satte_pruefung(saettigung) and random.random() < 0.3
+        # Simulation: Verdauung & Abkühlung
+        saettigung = max(0, saettigung - random.randint(0, 2))
+        if waerme > 0:
+            waerme = max(0, waerme - 1)
         
-        # Feder zeichnen
-        feder = draw_feder(saettigung, schritt)
+        # Zufälliges Knurren bei Hunger
+        knurrt = saettigung < 30 and random.random() < 0.3
         
-        # Balken zeichnen
-        bar = draw_bar(saettigung, 24, waerme)
-        waerme_bar = draw_waerme_bar(waerme, 10, 12)
+        # Anzeige
+        print(f"Schritt: {schritt}/20")
+        print(f"Sättigung: {draw_bar(saettigung, waerme=waerme)}")
+        print(f"Feder:     {draw_feder(saettigung, schritt)}")
+        print(f"Wärme:     {draw_waerme_bar(waerme)}")
+        print(f"Magen:\n{draw_stomach(saettigung, knurrt, waerme, schritt)}")
         
-        # Magen zeichnen
-        magen = draw_stomach(saettigung, knurrt, waerme, schritt)
+        if satte_pruefung(saettigung):
+            print("\n⚠️  Magen knurrt leer! Füttern nicht vergessen.")
         
-        # Ausgabe
-        print(f"Schritt: {schritt}/{max_schritte}")
-        print(f"Sättigung: {bar}  Feder: {feder}")
-        print(f"Wärme:     {waerme_bar}")
-        print("Magen:")
-        print(magen)
-        if knurrt:
-            print("\n*** Der Magen knurrt! ***")
-            if USE_ANSI:
-                sys.stdout.write("\a")  # Piep
-                sys.stdout.flush()
-        
-        # Eingabe
         try:
-            aktion = input("\nAktion (f=füttern, q=beenden, Enter=weiter): ").strip().lower()
-            eingaben += 1
-            if eingaben > MAX_EINGABEN:
-                print("Maximale Anzahl an Eingaben erreicht.")
-                break
-        except EOFError:
-            print("\nEingabeende erkannt. Tschüss!")
+            aktion = input("\nAktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\n\n🦤 Dodo watschelt schlafend davon. Tschüss!")
             break
+        
+        eingaben += 1
         
         if aktion == 'q':
-            print("Bis bald, kleiner Dodo!")
+            print("\n🦤 Dodo watschelt zufrieden davon. Bis bald!")
             break
         elif aktion == 'f':
-            # Füttern: Sättigung erhöhen, Wärme etwas erhöhen
             saettigung = min(100, saettigung + random.randint(15, 30))
-            waerme = min(10, waerme + 1)
-            print("Mampf! Das hat gutgetan.")
-            pause(0.8)
-        
-        # Natürlicher Verbrauch
-        saettigung = max(0, saettigung - random.randint(5, 15))
-        # Wärme nimmt langsam ab
-        if waerme > 0 and random.random() < 0.2:
-            waerme -= 1
-        
-        pause(0.3)
+            print("🦤 *schluck* *gluck* ... lecker!")
+            pause(0.5)
+        elif aktion == 'w':
+            waerme = min(10, waerme + random.randint(2, 4))
+            print("🦤 *kuschelt sich an die Wärmflasche* 🔥")
+            pause(0.5)
+        elif aktion == '':
+            pass # Nur Zeit verstreichen lassen
+        else:
+            print(f"🦤 Verstehe '{aktion}' nicht. Versuch f, w oder q.")
+            pause(0.3)
     
-    if saettigung <= 0:
-        clear_screen()
-        print("Der Dodo ist vor Hunger ohnmächtig geworden...\n")
-        print(draw_stomach(0, False, 0, schritt))
-        print("\nSpiel zu Ende. Nächstes Mal besser füttern!")
-    else:
-        print("\nSimulation beendet. Der Dodo ist zufrieden.")
+    if eingaben >= MAX_EINGABEN:
+        print("\n🦤 Maximaler Simulationsschritt erreicht. Dodo schläft ein.")
 
 if __name__ == "__main__":
     main()
