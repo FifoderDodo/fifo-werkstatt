@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tiefenkarte: Der Nachmittag atmet im Mondlicht
+2026-11-20
+
+![Tiefenkarte: Der Nachmittag atmet im Mondlicht](20261120-210907.svg)
+
 ### Nachmittagsschwere: Felsen atmen nicht
 2026-11-20
 
