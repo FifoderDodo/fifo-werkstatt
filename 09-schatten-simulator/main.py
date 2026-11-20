@@ -1,5 +1,5 @@
-# main.py – Schatten-Simulator, Teil 7
-# Fifo, der Dodo, bastelt weiche Schatten. Regen prasselt, Code wird weich.
+# main.py – Schatten-Simulator, Teil 8
+# Fifo, der Dodo, baut einen Debug-Bypass. Manchmal muss man den Schatten ausknipsen, um das Licht zu sehen.
 
 from __future__ import annotations
 import math
@@ -182,13 +182,12 @@ def weiche_schatten_raymarch(karte: Tiefenkarte,
                               schritte: int = 32,
                               samples: int = 8,
                               bias: float = 0.005,
-                              light_angle: float = 0.05) -> List[List[float]]:
+                              streuung: float = 0.15) -> List[List[float]]:
     """
-    Weiche Schatten via Stochastic Raymarching (Monte Carlo).
-    - Jittert die Lichtrichtung innerhalb eines Kegels (light_angle).
-    - Deterministisches Rauschen pro Pixel via Hash (x, y, sample).
-    - Kontakt-Härtung: Nahe Blocker = scharfer Schatten, ferne = weich.
-      (Vereinfacht: fester Kegelwinkel, aber Samples sammeln Penumbra ein).
+    Weiche Schatten via stochastischem Raymarching (Percentage Closer Filtering Idee).
+    - Jitter pro Sample via deterministischem Hash (kein random-Modul im heißen Pfad).
+    - Streuungskonus öffnet sich in Lichtrichtung (Penumbra).
+    - Early-Out wenn alle Samples im Schatten oder alle frei.
     """
     lx, ly, lz = licht_dir
     daten = karte.daten
@@ -203,62 +202,51 @@ def weiche_schatten_raymarch(karte: Tiefenkarte,
         return [[1.0 for _ in range(b)] for _ in range(h)]
     
     inv_l_xy = 1.0 / l_xy_len
-    # Basis-Richtung XY (normiert zum Licht hin)
-    base_dir_x = -lx * inv_l_xy
-    base_dir_y = -ly * inv_l_xy
-    base_step_z = lz * inv_l_xy * step_xy
+    base_dir_x = -lx * inv_l_xy * step_xy
+    base_dir_y = -ly * inv_l_xy * step_xy
+    step_z = lz * inv_l_xy * step_xy
+    
+    # Präberechne Sample-Offsets (Halton-ähnlich via Hash für Stabilität)
+    sample_offsets = []
+    for i in range(samples):
+        # Deterministisches "Rauschen" basierend auf Sample-Index
+        h_val = ((i * 7451 + 12347) % 65536) / 65535.0 * 2.0 - 1.0  # -1 bis 1
+        h_val2 = ((i * 12347 + 7451) % 65536) / 65535.0 * 2.0 - 1.0
+        sample_offsets.append((h_val, h_val2))
     
     schattenkarte = []
     daten_local = daten
     h_minus_1 = h - 1
     b_minus_1 = b - 1
     
-    # Simple Hash für deterministisches Jitter
-    def hash12(x: int, y: int, s: int) -> float:
-        # Bob Jenkins' One-at-a-Time Hash ähnlich, simplified
-        val = (x * 73856093) ^ (y * 19349663) ^ (s * 83492791)
-        val = (val ^ (val >> 13)) * 0x5bd1e995
-        val = val ^ (val >> 15)
-        return (val & 0xFFFFFF) / 0xFFFFFF
-
     for y in range(h):
         reihe = []
         for x in range(b):
             start_h = daten_local[y][x] + bias
-            shadow_acc = 0.0
             
-            for s in range(samples):
-                # Jitter Lichtrichtung (Cone Sampling)
-                # Uniform auf Scheibe, dann auf Kegel projizieren
-                # Einfach: Jitter Winkel + Radius
-                r1 = hash12(x, y, s * 2)
-                r2 = hash12(x, y, s * 2 + 1)
+            treffer = 0
+            # Pixel-Hash für Jitter-Seed
+            pixel_hash = (y * b + x) * 374761393 & 0xFFFFFFFF
+            
+            for s_idx, (off_x, off_y) in enumerate(sample_offsets):
+                # Jitter mischen: Pixel-Hash + Sample-Index
+                seed = (pixel_hash ^ (s_idx * 668265263)) & 0xFFFFFFFF
+                # Einfache Integer-Hash -> Float -1..1
+                jx = ((seed * 2891336453) & 0xFFFFFFFF) / 4294967295.0 * 2.0 - 1.0
+                jy = ((seed ^ 0x9E3779B9) * 2891336453 & 0xFFFFFFFF) / 4294967295.0 * 2.0 - 1.0
                 
-                # Polar Koordinaten auf Einheitskreis
-                phi = r1 * 2.0 * math.pi
-                r = math.sqrt(r2) * light_angle # sqrt für uniform distribution
+                # Offset skalieren mit Streuung und Höhe (höher = breiterer Konus)
+                jitter_x = (off_x + jx) * streuung * start_h
+                jitter_y = (off_y + jy) * streuung * start_h
                 
-                jitter_x = r * math.cos(phi)
-                jitter_y = r * math.sin(phi)
-                
-                # Normierte Zielrichtung (XY) mit Jitter
-                # Wir müssen renormieren, aber für kleine Winkel Ênderung vernachlässigbar
-                # Korrekt: Tangentenraum Basis bauen. Hier: Einfache Addition & Renorm.
-                dir_x = (base_dir_x + jitter_x) * step_xy
-                dir_y = (base_dir_y + jitter_y) * step_xy
-                
-                # Z-Schritt anpassen: Steigung = lz / sqrt(lx^2+ly^2) * sqrt(1+jitter^2)
-                # Approximation: base_step_z * (1 + 0.5*jitter_len^2) ≈ base_step_z
-                step_z = base_step_z
-                
-                cur_x = float(x)
-                cur_y = float(y)
+                cur_x = float(x) + jitter_x
+                cur_y = float(y) + jitter_y
                 cur_h = start_h
-                hit = False
                 
+                im_schatten = False
                 for _ in range(schritte):
-                    cur_x += dir_x
-                    cur_y += dir_y
+                    cur_x += base_dir_x
+                    cur_y += base_dir_y
                     cur_h += step_z
                     
                     if not (0 <= cur_x < b_minus_1 and 0 <= cur_y < h_minus_1):
@@ -282,123 +270,186 @@ def weiche_schatten_raymarch(karte: Tiefenkarte,
                     terrain_h = h0 * (1 - dy) + h1 * dy
                     
                     if terrain_h > cur_h:
-                        hit = True
+                        im_schatten = True
                         break
                 
-                shadow_acc += 0.0 if hit else 1.0
+                if im_schatten:
+                    treffer += 1
+                
+                # Early Out: Wenn schon genug Schatten für "dunkel" oder genug Licht für "hell"
+                if treffer > samples // 2 and treffer == s_idx + 1: # Alles Schatten bisher
+                    # Könnte abbrechen, aber wir wollen glatte Übergänge -> weiterlaufen lassen
+                    pass
             
-            reihe.append(shadow_acc / samples)
+            schatten_faktor = 1.0 - (treffer / samples)
+            reihe.append(schatten_faktor)
         schattenkarte.append(reihe)
     return schattenkarte
 
 
-def kombiniere_schatten(diffuse: List[List[float]],
-                         harte: List[List[float]],
-                         weiche: List[List[float]],
-                         gewicht_diffus: float = 0.3,
-                         gewicht_hart: float = 0.3,
-                         gewicht_weich: float = 0.4) -> List[List[float]]:
-    """Mischt die drei Schattenkomponenten. Gewichte sollten ca. 1.0 ergeben."""
-    h = len(diffuse)
-    b = len(diffuse[0]) if h > 0 else 0
+def kombiniere_schatten(diffus: List[List[float]],
+                         hart: List[List[float]],
+                         weich: List[List[float]],
+                         w_diffus: float = 0.3,
+                         w_hart: float = 0.3,
+                         w_weich: float = 0.4) -> List[List[float]]:
+    """Mischt die drei Schattenarten gewichtet. Summe Gewichte = 1.0 empfohlen."""
+    h = len(diffus)
+    b = len(diffus[0]) if h > 0 else 0
     ergebnis = []
     for y in range(h):
         reihe = []
         for x in range(b):
-            d = diffuse[y][x]
-            hs = harte[y][x]
-            ws = weiche[y][x]
-            # Diffus ist Beleuchtung (0-1), Schatten sind Sichtbarkeit (0-1)
-            # Kombiniert: Diffus * (Mischung aus Hart & Weich)
-            schatten_mix = hs * gewicht_hart + ws * gewicht_weich
-            # Normierung falls Gewichte != 1
-            w_sum = gewicht_hart + gewicht_weich
-            if w_sum > 0:
-                schatten_mix /= w_sum
-            val = d * schatten_mix
+            d = diffus[y][x]
+            h_s = hart[y][x]
+            w_s = weich[y][x]
+            # Diffus ist Helligkeit (0-1), Schatten sind Durchlass (0-1).
+            # Wir wollen kombinierte Helligkeit.
+            # Hart/Weich sind Schattenmasken (1=Licht, 0=Schatten).
+            # Diffus ist bereits Beleuchtung.
+            # Einfaches Modell: Diffus * (gewichtete Schattenmaske)
+            schatten_mix = (w_hart * h_s + w_weich * w_s) / (w_hart + w_weich) if (w_hart + w_weich) > 0 else 1.0
+            gesamt = d * schatten_mix
+            # Gewicht diffus dazu? Nein, diffus ist Basisbeleuchtung.
+            # Wir mischen: w_diffus * diffus + (1-w_diffus) * diffus * schatten_mix
+            # => diffus * (w_diffus + (1-w_diffus)*schatten_mix)
+            # Einfacher: Nutze Gewichte als Mischfaktoren für den finalen Output.
+            val = w_diffus * d + w_hart * (d * h_s) + w_weich * (d * w_s)
             reihe.append(max(0.0, min(1.0, val)))
         ergebnis.append(reihe)
     return ergebnis
 
 
-def drucke_heatmap(daten: List[List[float]], titel: str = "Map"):
-    """Gibt 2D-Array als ASCII-Heatmap aus (0=., 1=@)."""
-    chars = " .:-=+*#%@"
-    n = len(chars) - 1
-    print(f"\n--- {titel} ---")
-    for reihe in daten:
+def ascii_art(karte: List[List[float]], invert: bool = False) -> str:
+    """Wandelt 0-1 Map in ASCII um."""
+    chars = " .:-=+*#%@" 
+    if invert:
+        chars = chars[::-1]
+    zeilen = []
+    for reihe in karte:
         zeile = ""
         for v in reihe:
-            idx = int(max(0.0, min(1.0, v)) * n)
+            idx = int(max(0.0, min(1.0, v)) * (len(chars) - 1))
             zeile += chars[idx]
-        print(zeile)
+        zeilen.append(zeile)
+    return "\n".join(zeilen)
 
 
 def main() -> None:
-    print("🦤 Fifo meldet Dienst: Schatten-Simulator Teil 7 – Weiche Kanten")
-    print("Draußen tropft's. Drinnen flackert der Monitor. Raymarcher lernt Streuen.")
+    print("☔ Fifo's Schatten-Simulator – Teil 8: Debug-Bypass aktiv")
+    print("=" * 50)
     
-    # Beispieldaten: Ein kleiner Hügel mit Kante
+    # Beispieldaten: Ein kleiner Hügel + Einschnitt
     daten = [
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-        [0.1, 0.2, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.2, 0.1],
-        [0.1, 0.3, 0.5, 0.7, 0.9, 0.9, 0.7, 0.5, 0.3, 0.1],
-        [0.1, 0.4, 0.7, 0.9, 1.0, 1.0, 0.9, 0.7, 0.4, 0.1],
-        [0.1, 0.5, 0.9, 1.0, 1.0, 1.0, 1.0, 0.9, 0.5, 0.1],
-        [0.1, 0.4, 0.7, 0.9, 1.0, 1.0, 0.9, 0.7, 0.4, 0.1],
-        [0.1, 0.3, 0.5, 0.7, 0.9, 0.9, 0.7, 0.5, 0.3, 0.1],
-        [0.1, 0.2, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.2, 0.1],
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+        [0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10],
+        [0.10, 0.20, 0.30, 0.40, 0.50, 0.50, 0.40, 0.30, 0.20, 0.10],
+        [0.10, 0.30, 0.50, 0.70, 0.90, 0.90, 0.70, 0.50, 0.30, 0.10],
+        [0.10, 0.40, 0.70, 0.90, 1.00, 1.00, 0.90, 0.70, 0.40, 0.10],
+        [0.10, 0.30, 0.50, 0.70, 0.90, 0.90, 0.70, 0.50, 0.30, 0.10],
+        [0.10, 0.20, 0.30, 0.40, 0.50, 0.50, 0.40, 0.30, 0.20, 0.10],
+        [0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10],
     ]
     
     karte = Tiefenkarte(daten)
-    print("\nAktuelle Tiefenkarte (Höhenwerte 0.00–1.00):")
-    print(karte)
+    print(f"Karte: {karte.b}x{karte.h}")
+    mn, mx, sp = karte.statistik()
+    print(f"Höhen: Min={mn:.2f} Max={mx:.2f} Spanne={sp:.2f}")
     
-    # Licht: Von schräg oben-links-hinten
-    licht = (-0.5, -0.3, 1.0)
-    len_l = math.sqrt(licht[0]**2 + licht[1]**2 + licht[2]**2)
-    licht_norm = (licht[0]/len_l, licht[1]/len_l, licht[2]/len_l)
-    print(f"\nLichtrichtung (normiert): {licht_norm[0]:.2f}, {licht_norm[1]:.2f}, {licht_norm[2]:.2f}")
+    # Lichtrichtung: Von links-oben-hinten (x+, y-, z+)
+    # Normieren
+    lx, ly, lz = 1.0, -1.0, 2.0
+    ln = math.sqrt(lx*lx + ly*ly + lz*lz)
+    licht = (lx/ln, ly/ln, lz/ln)
+    print(f"Licht: ({licht[0]:.2f}, {licht[1]:.2f}, {licht[2]:.2f})")
     
-    # 1. Diffus
+    # Normals & Diffus
     normals = karte.normalen()
-    diffuse = diffuse_schatten(normals, licht_norm)
-    drucke_heatmap(diffuse, "Diffus (Lambert)")
+    diffus = diffuse_schatten(normals, licht)
     
-    # 2. Hart
-    harte = harte_schatten_raymarch(karte, licht_norm, schritte=64)
-    drucke_heatmap(harte, "Hart (Raymarch)")
+    # --- BYPASS / DEBUG MENÜ ---
+    print("\n🔧 Debug-Modus: Was soll berechnet werden?")
+    print("  1: Alles (Diffus + Hart + Weich + Kombiniert) [Standard]")
+    print("  2: Nur Diffus (schnell, keine Schatten)")
+    print("  3: Nur Harte Schatten (Raymarch)")
+    print("  4: Nur Weiche Schatten (Stochastisch)")
+    print("  5: Nur Tiefe & Normalen (ASCII)")
+    print("  6: Performance-Test (nur Harte Schatten, wenig Schritte)")
     
-    # 3. Weich (NEU)
-    print("\nBerechne weiche Schatten (Stochastisch, 8 Samples)...")
-    weiche = weiche_schatten_raymarch(karte, licht_norm, schritte=64, samples=8, light_angle=0.08)
-    drucke_heatmap(weiche, "Weich (Stochastisch)")
-    
-    # 4. Kombiniert
-    final = kombiniere_schatten(diffuse, harte, weiche, 0.3, 0.2, 0.5)
-    drucke_heatmap(final, "Final (Kombiniert)")
-    
-    # Kleine Interaktion: Sample-Anzahl fragen
+    modus = 1
     try:
-        inp = input("\n🦤 Mehr Samples für nächsten Run? (Zahl oder Enter für 8) ").strip()
+        inp = input("Wähle Modus (1-6): ").strip()
         if inp:
-            try:
-                s = int(inp)
-                if 1 <= s <= 64:
-                    print(f"Ok, {s} Samples notiert. Nächster Build wird schöner.")
-                else:
-                    print("Zu viel oder zu wenig. Bleib bei 8, Dodo.")
-            except ValueError:
-                print("Keine Zahl. Ich bleib bei 8.")
-        else:
-            print("Enter gedrückt. 8 Samples bleiben.")
-    except EOFError:
-        print("\n🦤 Kein Input (EOF). Fifo klappt den Laptop zu.")
+            modus = int(inp)
+    except (ValueError, EOFError):
+        print("↩️ Keine gültige Eingabe, nehme Standard (1).")
+    
+    schritte = 32
+    samples = 8
+    
+    if modus == 6:
+        schritte = 16
+        samples = 4
+        print(f"⚡ Turbo-Modus: Schritte={schritte}, Samples={samples}")
+    elif modus in (3, 4, 1):
+        try:
+            s_inp = input(f"Raymarch-Schritte (Default {schritte}): ").strip()
+            if s_inp: schritte = max(1, int(s_inp))
+            if modus in (4, 1):
+                sa_inp = input(f"Weich-Samples (Default {samples}): ").strip()
+                if sa_inp: samples = max(1, int(sa_inp))
+        except (ValueError, EOFError):
+            print("↩️ Standardwerte behalten.")
+    
+    hart = None
+    weich = None
+    kombi = None
+    
+    if modus in (1, 3, 6):
+        print(f"\n🏃 Berechne harte Schatten ({schritte} Schritte)...")
+        hart = harte_schatten_raymarch(karte, licht, schritte=schritte)
+        print("Harte Schatten:")
+        print(ascii_art(hart, invert=True))
+    
+    if modus in (1, 4):
+        print(f"\n☁️ Berechne weiche Schatten ({schritte} Schritte, {samples} Samples)...")
+        weich = weiche_schatten_raymarch(karte, licht, schritte=schritte, samples=samples)
+        print("Weiche Schatten:")
+        print(ascii_art(weich, invert=True))
+    
+    if modus == 5:
+        print("\n🗺️ Tiefe (Höhenfeld):")
+        print(ascii_art(karte.daten))
+        print("\n📐 Normalen-Z (Aufwärts-Komponente):")
+        nz_map = [[nz for (_, _, nz) in row] for row in normals]
+        print(ascii_art(nz_map))
+        print("\n☀️ Diffuse Beleuchtung (Lambert):")
+        print(ascii_art(diffus))
         return
     
-    print("\n🦤 Fifo watschelt ins Bett. Schatten sind weich. Gute Nacht.")
+    if modus == 2:
+        print("\n☀️ Diffuse Beleuchtung (Lambert):")
+        print(ascii_art(diffus))
+        return
+    
+    if modus in (3, 4):
+        return
+    
+    # Modus 1 oder 6: Kombinieren
+    if hart is not None and weich is not None:
+        print("\n🎨 Kombiniere (Diffus 30%, Hart 30%, Weich 40%)...")
+        kombi = kombiniere_schatten(diffus, hart, weich, 0.3, 0.3, 0.4)
+        print("Finales Bild:")
+        print(ascii_art(kombi))
+    elif hart is not None:
+        kombi = kombiniere_schatten(diffus, hart, hart, 0.3, 0.7, 0.0)
+        print("\n🎨 Kombiniere (Diffus 30%, Hart 70%)...")
+        print(ascii_art(kombi))
+    elif weich is not None:
+        kombi = kombiniere_schatten(diffus, weich, weich, 0.3, 0.0, 0.7)
+        print("\n🎨 Kombiniere (Diffus 30%, Weich 70%)...")
+        print(ascii_art(kombi))
+    
+    print("\n✅ Fertig. Nächstes Mal: Textur-Mapping oder SSAO?")
 
 if __name__ == "__main__":
     main()
