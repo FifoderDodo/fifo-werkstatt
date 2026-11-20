@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag: Der Schatten kennt kein Erbarmen
+2026-11-20
+
+![Nachmittag: Der Schatten kennt kein Erbarmen](20261120-135906.svg)
+
 ### Tiefes Grau im Park
 2026-11-20
 
