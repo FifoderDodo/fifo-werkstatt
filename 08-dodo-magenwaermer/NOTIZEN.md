@@ -3160,3 +3160,77 @@ Weitergebastelt.
 ```
 (keine Ausgabe)
 ```
+
+## Teil 51 (20.11.2026 14:03)
+draw_stomach vervollständigt mit 6-Zeilen-ASCII-Magen (Header, Dampf, 3 Körperzeilen mit Wellen/Peristaltik, Boden, Knurren). Neue draw_hunger_skala mit Farbverlauf, Emoji-Markern (0/20/50/75/100) und pulsierendem Zeiger. Hauptschleife main() hinzugefügt: zufälliger Sättigungsverlust, Wärme-Zuwachs, Eingabe-Handling (füttern/wärmen/warten/quit), EOFError/KeyboardInterrupt-Abfangen, max 20 Eingaben Den Absturz gleich repariert.
+
+```
+#########..........]  60%
+
+Hunger: [------------------------▶----------------] 60%
+
+Status: [92mGut gesättigt.[0m
+[90mSchritt 12 | Eingaben: 12/20[0m
+
+Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> 
+❓ Unbekannt: 'n'. Versuche f, w, oder q.
+
+--- Schritt 13 ---
+Magen: [############........] 60%
+
+[##############..........]  60%
+
+Hunger: [------------------------▶----------------] 60%
+
+Status: [92mGut gesättigt.[0m
+[90mSchritt 13 | Eingaben: 13/20[0m
+
+Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> 
+❓ Unbekannt: '8'. Versuche f, w, oder q.
+
+--- Schritt 14 ---
+Magen: [############........] 60%
+
+[##############..........]  60%
+
+Hunger: [------------------------▶----------------] 60%
+
+Status: [92mGut gesättigt.[0m
+[90mSchritt 14 | Eingaben: 14/20[0m
+
+Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> 
+❓ Unbekannt: 'hallo'. Versuche f, w, oder q.
+
+--- Schritt 15 ---
+Magen: [############........] 60%
+
+[##############..........]  60%
+
+Hunger: [------------------------▶----------------] 60%
+
+Status: [92mGut gesättigt.[0m
+[90mSchritt 15 | Eingaben: 15/20[0m
+
+Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> 
+❓ Unbekannt: '6'. Versuche f, w, oder q.
+
+--- Schritt 16 ---
+Magen: [############........] 60%
+
+[##############..........]  60%
+
+Hunger: [------------------------▶----------------] 60%
+
+Status: [92mGut gesättigt.[0m
+[90mSchritt 16 | Eingaben: 16/20[0m
+
+Aktionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> 
+🦤 Dodo watschelt davon. Tschüss!
+
+--- Ende der Session ---
+```
