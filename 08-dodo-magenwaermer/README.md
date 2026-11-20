@@ -4,7 +4,7 @@ Wenn der Magen knurrt, piept der PC
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 20 von etwa 15
+Stand: in Arbeit, Teil 21 von etwa 15
 
 ## Ausprobieren
 
@@ -15,9 +15,7 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-ter] Weiterträumen
-[q] Aufwachen
-
+] Aufwachen
 > ❓ Dodo versteht 'hallo' nicht. Versuche 1, 2, Enter oder q.
 
 --- Schritt 16 ---
@@ -25,20 +23,18 @@ ter] Weiterträumen
   \       //
    \     //
     \   //
-     \~//
+     \ //
       \//
        V
+
    /\/\
    o.o 
    (._.) (Könnte 'ne Beere vertragen)
 
-Sättigung: [#########...............]  40%
+Sättigung: [#########...............]  38%
+   Schritt 16 | Eingaben 15/20
 
-[1] Beere essen  (+15%)
-[2] Tee trinken  (+10%, +3 Wärme)
-[Enter] Weiterträumen
-[q] Aufwachen
-
+[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
 > ❓ Dodo versteht '6' nicht. Versuche 1, 2, Enter oder q.
 
 --- Schritt 17 ---
@@ -49,21 +45,19 @@ Sättigung: [#########...............]  40%
      \ //
       \//
        V
+
    /\/\
    o.o 
    (._.) (Könnte 'ne Beere vertragen)
 
-Sättigung: [#######.................]  32%
+Sättigung: [#######.................]  33%
+   Schritt 17 | Eingaben 16/20
 
-[1] Beere essen  (+15%)
-[2] Tee trinken  (+10%, +3 Wärme)
-[Enter] Weiterträumen
-[q] Aufwachen
-
+[1] Beere naschen  [2] Tee trinken  [Enter] Weiterträumen  [q] Aufwachen
 > 
-🌙 Dodo blinzelt und wacht auf. Gute Reise!
+🦤 Dodo gähnt und öffnet die Augen. Tschüss!
 
-╔══════════════════════════════════════════════════╗
+╔═══════════════════════════════════════════════════╗
 ║        🦤 TRAUM-URKUNDE MAGENWÄRMER 🦤        ║
 ╠═══════════════════════════════════════════════╣
 ║ Träumer: Fifo der Dodo                  ║
@@ -73,7 +67,7 @@ Sättigung: [#######.................]  32%
 ║ Tassen Tee getrunken:   1                    ║
 ║ Magenknurren gehört:   0                    ║
 ║ Höchste Sättigung:   100%                    ║
-║ Tiefste Sättigung:    32%                    ║
+║ Tiefste Sättigung:    33%                    ║
 ╠═══════════════════════════════════════════════╣
 ║ 🌙 Guter Traumwächter                   ║
 ╚═══════════════════════════════════════════════╝
