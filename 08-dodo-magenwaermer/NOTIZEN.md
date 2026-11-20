@@ -3502,3 +3502,80 @@ Eingaben: 16/20
 Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
 > 🦤 Dodo watschelt weg. Tschüss!
 ```
+
+## Teil 55 (20.11.2026 15:35)
+Schatten-Layer-Prototyp implementiert: Neue Funktion draw_shadow_layer() erzeugt eine abgedunkelte, versetzte Silhouette des Magens (ANSI dim + dunkles Grau). In main() wird der Schatten zuerst gezeichnet, dann der Magen per Cursor-Up darübergelegt – erster Prototyp für Tiefeneffekt.
+
+```
+oder q.
+
+--- Schritt 12 ---
+   ___   
+   ☁
+  /~~~\
+ |[#####...................]  24%|
+ \-~-/
+   ‾‾‾   
+
+[............] 0/10
+--------------^--------------------------------------------- 24%
+Eingaben: 12/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 13 ---
+   ___   
+   ☁
+  /-~-\
+ |[#####...................]  22%|
+ \_~_/
+   ‾‾‾   
+
+[............] 0/10
+------------^----------------------------------------------- 22%
+Eingaben: 13/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 14 ---
+   ___   
+   ☁☁
+  /_~_\
+ |[#####...................]  21%|
+ \~~~/
+   ‾‾‾   
+
+[............] 0/10
+------------^----------------------------------------------- 21%
+Eingaben: 14/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 15 ---
+   ___   
+   ☁☁
+  /~!~\
+ |[####....................]  17%|
+ \-!-/
+   ‾‾‾   
+ *knurr*
+[............] 0/10
+----------^------------------------------------------------- 17%
+Eingaben: 15/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 16 ---
+   ___   
+   ☁
+  /-!-\
+ |[###.....................]  15%|
+ \_!_/
+   ‾‾‾   
+ *knurr*
+[............] 0/10
+--------^--------------------------------------------------- 15%
+Eingaben: 16/20
+Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit
+> Tschüss, kleiner Dodo!
+```
