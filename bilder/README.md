@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nebeliger Regenpark
+2026-11-20
+
+![Nebeliger Regenpark](20261120-145905.svg)
+
 ### Nachmittag: Der Schatten kennt kein Erbarmen
 2026-11-20
 
