@@ -177,142 +177,134 @@ def draw_shadow_layer(wert: int, schritt: int, offset_x: int = 2, offset_y: int 
     # Header-Schatten
     lines.append(" " * offset_x + dim + shadow_color + " " * 3 + shadow_char * 3 + " " * 3 + reset)
     # Dampf-Schatten (einfach)
-    lines.append(" " * offset_x + dim + shadow_color + " " * 3 + shadow_char + reset)
-    # Körper-Zeilen mit Füllung basierend auf Sättigung
-    voll_breite = 24
-    voll = int((wert / 100) * voll_breite)
-    shadow_fill = shadow_char * voll + " " * (voll_breite - voll)
-    # Körper-Zeilen 1-3 mit leicht variierendem Schatten-Charakter
+    lines.append(" " * offset_x + dim + shadow_color + " " * 3 + shadow_char + " " + shadow_char + " " * 2 + reset)
+    # Körper-Schatten: 3 Zeilen, mittlere dunkler bei gefülltem Magen
     for row in range(3):
-        fill_char = shadow_char_dark if row == 1 and voll > 0 else shadow_char
-        current_fill = fill_char * voll + " " * (voll_breite - voll)
-        lines.append(" " * offset_x + dim + shadow_color + " " + current_fill + " " + reset)
+        fill_ratio = wert / 100.0
+        middle = row == 1
+        char = shadow_char_dark if (middle and fill_ratio > 0.5) else shadow_char
+        wave = welle(row)
+        lines.append(" " * offset_x + dim + shadow_color + f"({wave}{char}{char}{char}{wave})" + reset)
     # Boden-Schatten
-    lines.append(" " * offset_x + dim + shadow_color + " " + shadow_char * (voll_breite + 2) + " " + reset)
+    lines.append(" " * offset_x + dim + shadow_color + " " + shadow_char * 7 + " " + reset)
     return lines
 
 
 def draw_magen(saettigung: int, schritt: int, waerme: int = 0) -> list:
-    """Zeichnet den Magen als ASCII-Art mit Animation.
+    """Zeichnet den kompletten Magen mit Schatten-Layer und Rückgabe als Zeilen-Liste."""
+    shadow_lines = draw_shadow_layer(saettigung, schritt)
     
-    Rückgabe: Liste von Strings (Zeilen).
-    """
-    feder = draw_feder(saettigung, schritt)
-    bar = draw_bar(saettigung, waerme=waerme)
-    waerme_bar = draw_waerme_bar(waerme)
-    
-    # Dampf-Animation
-    dampf_chars = ["☁", "☁", "  ", " .", "  "]
-    dampf = dampf_chars[(schritt // 2) % len(dampf_chars)]
-    
-    # Magen-Form basierend auf Sättigung
-    if saettigung > 75:
-        bauch = "(/~~~\\)"
-        mund = "\\-~-/"
-    elif saettigung > 45:
-        bauch = "(/~~\\)"
-        mund = "\\-~-/"
-    elif saettigung > 20:
-        bauch = "(/~\\)"
-        mund = "\\_/_"
-    elif saettigung > 5:
-        bauch = "(\\_/)\\"
-        mund = "\\_/_"
+    if USE_ANSI:
+        reset = "\033[0m"
+        # Dampf über dem Magen
+        dampf_chars = ["☁", "☁", "☁"]
+        dampf_idx = schritt % len(dampf_chars)
+        dampf = f"  {dampf_chars[dampf_idx]} "
+        # Magen-Öffnung
+        feder = draw_feder(saettigung, schritt)
+        opening = f"({feder}~~~{feder})"
+        # Magen-Körper mit Füllstand
+        bar = draw_bar(saettigung, 24, waerme)
+        # Boden
+        boden = "  \_____/ "
+        
+        # Kombiniere mit Schatten (versetzt)
+        result = []
+        max_lines = max(len(shadow_lines), 5)
+        for i in range(max_lines):
+            shadow = shadow_lines[i] if i < len(shadow_lines) else ""
+            if i == 0:
+                main = dampf
+            elif i == 1:
+                main = opening
+            elif i == 2:
+                main = f" |{bar}| "
+            elif i == 3:
+                main = f" |{bar}| "
+            elif i == 4:
+                main = boden
+            else:
+                main = ""
+            # Schatten leicht nach rechts/unten versetzt darstellen
+            if shadow and i < len(shadow_lines) - 1:
+                result.append(shadow + "  " + main)
+            else:
+                result.append(main)
+        return result
     else:
-        bauch = "(.)"
-        mund = "\\_/_"
-    
-    linien = []
-    linien.append(f"   {dampf}   {feder}")
-    linien.append(f"  {bauch}")
-    linien.append(f" |{bar}| {waerme_bar}")
-    linien.append(f"  {mund}")
-    linien.append(f" ‾‾‾")
-    return linien
+        # Fallback ohne ANSI
+        feder = draw_feder(saettigung, schritt)
+        bar = draw_bar(saettigung, 24, waerme)
+        return [
+            "  ~  ",
+            f"({feder}~~~{feder})",
+            f" |{bar}| ",
+            f" |{bar}| ",
+            "  \_____/ "
+        ]
 
 
 def main() -> None:
-    """Hauptschleife: Magen füttern, wärmen, warten."""
+    """Hauptschleife: Dodo-Magenwärmer Simulation."""
     saettigung = 50
     waerme = 0
     schritt = 0
     eingaben = 0
     
-    print("Dodo-Magenwärmer gestartet. Strg+C oder 'q' zum Beenden.")
-    pause(0.5)
+    print("🦤 Dodo-Magenwärmer – Teil 57/58")
+    print("Befehle: [f]ressen, [w]asser, [Enter]warten, [q]uit")
+    print()
     
     while eingaben < MAX_EINGABEN:
+        clear_screen(schritt)
+        
+        # Magen zeichnen
+        magen_lines = draw_magen(saettigung, schritt, waerme)
+        for line in magen_lines:
+            print(line)
+        
+        # Wärme-Balken
+        if waerme > 0:
+            print(draw_waerme_bar(waerme))
+        
+        # Status
+        if satte_pruefung(saettigung):
+            print("\033[91m⚠ Magen knurrt!\033[0m" if USE_ANSI else "⚠ Magen knurrt!")
+        
+        print(f"\nSättigung: {saettigung}% | Wärme: {waerme}/10 | Schritt: {schritt}")
+        print("[f]ressen  [w]asser  [Enter]warten  [q]uit")
+        
         try:
-            clear_screen(schritt if not USE_ANSI else None)
-            
-            # Schatten-Layer zeichnen
-            shadow_lines = draw_shadow_layer(saettigung, schritt)
-            for line in shadow_lines:
-                print(line)
-            
-            # Cursor nach oben bewegen um Magen über Schatten zu legen
-            if USE_ANSI and shadow_lines:
-                sys.stdout.write(f"\033[{len(shadow_lines)}A")
-                sys.stdout.flush()
-            
-            # Magen zeichnen
-            magen_lines = draw_magen(saettigung, schritt, waerme)
-            for line in magen_lines:
-                print(line)
-            
-            # Status-Zeile
-            print(f"--------------^--------------------------------------------- {saettigung}%")
-            print(f"Eingaben: {eingaben}/{MAX_EINGABEN}")
-            print("Optionen: [f]üttern, [w]ärmen, [Enter]warten, [q]uit")
-            
-            if USE_ANSI:
-                sys.stdout.write("> ")
-                sys.stdout.flush()
-            
-            eingabe = input().strip().lower()
-            eingaben += 1
-            schritt += 1
-            
-            if eingabe == 'q':
-                print("Tschüss! Der Dodo schläft weiter.")
-                break
-            elif eingabe == 'f':
-                saettigung = min(100, saettigung + random.randint(15, 30))
-                print("*schluck* *gluck* Der Magen freut sich!")
-                pause(0.4)
-            elif eingabe == 'w':
-                waerme = min(10, waerme + random.randint(2, 4))
-                saettigung = max(0, saettigung - 2)  # Wärmen kostet etwas Energie
-                print("*wärme* Der Bauch glüht behaglich.")
-                pause(0.4)
-            elif eingabe == '':
-                saettigung = max(0, saettigung - random.randint(1, 4))
-                waerme = max(0, waerme - 1)
-                print("*knurr* Der Magen wird leerer...")
-                pause(0.3)
-            else:
-                print("Unbekannte Eingabe, bitte f, w, <Enter> oder q.")
-                pause(0.3)
-                continue
-            
-            # Natürlicher Verfall pro Schritt
-            saettigung = max(0, saettigung - 1)
-            waerme = max(0, waerme - (1 if schritt % 3 == 0 else 0))
-            
-            if saettigung <= 0:
-                clear_screen(schritt if not USE_ANSI else None)
-                print("💀 Der Magen ist vollkommen leer. Der Dodo ist ohnmächtig geworden.")
-                print("Spiel zu Ende.")
-                break
+            eingabe = input("> ").strip().lower()
         except EOFError:
-            print("\nEingabe Ende. Tschüss!")
+            print("\nKeine Eingabe mehr – Tschüss!")
             break
-        except KeyboardInterrupt:
-            print("\nAbbruch. Tschüss!")
+        
+        if eingabe == 'q':
+            print("Dodo watschelt davon. Tschüss!")
             break
+        elif eingabe == 'f':
+            saettigung = min(100, saettigung + random.randint(15, 25))
+            waerme = min(10, waerme + 1)
+            print("Mmmh, lecker!")
+        elif eingabe == 'w':
+            waerme = min(10, waerme + 2)
+            saettigung = max(0, saettigung - 2)
+            print("Gluck, gluck – wärmt von innen.")
+        elif eingabe == '':
+            saettigung = max(0, saettigung - random.randint(1, 5))
+            waerme = max(0, waerme - 1)
+            print("Der Magen arbeitet vor sich hin...")
+        else:
+            print("Unbekannte Eingabe, bitte f, w, <Enter> oder q.")
+            continue
+        
+        eingaben += 1
+        schritt += 1
+        pause(0.3)
     
     if eingaben >= MAX_EINGABEN:
-        print(f"\nMaximale Eingaben ({MAX_EINGABEN}) erreicht. Bis bald!")
+        print(f"\nMaximal {MAX_EINGABEN} Eingaben erreicht. Dodo ist satt und zufrieden.")
 
 if __name__ == "__main__":
     main()
