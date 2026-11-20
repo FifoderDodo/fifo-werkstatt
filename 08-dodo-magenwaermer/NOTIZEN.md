@@ -3312,3 +3312,97 @@ Hunger: [----------------▶-----------------------] 42%
 
 Endstand: 42% Sättigung, 1 Wärme nach 12 Schritten.
 ```
+
+## Teil 53 (20.11.2026 14:23)
+main() und draw_hunger_skala wurden ergänzt, Eingabeschleife mit Begrenzung implementiert und Fehlerbehandlung hinzugefügt.
+
+```
+ttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 11 ---
+   ___   
+   ☁☁
+  /_-~_\
+ |[#################.......]  74%|
+ \~-~~/
+   ‾‾‾   
+
+🔴───🟠─────🟡────🟢────✅
+               🔺 74%
+
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 12 ---
+   ___   
+   ☁
+  /~-~~\
+ |[#################.......]  72%|
+ \--~-/
+   ‾‾‾   
+
+🔴───🟠─────🟡────🟢────✅
+               🔺 72%
+
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 13 ---
+   ___   
+   ☁
+  /--~-\
+ |[################........]  69%|
+ \_-~_/
+   ‾‾‾   
+
+🔴───🟠─────🟡────🟢────✅
+              🔺 69%
+
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 14 ---
+   ___   
+   ☁☁
+  /_-~_\
+ |[################........]  68%|
+ \~-~~/
+   ‾‾‾   
+
+🔴───🟠─────🟡────🟢────✅
+              🔺 68%
+
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 15 ---
+   ___   
+   ☁☁
+  /~-~~\
+ |[###############.........]  66%|
+ \--~-/
+   ‾‾‾   
+
+🔴───🟠─────🟡────🟢────✅
+             🔺 66%
+
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Unbekannte Eingabe, bitte f, w, <Enter> oder q.
+
+--- Schritt 16 ---
+   ___   
+   ☁
+  /--~-\
+ |[###############.........]  63%|
+ \_-~_/
+   ‾‾‾   
+
+🔴───🟠─────🟡────🟢────✅
+             🔺 63%
+
+Optionen: [f]üttern, [w]ärmen, [w]arten, [q]uit
+> Tschüss!
+
+Programm beendet.
+```
