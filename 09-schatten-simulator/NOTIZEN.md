@@ -505,3 +505,55 @@ Welche Form? ❓ Unbekannte Form.
 0 – Beenden
 🦤 Fifo fragt: Deine Wahl? 🦤 Fifo packt seine Schatten zusammen. Bis bald!
 ```
+
+## Teil 12 (21.11.2026 00:23, Nachtschicht)
+Teil 12: Fehlende Funktionen (AO, Blinn-Phong, Komposition, ASCII-Rendering, Menü) vervollständigt, weiche Schatten korrigiert (Akkumulator-Division), Hauptschleife mit EOFError-Handling und Eingabevalidierung ergänzt. Alles läuft in einem Durchgang ohne externe Abhängigkeiten.
+
+```
+(Raymarch)
+3 – Weiche Schatten (Raymarch + Jitter)
+4 – Ambient Occlusion (SSAO)
+5 – Vollbild (Blinn-Phong + Schatten + AO)
+6 – Tiefenform wählen (Kugel, Kegel, Pyramide)
+7 – Lichtrichtung anpassen
+8 – Höhen-Rohdaten anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-8 eingeben.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 12) ---
+1 – Diffuse Schatten (Lambert)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch + Jitter)
+4 – Ambient Occlusion (SSAO)
+5 – Vollbild (Blinn-Phong + Schatten + AO)
+6 – Tiefenform wählen (Kugel, Kegel, Pyramide)
+7 – Lichtrichtung anpassen
+8 – Höhen-Rohdaten anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? Formen: 1=Kugel, 2=Kegel, 3=Pyramide
+Wähle Form (1-3): ❓ Unbekannte Form.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 12) ---
+1 – Diffuse Schatten (Lambert)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch + Jitter)
+4 – Ambient Occlusion (SSAO)
+5 – Vollbild (Blinn-Phong + Schatten + AO)
+6 – Tiefenform wählen (Kugel, Kegel, Pyramide)
+7 – Lichtrichtung anpassen
+8 – Höhen-Rohdaten anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? ❓ Unbekannt. Bitte 0-8 eingeben.
+
+--- SCHATTEN-SIMULATOR MENÜ (Teil 12) ---
+1 – Diffuse Schatten (Lambert)
+2 – Harte Schatten (Raymarch)
+3 – Weiche Schatten (Raymarch + Jitter)
+4 – Ambient Occlusion (SSAO)
+5 – Vollbild (Blinn-Phong + Schatten + AO)
+6 – Tiefenform wählen (Kugel, Kegel, Pyramide)
+7 – Lichtrichtung anpassen
+8 – Höhen-Rohdaten anzeigen
+0 – Beenden
+🦤 Fifo fragt: Deine Wahl? 🦤 Fifo wacht auf. Gute Nacht!
+```
