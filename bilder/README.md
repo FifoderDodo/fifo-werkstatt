@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Der Morgen frisst den Nachmittag
+2026-11-20
+
+![Der Morgen frisst den Nachmittag](20261120-172728.svg)
+
 ### Tropfenstudie 21: Der Nachmittag tropft mir auf die Nerven
 2026-11-20
 
