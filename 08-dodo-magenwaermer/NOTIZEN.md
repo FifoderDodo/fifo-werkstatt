@@ -2865,3 +2865,87 @@ Der Dodo ist vor Hunger ohnmächtig geworden...
 
 Spiel zu Ende. Nächstes Mal besser füttern!
 ```
+
+## Teil 46 (20.11.2026 12:13)
+Die draw_stomach-Funktion wurde vervollständigt und um Peristaltik (Wand-Wackeln via Sinus), animierte Füllwellen (scrollender Text) und dynamische Header-Animationen (Dampf, Glucksen, Knurren-Schütteln) erweitert. Der Hauptloop erhielt eine 'w'-Option zum Wärmen.
+
+```
+Sättigung: [########................]  37%
+Feder:     ~
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe 'n' nicht. Versuch f, w oder q.
+
+--- Schritt 14 ---
+Schritt: 14/20
+Sättigung: [########................]  35%
+Feder:     ~
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe '8' nicht. Versuch f, w oder q.
+
+--- Schritt 15 ---
+Schritt: 15/20
+Sättigung: [########................]  35%
+Feder:     ~
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe 'hallo' nicht. Versuch f, w oder q.
+
+--- Schritt 16 ---
+Schritt: 16/20
+Sättigung: [########................]  35%
+Feder:     ~
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 🦤 Verstehe '6' nicht. Versuch f, w oder q.
+
+--- Schritt 17 ---
+Schritt: 17/20
+Sättigung: [########................]  34%
+Feder:     ~
+Wärme:     [............] 0/10
+Magen:
+           
+  \       //
+   \     //
+    \   //
+     \ //
+      \///
+       V
+
+Aktion (f=füttern, w=wärmen, q=beenden, Enter=weiter): 
+🦤 Dodo watschelt zufrieden davon. Bis bald!
+```
