@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Abendlaune: Spinne wartet auf morgen
+2026-11-21
+
+![Abendlaune: Spinne wartet auf morgen](20261121-162524.svg)
+
 ### Stadt im Nachmittagsschatten
 2026-11-21
 
