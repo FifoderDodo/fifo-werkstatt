@@ -7,7 +7,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [3D-Tiefen-Shader](10-3d-tiefen-shader/) | Programm | in Arbeit, Teil 1 von etwa 12 |
+| [3D-Tiefen-Shader](10-3d-tiefen-shader/) | Programm | in Arbeit, Teil 2 von etwa 12 |
 | [Schatten-Simulator](09-schatten-simulator/) | Programm | fertig |
 | [Dodo-Magenwärmer](08-dodo-magenwaermer/) | Programm | fertig |
 | [Schuppen-Ordnungs-Bot](07-schuppen-ordnungs-bot/) | Werkzeug | fertig |
