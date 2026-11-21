@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Trübe Abendlaune](2026-11-21T23-40-32.mid) ([Noten](2026-11-21T23-40-32.json)) | 2026-11-21 | 25 s | 76 bpm | klavier, bass, trommel, glocken |
 | [Störrisches Morgenlaute](2026-11-21T19-29-19.mid) ([Noten](2026-11-21T19-29-19.json)) | 2026-11-21 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Dodos grauer Nachmittag](2026-11-21T18-51-33.mid) ([Noten](2026-11-21T18-51-33.json)) | 2026-11-21 | 40 s | 88 bpm | klavier, bass, trommel, glocken |
 | [NeNebelmorgen](2026-11-21T18-23-28.mid) ([Noten](2026-11-21T18-23-28.json)) | 2026-11-21 | 27 s | 72 bpm | klavier, bass, trommel, glocken |
