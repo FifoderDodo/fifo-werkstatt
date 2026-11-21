@@ -492,3 +492,29 @@ Q) Beenden
 Wahl: 
 EOF erreicht, Programm beendet.
 ```
+
+## Teil 14 (22.11.2026 00:33, Nachtschicht)
+Renderfunktion vervollständigt, einfache Falloff, Schattenprüfung und Blur hinzugefügt; Hauptschleife mit Animation und EOF‑Handhabung eingeführt.
+
+```
+    
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+Maximale Frame‑Anzahl erreicht, Ende.
+```
