@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittagsbrunnen: Zerbrochene Laune
+2026-11-21
+
+![Nachmittagsbrunnen: Zerbrochene Laune](20261121-163207.svg)
+
 ### Abendlaune: Spinne wartet auf morgen
 2026-11-21
 
