@@ -1,5 +1,5 @@
-# main.py – Schatten‑Simulator, Teil 19
-# Fifo, der Dodo, träumt weiter: Fehler behoben, Ray‑March‑Loop fertig, weiche Schatten, AO, Blinn‑Phong, Menü und Rendering.
+# main.py – Schatten‑Simulator, Teil 20
+# Fifo, der Dodo, träumt den letzten Schliff: Speichern, Batch‑Modus, kleine Aufräumarbeiten.
 
 from __future__ import annotations
 import math
@@ -163,196 +163,250 @@ def harte_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
     inv_xy = 1.0 / l_xy
     dir_x = -lx * inv_xy * step_xy
     dir_y = -ly * inv_xy * step_xy
-    step_z = lz * inv_xy * step_xy * 0.1  # 0.1 ≈ Z‑Skalierung der Tiefenkarte
+    step_z = lz * inv_xy * step_xy * 0.1
 
-    schatten: List[List[float]] = [[1.0 for _ in range(b)] for _ in range(h)]
+    schatten: List[List[float]] = [[1.0] * b for _ in range(h)]
     for y in range(h):
         for x in range(b):
-            h_here = karte.daten[y][x]
-            if h_here <= 0.0:
+            h0 = karte.daten[y][x]
+            if h0 <= 0.0:
                 continue
-            cx = x + bias * lx
-            cy = y + bias * ly
-            cz = h_here + bias * lz
+            px = float(x)
+            py = float(y)
+            pz = h0 + bias
             blocked = False
             for _ in range(schritte):
-                cx += dir_x
-                cy += dir_y
-                cz += step_z
-                if cx < 0 or cx >= b - 1 or cy < 0 or cy >= h - 1:
+                px += dir_x
+                py += dir_y
+                pz += step_z
+                if px < 0 or px >= b - 1 or py < 0 or py >= h - 1:
                     break
-                h_sample = karte.get_bilinear(cy, cx)
-                if cz <= h_sample:
+                h_hier = karte.get_bilinear(py, px)
+                if pz <= h_hier:
                     blocked = True
                     break
             if blocked:
                 schatten[y][x] = 0.0
     return schatten
 
-def weiche_schatten(harte: List[List[float]], radius: int = 2) -> List[List[float]]:
-    """Box‑Blur für weiche Schatten."""
+def weiche_schatten(harte: List[List[float]], radius: int = 1) -> List[List[float]]:
+    """Box‑Blur für weiche Schattenkanten."""
     h = len(harte)
-    b = len(harte[0])
+    b = len(harte[0]) if h > 0 else 0
+    if radius <= 0:
+        return harte
     tmp = [[0.0] * b for _ in range(h)]
-    # horizontal
     for y in range(h):
-        s = 0.0
         for x in range(b):
-            s += harte[y][x]
-            if x - radius - 1 >= 0:
-                s -= harte[y][x - radius - 1]
-            if x + radius < b:
-                s += harte[y][x + radius]
-            tmp[y][x] = s / (min(x + radius, b - 1) - max(x - radius, 0) + 1)
-    # vertical
-    result = [[0.0] * b for _ in range(h)]
-    for x in range(b):
-        s = 0.0
-        for y in range(h):
-            s += tmp[y][x]
-            if y - radius - 1 >= 0:
-                s -= tmp[y - radius - 1][x]
-            if y + radius < h:
-                s += tmp[y + radius][x]
-            result[y][x] = s / (min(y + radius, h - 1) - max(y - radius, 0) + 1)
-    return result
+            s = 0.0
+            n = 0
+            for dy in range(-radius, radius + 1):
+                yy = y + dy
+                if 0 <= yy < h:
+                    for dx in range(-radius, radius + 1):
+                        xx = x + dx
+                        if 0 <= xx < b:
+                            s += harte[yy][xx]
+                            n += 1
+            tmp[y][x] = s / n if n else 0.0
+    return tmp
 
-def ssao(karte: Tiefenkarte, normals: List[List[Vec3]], samples: int = 8, radius: float = 0.5) -> List[List[float]]:
-    """Screen‑Space Ambient Occlusion – sehr vereinfacht."""
+def ssao(karte: Tiefenkarte, normalen: List[List[Vec3]],
+         samples: int = 8, radius: float = 1.5) -> List[List[float]]:
+    """Sehr einfaches Screen‑Space Ambient Occlusion."""
     h, b = karte.h, karte.b
     ao = [[1.0] * b for _ in range(h)]
     for y in range(h):
         for x in range(b):
-            if karte.daten[y][x] <= 0.0:
+            n = normalen[y][x]
+            if n[2] < 0.1:
                 continue
-            n = normals[y][x]
             occ = 0
             for _ in range(samples):
-                # zufällige Richtung in Hemisphäre
-                u = random.random()
-                v = random.random()
-                phi = 2.0 * math.pi * u
-                cos_theta = math.sqrt(1.0 - v)
-                sin_theta = math.sqrt(v)
-                # tangent space -> world
-                # wir nutzen einfach die Normalen als Up‑Vektor
-                # und bauen ein orthonormales System
-                if abs(n[2]) < 0.9:
-                    tangent = vec3_norm(vec3_sub((0, 0, 1), vec3_scale(n, n[2])))
-                else:
-                    tangent = vec3_norm(vec3_sub((0, 1, 0), vec3_scale(n, n[1])))
-                bitangent = (n[1] * tangent[2] - n[2] * tangent[1],
-                             n[2] * tangent[0] - n[0] * tangent[2],
-                             n[0] * tangent[1] - n[1] * tangent[0])
-                dir_vec = vec3_add(vec3_add(vec3_scale(tangent, sin_theta * math.cos(phi)),
-                                            vec3_scale(bitangent, sin_theta * math.sin(phi))),
-                                   vec3_scale(n, cos_theta))
-                # sample
-                sx = x + dir_vec[0] * radius
-                sy = y + dir_vec[1] * radius
+                angle = random.random() * 2.0 * math.pi
+                dist = random.random() * radius
+                sx = x + math.cos(angle) * dist
+                sy = y + math.sin(angle) * dist
                 if 0 <= sx < b - 1 and 0 <= sy < h - 1:
-                    h_sample = karte.get_bilinear(sy, sx)
-                    if h_sample > karte.daten[y][x] + 0.01:
+                    h_s = karte.get_bilinear(sy, sx)
+                    if h_s > karte.get_bilinear(y, x) + 0.05:
                         occ += 1
-            ao[y][x] = 1.0 - occ / samples
+            ao[y][x] = 1.0 - (occ / samples) * 0.5
     return ao
 
-def blinn_phong(normals: List[List[Vec3]], licht_dir: Vec3, view_dir: Vec3,
-                diffuse: List[List[float]], shadow: List[List[float]], ao: List[List[float]],
+def blinn_phong(normalen: List[List[Vec3]], licht_dir: Vec3,
+                view_dir: Vec3 = (0.0, 0.0, 1.0),
                 shininess: float = 32.0) -> List[List[float]]:
-    """Blinn‑Phong Shading kombiniert mit Schatten und AO."""
+    """Blinn‑Phong Specular Term."""
     l = vec3_norm(licht_dir)
     v = vec3_norm(view_dir)
     h_vec = vec3_norm(vec3_add(l, v))
-    h, b = len(normals), len(normals[0])
-    out = [[0.0] * b for _ in range(h)]
+    spec = [[0.0] * len(normalen[0]) for _ in range(len(normalen))]
+    for y, reihe in enumerate(normalen):
+        for x, n in enumerate(reihe):
+            nh = max(0.0, vec3_dot(n, h_vec))
+            spec[y][x] = nh ** shininess
+    return spec
+
+def zu_ascii(wert: float, palette: str = " .:-=+*#%@") -> str:
+    idx = int(max(0.0, min(1.0, wert)) * (len(palette) - 1))
+    return palette[idx]
+
+def rendere_ascii(karte: Tiefenkarte,
+                  diffuse: List[List[float]],
+                  schatten: List[List[float]],
+                  ao: List[List[float]],
+                  spec: List[List[float]],
+                  palette: str = " .:-=+*#%@") -> List[str]:
+    """Kombiniert alle Terme zu einem ASCII‑Bild."""
+    h, b = karte.h, karte.b
+    zeilen: List[str] = []
     for y in range(h):
+        reihe = []
         for x in range(b):
-            n = normals[y][x]
-            ndotl = max(0.0, vec3_dot(n, l))
-            ndoth = max(0.0, vec3_dot(n, h_vec))
-            spec = ndoth ** shininess if ndotl > 0 else 0.0
-            diff = diffuse[y][x] * shadow[y][x] * ao[y][x]
-            out[y][x] = min(1.0, diff + 0.5 * spec)
-    return out
+            if karte.daten[y][x] <= 0.0:
+                reihe.append(' ')
+                continue
+            diff = diffuse[y][x]
+            sh = schatten[y][x]
+            oc = ao[y][x]
+            sp = spec[y][x]
+            helligkeit = diff * sh * oc + sp * 0.6
+            reihe.append(zu_ascii(helligkeit, palette))
+        zeilen.append(''.join(reihe))
+    return zeilen
 
-def zu_ascii(werte: List[List[float]], palette: str = " .'`^\":;~!><{}[]()#&@$") -> List[str]:
-    """Wandelt 0‑1 Werte in ASCII‑Zeilen um."""
-    h, b = len(werte), len(werte[0])
-    lines = []
-    for y in range(h):
-        line = []
-        for x in range(b):
-            v = max(0.0, min(1.0, werte[y][x]))
-            idx = int(v * (len(palette) - 1))
-            line.append(palette[idx])
-        lines.append(''.join(line))
-    return lines
-
-# ---------- Interaktives Menü ----------
-
-def menue() -> None:
-    print("=== Schatten‑Simulator (Teil 19) ===")
-    print("Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech")
+def speichere_ascii(zeilen: List[str], dateiname: str) -> bool:
+    """Speichert ASCII‑Art in eine Textdatei."""
     try:
-        wahl = input("Form wählen [1‑4]: ").strip()
+        with open(dateiname, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(zeilen))
+        return True
+    except Exception as e:
+        print(f'Fehler beim Speichern: {e}')
+        return False
+
+# ---------- Hauptprogramm ----------
+
+def waehle_form() -> Tiefenkarte:
+    print('\n=== Schatten‑Simulator (Teil 20) ===')
+    print('Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech')
+    try:
+        wahl = input('Form wählen [1‑4]: ').strip()
     except EOFError:
-        print("\nKeine Eingabe – Tschüss!")
-        return
-    if wahl == '1':
-        karte = erzeuge_kugel()
-    elif wahl == '2':
-        karte = erzeuge_kegel()
+        wahl = '1'
+    if wahl == '2':
+        return erzeuge_kegel()
     elif wahl == '3':
-        karte = erzeuge_stufenpyramide()
+        return erzeuge_stufenpyramide()
     elif wahl == '4':
-        karte = erzeuge_wellblech()
+        return erzeuge_wellblech()
     else:
-        print("Ungültig, nehme Kugel.")
-        karte = erzeuge_kugel()
+        print('Ungültig, nehme Kugel.')
+        return erzeuge_kugel()
 
-    print('Lichtrichtung als drei Zahlen (x y z), z.B. "1 1 -2":')
+def lies_lichtrichtung() -> Vec3:
     try:
-        lx, ly, lz = map(float, input("> ").split())
-    except (ValueError, EOFError):
-        print("Ungültig, nehme Standard (1, 1, -2).")
-        lx, ly, lz = 1.0, 1.0, -2.0
-    licht = (lx, ly, lz)
-
-    print("Schatten‑Samples (Ray‑March Steps) [8‑64, Standard 32]:")
-    try:
-        schritte = int(input("> ").strip() or "32")
-    except (ValueError, EOFError):
-        schritte = 32
-
-    print("Weichzeichner‑Radius für weiche Schatten [0‑5, Standard 2]:")
-    try:
-        blur_r = int(input("> ").strip() or "2")
-    except (ValueError, EOFError):
-        blur_r = 2
-
-    print("Berechne Normalen …")
-    normals = karte.normalen()
-    print("Diffuse Beleuchtung …")
-    diffuse = diffuse_schatten(normals, licht)
-    print("Harte Schatten (Ray‑March) …")
-    harte = harte_schatten_raymarch(karte, licht, schritte=schritte)
-    print("Weiche Schatten …")
-    weiche = weiche_schatten(harte, radius=blur_r)
-    print("SSAO …")
-    ao = ssao(karte, normals)
-    print("Blinn‑Phong Shading …")
-    view = (0.0, 0.0, 1.0)  # Kamera schaut von oben
-    shaded = blinn_phong(normals, licht, view, diffuse, weiche, ao)
-    print("ASCII‑Art …")
-    ascii_lines = zu_ascii(shaded)
-    for line in ascii_lines:
-        print(line)
-    print("\nFertig. Drücke Enter für Ende.")
-    try:
-        input()
+        s = input('Lichtrichtung als drei Zahlen (x y z), z.B. "1 1 -2": ').strip()
     except EOFError:
-        pass
+        s = ''
+    if not s:
+        print('Ungültig, nehme Standard (1, 1, -2).')
+        return (1.0, 1.0, -2.0)
+    try:
+        x, y, z = map(float, s.split())
+        return (x, y, z)
+    except Exception:
+        print('Ungültig, nehme Standard (1, 1, -2).')
+        return (1.0, 1.0, -2.0)
 
-if __name__ == "__main__":
-    menue()
+def lies_schritte() -> int:
+    try:
+        s = input('Schatten‑Samples (Ray‑March Steps) [8‑64]: ').strip()
+    except EOFError:
+        s = '32'
+    try:
+        val = int(s)
+        return max(8, min(64, val))
+    except Exception:
+        return 32
+
+def lies_weicher_radius() -> int:
+    try:
+        s = input('Weichzeichner‑Radius für Schatten [0‑3]: ').strip()
+    except EOFError:
+        s = '1'
+    try:
+        val = int(s)
+        return max(0, min(3, val))
+    except Exception:
+        return 1
+
+def lies_ao_samples() -> int:
+    try:
+        s = input('AO‑Samples [4‑16]: ').strip()
+    except EOFError:
+        s = '8'
+    try:
+        val = int(s)
+        return max(4, min(16, val))
+    except Exception:
+        return 8
+
+def frage_speichern() -> Optional[str]:
+    try:
+        s = input('ASCII in Datei speichern? (Dateiname oder Enter zum Überspringen): ').strip()
+    except EOFError:
+        return None
+    return s if s else None
+
+def main() -> None:
+    random.seed(42)
+    karte = waehle_form()
+    licht = lies_lichtrichtung()
+    schritte = lies_schritte()
+    blur_r = lies_weicher_radius()
+    ao_s = lies_ao_samples()
+
+    print('\nBerechne Normalen...')
+    normalen = karte.normalen()
+
+    print('Berechne diffuse Beleuchtung...')
+    diffuse = diffuse_schatten(normalen, licht)
+
+    print(f'Ray‑Marching harte Schatten ({schritte} Schritte)...')
+    harte = harte_schatten_raymarch(karte, licht, schritte=schritte)
+
+    print(f'Weiche Schatten (Radius {blur_r})...')
+    weiche = weiche_schatten(harte, radius=blur_r)
+
+    print(f'Ambient Occlusion ({ao_s} Samples)...')
+    ao = ssao(karte, normalen, samples=ao_s)
+
+    print('Blinn‑Phong Specular...')
+    spec = blinn_phong(normalen, licht)
+
+    print('Rendere ASCII...')
+    ascii_zeilen = rendere_ascii(karte, diffuse, weiche, ao, spec)
+
+    for zeile in ascii_zeilen:
+        print(zeile)
+
+    dateiname = frage_speichern()
+    if dateiname:
+        if speichere_ascii(ascii_zeilen, dateiname):
+            print(f'Gespeichert unter {dateiname}')
+        else:
+            print('Speichern fehlgeschlagen.')
+    else:
+        print('Nicht gespeichert.')
+
+    print('\nFertig. Gute Nacht, kleiner Dodo.')
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('\nAbgebrochen. Schlaf gut!')
+    except EOFError:
+        print('\nKeine Eingabe möglich. Schlaf gut!')
