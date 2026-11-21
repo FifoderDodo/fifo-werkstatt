@@ -4,7 +4,7 @@ Ein Tool zur Berechnung von dreidimensionaler Tiefe und echtem Schattenwurf für
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 18 von etwa 20
+Stand: in Arbeit, Teil 19 von etwa 20
 
 ## Ausprobieren
 
@@ -15,45 +15,42 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-$$$$$$$$$
-$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-$$$$$hQdQ#fdQccddcfcdcQ#ddcQQQQ#dc$$$$$$
-$$$$$fb##########################bd$$$$$
-$$$$$d#$$$$cd#d#cQddddddQccd#$$$$#Q$$$$$
-$$$$$d#$$$db################bd$$$#Q$$$$$
-$$$$$##$$$f#$$$$$$$$$$$$$$$$#d$$$#c$$$$$
-$$$$$d#$$$d#$$%cc#cQQ#c#dh$$#Q$$$#Q$$$$$
-$$$$$f#$$$##$$db########bd$$#Q$$$#d$$$$$
-$$$$$c#$$$d#$$##$$$$$$$$#f$$#d$$$#d$$$$$
-$$$$$c#$$$d#$$Q#$$$$$$$$#d$$#c$$$#Q$$$$$
-$$$$$##$$$d#$$#b########bd$$#c$$$#Q$$$$$
-$$$$$Q#$$$Q#$$$cccQdddcQQ$$$#d$$$#Q$$$$$
-$$$$$c#$$$d#$$$$$$$$$$$$$$$$##$$$#d$$$$$
-$$$$$d#$$$#b################b#$$$#f$$$$$
-$$$$$##$$$$dQdcddddQdQ#QQfddd$$$$#d$$$$$
-$$$$$db##########################b#$$$$$
-$$$$$${QddQQ#QQQ##d#d#QcQd##Qd#cQd%$$$$$
-$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+=== Schatten‑Simulator (Teil 19) ===
+Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech
+Form wählen [1‑4]: Ungültig, nehme Kugel.
+Lichtrichtung als drei Zahlen (x y z), z.B. "1 1 -2":
+> Ungültig, nehme Standard (1, 1, -2).
+Schatten‑Samples (Ray‑March Steps) [8‑64, Standard 32]:
+> Weichzeichner‑Radius für weiche Schatten [0‑5, Standard 2]:
+> Berechne Normalen …
+Diffuse Beleuchtung …
+Harte Schatten (Ray‑March) …
+Weiche Schatten …
+SSAO …
+Blinn‑Phong Shading …
+ASCII‑Art …
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
 
-=== Tiefenkarte ===
-                                        
-                                        
-                                        
-      ----------------------------      
-      ----------------------------      
-      -----nnnnnnnnnnnnnnnnnn-----      
-      -----nnnnnnnnnnnnnnnnnn-----      
-      -----nnnnnnnnnnnnnnnnnn-----      
-      -----nnnnqqqqqqqqqqnnnn-----      
-      -----nnnnqqqqqqqqqqnnnn-----      
-      -----nnnnqqqqqqqqqqnnnn-----      
-      -----nnnnqqqqqqqqqqnnnn-----      
-      -----nnnnnnnnnnnnnnnnnn-----      
-      -----nnnnnnnnnnnnnnnnnn-----      
-      -----nnnnnnnnnnnnnnnnnn-----      
-      ----------------------------      
-      ----------------------------
+Fertig. Drücke Enter für Ende.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
