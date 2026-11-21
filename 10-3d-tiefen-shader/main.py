@@ -87,7 +87,7 @@ def shadow_raymarch(ox: float, oy: float, oz: float,
                     max_schritte: int = 60, max_dist: float = 30.0,
                     sharpness: float = 0.3) -> float:
     """Soft-Shadow Raymarching nach Iñigo Quilez.
-    sharpness (ehemals softness) steuert die Schärfe: kleiner = weichere Penumbra.
+    sharpness steuert die Schärfe: kleiner = weichere Penumbra.
     k = sharpness * 32.0; shadow = min(shadow, k * dist / tiefe).
     Gibt 1.0 = voll beleuchtet, 0.0 = tiefster Schatten."""
     tiefe = 0.0
@@ -111,7 +111,7 @@ def shadow_raymarch(ox: float, oy: float, oz: float,
 
 
 def main() -> None:
-    print("Fifo's 3D-Tiefen-Shader - Teil 7: Weichere Soft-Shadows & Konfiguration")
+    print("Fifo's 3D-Tiefen-Shader - Teil 8: Optimierte Penumbra & Lighting-Pass")
     print("===================================================================")
     
     breite = 60
@@ -147,13 +147,14 @@ def main() -> None:
     lx, ly, lz = lx/lleng, ly/lleng, lz/lleng
     
     tiefe_buffer = []
-    schatten_buffer = []
     normal_buffer = []  # Speichere Normalen für zweiten Pass
+    hit_buffer = []     # Speichere Hit-Punkte
     
+    # Erster Pass: Raymarching + Normalen/Hitpoints speichern
     for j in range(hoehe):
         zeile_tiefen = []
-        zeile_schatten = []
         zeile_normalen = []
+        zeile_hits = []
         ndc_y = (1.0 - 2.0 * j / (hoehe - 1)) / skala
         for i in range(breite):
             ndc_x = (2.0 * i / (breite - 1) - 1.0) / skala
@@ -175,85 +176,54 @@ def main() -> None:
                 hz = cam_z + rdz * t
                 nx, ny, nz = szene_normal(hx, hy, hz)
                 zeile_normalen.append((nx, ny, nz))
-                
-                # Normal-Map-Bias für Schattenstrahl-Startpunkt
-                bias = 0.015
-                sx = hx + nx * bias
-                sy = hy + ny * bias
-                sz = hz + nz * bias
-                
-                # Soft Shadow Raymarch mit einstellbarer Schärfe
-                shadow = shadow_raymarch(sx, sy, sz, lx, ly, lz,
-                                         max_schritte=60, max_dist=30.0,
-                                         sharpness=shadow_sharpness)
-                zeile_schatten.append(shadow)
+                zeile_hits.append((hx, hy, hz))
             else:
-                zeile_normalen.append((0.0, 1.0, 0.0))
-                zeile_schatten.append(1.0)
+                zeile_normalen.append((0.0, 0.0, 0.0))
+                zeile_hits.append((0.0, 0.0, 0.0))
         tiefe_buffer.append(zeile_tiefen)
-        schatten_buffer.append(zeile_schatten)
         normal_buffer.append(zeile_normalen)
+        hit_buffer.append(zeile_hits)
     
-    # Zweiter Pass: Lighting mit Diffuse, Ambient, Specular, Tiefen-Nebel
-    ascii_ramp = " .'`^\"~,:;!<+*/?#&@"  # 20 Stufen
-    ramp_len = len(ascii_ramp) - 1
+    # Zweiter Pass: Lighting + Shadow + Depth Fog -> ASCII
+    ascii_chars = " .:-=+*#%@"  # 10 Stufen von dunkel nach hell
+    fog_dichte = 0.08
+    ambient = 0.15
     
-    print("\nErgebnis:")
+    print("\nRendering fertig. Ausgabe:\n")
     for j in range(hoehe):
-        line_chars = []
+        zeile = ""
         for i in range(breite):
             t = tiefe_buffer[j][i]
-            shadow = schatten_buffer[j][i]
-            nx, ny, nz = normal_buffer[j][i]
-            
             if t >= 20.0:
-                # Himmel: nur Nebel-Farbe basierend auf y-Richtung des Strahls
-                # Einfacher Farbverlauf: oben dunkler, unten heller
+                # Himmel: Farbverlauf basierend auf Ray-Richtung
                 ndc_y = (1.0 - 2.0 * j / (hoehe - 1)) / skala
-                sky_val = 0.3 + 0.5 * (ndc_y + 1.0) * 0.5
-                idx = int(max(0.0, min(1.0, sky_val)) * ramp_len)
-                line_chars.append(ascii_ramp[idx])
-                continue
-            
-            # Trefferpunkt
-            hx = cam_x + ( (2.0 * i / (breite - 1) - 1.0) / skala ) * brennweite / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ) * t
-            hy = cam_y + ( (1.0 - 2.0 * j / (hoehe - 1)) / skala ) * brennweite / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ) * t
-            hz = cam_z + 1.0 / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ) * t
-            
-            # Diffuse (Lambert)
-            diffuse = max(0.0, nx * lx + ny * ly + nz * lz)
-            
-            # Specular (Blinn-Phong)
-            vx, vy, vz = - ( (2.0 * i / (breite - 1) - 1.0) / skala ) * brennweite / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ), \
-                                 - ( (1.0 - 2.0 * j / (hoehe - 1)) / skala ) * brennweite / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ), \
-                                 - 1.0 / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 )
-            hx_dir = lx + vx
-            hy_dir = ly + vy
-            hz_dir = lz + vz
-            hlen = math.sqrt(hx_dir*hx_dir + hy_dir*hy_dir + hz_dir*hz_dir)
-            if hlen > 0:
-                hx_dir /= hlen; hy_dir /= hlen; hz_dir /= hlen
-                spec = max(0.0, nx * hx_dir + ny * hy_dir + nz * hz_dir)
-                spec = spec ** 32.0  # Glanz
+                ndc_x = (2.0 * i / (breite - 1) - 1.0) / skala
+                rdx = ndc_x * brennweite
+                rdy = ndc_y * brennweite
+                rdz = 1.0
+                leng = math.sqrt(rdx*rdx + rdy*rdy + rdz*rdz)
+                rdy /= leng
+                # Einfacher Sky-Gradient: oben heller, unten dunkler
+                sky_brightness = 0.3 + 0.5 * max(0.0, rdy)
+                idx = int(sky_brightness * (len(ascii_chars) - 1))
+                zeile += ascii_chars[idx]
             else:
-                spec = 0.0
-            
-            # Ambient
-            ambient = 0.25
-            
-            # Kombinieren
-            color = ambient + shadow * (diffuse * 0.7 + spec * 0.5)
-            
-            # Tiefen-Nebel (exponentiell)
-            fog = math.exp(-t * 0.12)
-            color = color * fog + (1.0 - fog) * 0.15
-            
-            # Gamma-Korrektur für linearen Look
-            color = color ** 0.4545
-            
-            idx = int(max(0.0, min(1.0, color)) * ramp_len)
-            line_chars.append(ascii_ramp[idx])
-        print(''.join(line_chars))
+                nx, ny, nz = normal_buffer[j][i]
+                hx, hy, hz = hit_buffer[j][i]
+                # Diffuse Beleuchtung
+                diffuse = max(0.0, nx*lx + ny*ly + nz*lz)
+                # Shadow Raymarching mit kleinem Offset entlang der Normalen
+                bias = 0.01
+                sh = shadow_raymarch(hx + nx*bias, hy + ny*bias, hz + nz*bias,
+                                     lx, ly, lz, sharpness=shadow_sharpness)
+                # Kombinierte Helligkeit
+                brightness = ambient + diffuse * sh
+                # Depth Fog
+                brightness *= math.exp(-t * fog_dichte)
+                brightness = max(0.0, min(1.0, brightness))
+                idx = int(brightness * (len(ascii_chars) - 1))
+                zeile += ascii_chars[idx]
+        print(zeile)
     
     print("\nFertig.")
 
