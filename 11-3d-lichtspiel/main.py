@@ -1,5 +1,5 @@
-# 3D-Lichtspiel – Teil 9: Optimierung der Lichtkegel & Streuungs-Seed
-# Fifo der Dodo feilt an der Performance und gibt dem Nebel einen festen Samen.
+# 3D-Lichtspiel – Teil 10: Point Light Falloff & Attenuation
+# Fifo der Dodo justiert die Fernwirkung der Lichtquelle – jetzt wird's am Rand gemütlicher.
 
 import math
 import sys
@@ -13,7 +13,8 @@ class ShaderParams:
     def __init__(self):
         self.penumbra_breite = 0.15
         self.umbra_dunkelheit = 0.05
-        self.falloff_exponent = 2.0
+        self.falloff_exponent = 2.0      # NEU: Abfall-Exponent für Point-Light (1/d^exp)
+        self.falloff_start = 0.5         # NEU: Distanz ab der Falloff greift (vermeidet Singularität)
         self.blur_radius = 3
         self.ambient = 0.02
         self.volumetric_gain = 1.2
@@ -26,10 +27,9 @@ class ShaderParams:
         self.color_temp = 3200.0
         self.jitter_strength = 0.15
         self.phase_g = 0.6
-        # NEU: Seed für reproduzierbares Rauschen & Optimierung
         self.noise_seed = 42
-        self.march_steps = 32        # Raymarch-Schritte (16-64, weniger = schneller)
-        self.jitter_enabled = True   # Jitter an/aus für Performance-Vergleich
+        self.march_steps = 32
+        self.jitter_enabled = True
     
     def klonen(self):
         klon = ShaderParams()
@@ -174,7 +174,6 @@ def schattenfaktor_für_punkt(px: float, py: float, qx: float, qy: float, radius
 
 def noise_2d(x: float, y: float, seed: int) -> float:
     """Einfaches deterministisches 2D-Rauschen (Integer-Hash)."""
-    # Großer Primzahl-Mix für Pseudo-Zufall
     n = int(x * 123.45) ^ int(y * 678.91) ^ seed
     n = (n ^ (n >> 13)) * 0x5bd1e995
     n = (n ^ (n >> 15)) * 0x5bd1e995
@@ -184,13 +183,11 @@ def noise_2d(x: float, y: float, seed: int) -> float:
 
 def berechne_volumetrisch(breite: int, hoehe: int, quelle: tuple, radius: float, 
                           bäume: list, params: ShaderParams) -> list:
-    """Raymarching für volumetrische Lichtkegel mit Schatten & Streuung.
-    Optimiert: Weniger Schritte, früher Abbruch, separater Shadow-Cache."""
+    """Raymarching für volumetrische Lichtkegel mit Schatten, Streuung & Falloff."""
     qx, qy = quelle
     rgb_factors = kelvin_to_rgb_factor(params.color_temp)
     
-    # Shadow-Cache: Berechne Schattenfaktor pro Pixel einmal (2D), 
-    # damit Raymarching nur noch Transparenz akkumuliert.
+    # Shadow-Cache: Berechne Schattenfaktor pro Pixel einmal (2D)
     print("  Berechne Shadow-Map...")
     shadow_map = [[1.0 for _ in range(breite)] for __ in range(hoehe)]
     for y in range(hoehe):
@@ -200,200 +197,211 @@ def berechne_volumetrisch(breite: int, hoehe: int, quelle: tuple, radius: float,
             wy = (y - hoehe * 0.5) * 0.1
             shadow_map[y][x] = schattenfaktor_für_punkt(wx, wy, qx, qy, radius, bäume, params)
     
-    print(f"  Raymarching ({params.march_steps} Schritte)...")
-    vol_buffer = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
+    # Raymarching Accumulation Buffer (nur Intensität für ASCII)
+    print("  Raymarching mit Falloff...")
+    accum = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
     
-    # Vorberechnete Schrittgröße
-    step_len = radius / params.march_steps
-    inv_steps = 1.0 / params.march_steps
+    # Viewport: Kamera schaut auf XY-Ebene (Top-Down), Z ist "Tiefe" in den Bildschirm
+    # Wir marschieren entlang der View-Richtung (Z), aber Licht kommt von (qx, qy, 0)
+    # Vereinfacht: 2D Raymarching vom Licht aus? Nein, Screen-Space Raymarching.
+    # Hier: Screen-Space Raymarching entlang Z (Tiefe).
+    # Light Position in World: (qx, qy, 0). Camera at (0, 0, -cam_dist).
+    # Pixel (x,y) -> Ray Direction (wx, wy, 1). Normalized.
+    
+    cam_dist = 10.0
+    max_depth = 20.0
     
     for y in range(hoehe):
-        wy = (y - hoehe * 0.5) * 0.1
         for x in range(breite):
-            wx = (x - breite * 0.5) * 0.1
+            # Shadow Faktor für diesen Screen-Pixel (projeziert auf Ground)
+            wx_ground = (x - breite * 0.5) * 0.1
+            wy_ground = (y - hoehe * 0.5) * 0.1
+            shadow = shadow_map[y][x]
             
-            dx = wx - qx
-            dy = wy - qy
-            dist = math.hypot(dx, dy)
+            if shadow < 0.01:
+                continue # Voll im Schatten, skip marching
             
-            if dist > radius or dist < 0.01:
-                continue
+            # Ray Direction
+            rx = wx_ground
+            ry = wy_ground
+            rz = cam_dist # Kamera schaut in +Z
+            rlen = math.sqrt(rx*rx + ry*ry + rz*rz)
+            rx /= rlen
+            ry /= rlen
+            rz /= rlen
             
-            # Richtung von Licht zum Pixel
-            ux = dx / dist
-            uy = dy / dist
-            
-            # View-Richtung (Kamera schaut von -Z, hier vereinfacht von oben -Y Richtung?)
-            # Wir simulieren "God Rays" von der Seite: View-Dir = (0, -1) oder ähnlich.
-            # Einfacher: Phase-Funktion nutzt Winkel zwischen Lichtstrahl und Blickrichtung.
-            # Blickrichtung fest: Kamera steht "vor" der Szene (Richtung +Y in Welt?)
-            # Hier: Licht kommt von oben links, Kamera schaut von vorn (+Z projiziert auf -Y).
-            view_dx, view_dy = 0.0, -1.0 
-            cos_theta = ux * view_dx + uy * view_dy
-            phase = henyey_greenstein(cos_theta, params.phase_g)
-            
+            # Raymarch
             transmittance = 1.0
-            scatter_acc = 0.0
+            radiance = 0.0
             
-            # Raymarching vom Licht zum Pixel (Forward Marching)
-            for i in range(params.march_steps):
-                t = (i + 0.5) * inv_steps  # 0.5/steps ... 1.0
-                sample_dist = dist * t
+            # Jitter Offset für Start
+            jitter_off = 0.0
+            if params.jitter_enabled:
+                jitter_off = noise_2d(x * 0.1, y * 0.1, params.noise_seed) * params.jitter_strength
+            
+            for step in range(params.march_steps):
+                t = (step + jitter_off) / params.march_steps * max_depth
+                # Sample Position World
+                sx = rx * t
+                sy = ry * t
+                sz = -cam_dist + rz * t # World Z
                 
-                sx = qx + ux * sample_dist
-                sy = qy + uy * sample_dist
+                # Distanz zur Lichtquelle (qx, qy, 0)
+                dlx = sx - qx
+                dly = sy - qy
+                dlz = sz - 0.0
+                dist_light = math.sqrt(dlx*dlx + dly*dly + dlz*dlz)
                 
-                # Nebeldichte mit Höhenabfall (sy ist "Höhe" in 2D-Schnitt)
-                # Annahme: y=0 ist Boden, y>0 ist oben. Kamera schaut entlang -y.
-                # Mist fällt mit sy ab (je höher, desto weniger).
-                height_factor = max(0.0, 1.0 - sy * params.mist_height_falloff)
-                density = params.mist_density * height_factor
+                if dist_light > radius:
+                    # Außerhalb Lichtradius -> keine Streuung mehr
+                    # Aber Transmittance weiter abnehmen lassen (Mist)
+                    pass
                 
-                # Jitter für organische Kanten (nur wenn an)
-                if params.jitter_enabled:
-                    jitter = noise_2d(sx * 10.0, sy * 10.0, params.noise_seed + i) * params.jitter_strength
-                    density += jitter
+                # NEU: Point Light Falloff / Attenuation
+                # Standard: 1 / (falloff_start + dist^falloff_exponent)
+                # Verhindert Singularität bei dist=0
+                falloff = 1.0 / (params.falloff_start + dist_light ** params.falloff_exponent)
                 
-                # Extinktion (Absorption + Out-Scattering)
-                extinction = (params.absorption_coeff + params.scattering_coeff) * density
-                transmittance *= math.exp(-extinction * step_len * 10.0)  # Skalierung
+                # Mist Density (Höhenabhängig, hier flach)
+                # sz ist Höhe. Mist sinkt zu Boden (sz=0).
+                height_factor = max(0.0, 1.0 - abs(sz) * params.mist_height_falloff)
+                local_density = params.mist_density * height_factor
                 
+                # Absorption
+                transmittance *= math.exp(-params.absorption_coeff * local_density * (max_depth / params.march_steps))
                 if transmittance < 0.001:
                     break
                 
-                # In-Scattering: Licht, das in Blickrichtung gestreut wird
-                # Schatten an dieser Sample-Position holen (Bilinear filtern wäre schöner, nearest ist schnell)
-                sample_x = int((sx / 0.1) + breite * 0.5)
-                sample_y = int((sy / 0.1) + hoehe * 0.5)
-                shadow = 1.0
-                if 0 <= sample_x < breite and 0 <= sample_y < hoehe:
-                    shadow = shadow_map[sample_y][sample_x]
+                # Scattering (Single Scattering Approximation)
+                # Phase Function: Henyey-Greenstein
+                # View Dir: (0,0,1) -> Camera. Light Dir: (-dlx, -dly, -dlz) -> Light
+                # Cos Theta = View . Light
+                if dist_light > 1e-4:
+                    lx = -dlx / dist_light
+                    ly = -dly / dist_light
+                    lz = -dlz / dist_light
+                    cos_theta = lz # View Dir ist (0,0,1)
+                    phase = henyey_greenstein(cos_theta, params.phase_g)
+                else:
+                    phase = 1.0
                 
-                # Lichtintensität an Sample-Stelle (Inverse Square Falloff)
-                light_intensity = shadow * (1.0 / max(0.01, sample_dist ** params.falloff_exponent))
-                
-                scatter_acc += light_intensity * params.scattering_coeff * density * phase * transmittance * step_len * 10.0
+                scatter = params.scattering_coeff * local_density * phase * falloff * shadow * transmittance
+                radiance += scatter * (max_depth / params.march_steps)
             
-            vol_buffer[y][x] = scatter_acc * params.volumetric_gain
+            accum[y][x] = radiance * params.volumetric_gain + params.ambient
     
-    return vol_buffer
-
-
-def render_frame(breite: int, hoehe: int, params: ShaderParams) -> list:
-    """Haupt-Render-Funktion: Baut Szene, rendert Volumetrik, blurrt, mapped zu ASCII."""
-    # Szenen-Definition: (x, y, radius)
-    bäume = [
-        (-3.0, 2.0, 0.8), (4.0, -1.5, 1.0), (-5.0, -3.0, 0.6),
-        (6.0, 4.0, 1.2), (0.0, -5.0, 0.9), (-2.0, -6.0, 0.7),
-        (7.0, -2.0, 1.1), (-6.0, 5.0, 0.5)
-    ]
-    quelle = (0.0, 0.0)  # Lichtquelle in der Mitte
-    radius = 12.0
-    
-    # 1. Volumetrische Berechnung
-    vol = berechne_volumetrisch(breite, hoehe, quelle, radius, bäume, params)
-    
-    # 2. Blur für weiche Kegel
+    # Blur
     if params.blur_radius > 0:
+        print("  Blur...")
         gew = gauß_gewichte(params.blur_radius)
-        vol = box_blur_1d(vol, gew, True)
-        vol = box_blur_1d(vol, gew, False)
+        accum = box_blur_1d(accum, gew, True)
+        accum = box_blur_1d(accum, gew, False)
     
-    # 3. Ambient & Tonemapping
-    frame = []
+    # Gamma & ASCII
+    ascii_frame = []
     for y in range(hoehe):
         row = ''
         for x in range(breite):
-            val = vol[y][x] + params.ambient
-            row += intensitaet_zu_ascii(val, params.gamma)
-        frame.append(row)
-    return frame
+            row += intensitaet_zu_ascii(accum[y][x], params.gamma)
+        ascii_frame.append(row)
+    
+    return ascii_frame
 
 
-def parameter_menue(params: ShaderParams):
-    """Interaktives Menü zum Tweaken."""
+def main():
+    params = ShaderParams()
+    breite, hoehe = 80, 40
+    radius = 12.0
+    quelle = (0.0, 0.0)
+    # Bäume: (x, y, radius)
+    bäume = [
+        (-3.0, 2.0, 1.2),
+        (4.5, -1.5, 0.8),
+        (-6.0, -4.0, 1.5),
+        (7.0, 3.0, 1.0),
+        (0.0, -8.0, 1.8),
+        (-2.0, 6.0, 0.9),
+        (5.0, 5.0, 1.1),
+    ]
+    
+    print("=== 3D-Lichtspiel: Herbspark (Teil 10) ===")
+    print("Fifo der Dodo justiert die Falloff-Kurve.")
+    
     while True:
-        print("\n--- 3D-Lichtspiel Parameter (Teil 9) ---")
+        print(f"\n--- 3D-Lichtspiel Parameter (Teil 10) ---")
         print(f"1. March Steps: {params.march_steps} (Speed vs Quality)")
         print(f"2. Scattering Coeff: {params.scattering_coeff:.2f}")
         print(f"3. Mist Density: {params.mist_density:.2f}")
         print(f"4. Phase G (Forward): {params.phase_g:.2f}")
-        print(f"5. Color Temp (K): {params.color_temp:.0f}")
+        print(f"5. Color Temp (K): {int(params.color_temp)}")
         print(f"6. Jitter: {'An' if params.jitter_enabled else 'Aus'} (Strength: {params.jitter_strength:.2f})")
         print(f"7. Noise Seed: {params.noise_seed}")
         print(f"8. Volumetric Gain: {params.volumetric_gain:.2f}")
         print(f"9. Blur Radius: {params.blur_radius}")
-        print("0. Rendern & Beenden")
+        print(f"10. Falloff Exponent: {params.falloff_exponent:.1f}")
+        print(f"11. Falloff Start: {params.falloff_start:.2f}")
+        print(f"0. Rendern & Beenden")
+        
         try:
-            wahl = input("Wähle (0-9): ").strip()
+            wahl = input("Wähle (0-11): ").strip()
         except EOFError:
-            print("\nKein Input, fliege weg. Tschüss!")
-            sys.exit(0)
+            print("\nKein Input, Fifo fliegt nach Hause. Tschüss!")
+            break
         
         if wahl == '0':
             break
         elif wahl == '1':
-            try: params.march_steps = max(8, min(128, int(input("Steps (8-128): "))))
+            try: params.march_steps = max(4, int(input(f"March Steps [{params.march_steps}]: ") or params.march_steps))
             except: pass
         elif wahl == '2':
-            try: params.scattering_coeff = max(0.0, min(2.0, float(input("Scattering (0-2): "))))
+            try: params.scattering_coeff = float(input(f"Scattering [{params.scattering_coeff}]: ") or params.scattering_coeff)
             except: pass
         elif wahl == '3':
-            try: params.mist_density = max(0.0, min(1.0, float(input("Mist (0-1): "))))
+            try: params.mist_density = float(input(f"Mist Density [{params.mist_density}]: ") or params.mist_density)
             except: pass
         elif wahl == '4':
-            try: params.phase_g = max(0.0, min(0.99, float(input("Phase G (0-0.99): "))))
+            try: params.phase_g = max(-0.99, min(0.99, float(input(f"Phase G [{params.phase_g}]: ") or params.phase_g)))
             except: pass
         elif wahl == '5':
-            try: params.color_temp = max(1000.0, min(10000.0, float(input("Temp K (1000-10000): "))))
+            try: params.color_temp = max(1000, min(12000, float(input(f"Color Temp [{int(params.color_temp)}]: ") or params.color_temp)))
             except: pass
         elif wahl == '6':
             params.jitter_enabled = not params.jitter_enabled
             if params.jitter_enabled:
-                try: params.jitter_strength = max(0.0, min(0.5, float(input("Jitter Strength (0-0.5): "))))
+                try: params.jitter_strength = float(input(f"Jitter Strength [{params.jitter_strength}]: ") or params.jitter_strength)
                 except: pass
         elif wahl == '7':
-            try: params.noise_seed = int(input("Seed (int): "))
+            try: params.noise_seed = int(input(f"Noise Seed [{params.noise_seed}]: ") or params.noise_seed)
             except: pass
         elif wahl == '8':
-            try: params.volumetric_gain = max(0.1, min(5.0, float(input("Gain (0.1-5): "))))
+            try: params.volumetric_gain = float(input(f"Gain [{params.volumetric_gain}]: ") or params.volumetric_gain)
             except: pass
         elif wahl == '9':
-            try: params.blur_radius = max(0, min(10, int(input("Blur Radius (0-10): "))))
+            try: params.blur_radius = max(0, int(input(f"Blur Radius [{params.blur_radius}]: ") or params.blur_radius))
+            except: pass
+        elif wahl == '10':
+            try: params.falloff_exponent = max(0.1, min(5.0, float(input(f"Falloff Exponent [{params.falloff_exponent}]: ") or params.falloff_exponent)))
+            except: pass
+        elif wahl == '11':
+            try: params.falloff_start = max(0.01, float(input(f"Falloff Start [{params.falloff_start}]: ") or params.falloff_start))
             except: pass
         else:
-            print("Unbekannt.")
-
-def main():
-    print("~~~ 3D-Lichtspiel: Herbst-Park ~~~")
-    print("Fifo der Dodo optimiert die Lichtkegel (Teil 9).")
+            print("Unbekannte Option.")
     
-    params = ShaderParams()
-    
-    # Standard-Größe für Terminal
-    breite, hoehe = 80, 40
-    
-    parameter_menue(params)
-    
-    print("\nRendering...")
+    # Final Render
+    print("\nRendere finales Bild...")
     start = time.time()
-    frame = render_frame(breite, hoehe, params)
+    frame = berechne_volumetrisch(breite, hoehe, quelle, radius, bäume, params)
     dauer = time.time() - start
     
-    print(f"\nFertig in {dauer:.2f}s. Seed: {params.noise_seed}, Steps: {params.march_steps}")
-    print("=" * breite)
+    print(f"\nRenderzeit: {dauer:.2f}s")
+    print(f"Quelle: {quelle}, Radius: {radius}")
+    print(f"Falloff: 1/({params.falloff_start} + d^{params.falloff_exponent})")
+    print("\n" + "=" * breite)
     for row in frame:
         print(row)
     print("=" * breite)
-    
-    # Nochmal?
-    try:
-        if input("\nNochmal mit neuen Parametern? (j/n): ").strip().lower() == 'j':
-            main()
-        else:
-            print("Fifo watschelt ins Laub. Tschüss!")
-    except EOFError:
-        print("\nEOF. Tschüss!")
+    print("\nFifo nickt zufrieden. Das Licht fällt jetzt natürlich ab.")
 
 if __name__ == "__main__":
     main()
