@@ -31,6 +31,11 @@ def vec3_sub(a: Vec3, b: Vec3) -> Vec3:
 def vec3_mul(a: Vec3, b: Vec3) -> Vec3:
     return (a[0] * b[0], a[1] * b[1], a[2] * b[2])
 
+def vec3_lerp(a: Vec3, b: Vec3, t: float) -> Vec3:
+    return (a[0] + (b[0] - a[0]) * t,
+            a[1] + (b[1] - a[1]) * t,
+            a[2] + (b[2] - a[2]) * t)
+
 # ---------- Tiefenkarte und Normalen ----------
 
 class Tiefenkarte:
@@ -164,150 +169,221 @@ def erzeuge_zufaellige_huegel(h: int = 20, b: int = 40, anzahl: int = 5, seed: i
 def diffuse_schatten(tk: Tiefenkarte, normals: List[List[Vec3]], licht_dir: Vec3, schritte: int = 64) -> List[List[float]]:
     """Ray-Marching-Schatten: für jeden Pixel entlang der Lichtrichtung marschieren."""
     h, b = tk.h, tk.b
+    shadow = [[1.0 for _ in range(b)] for _ in range(h)]
     lx, ly, lz = licht_dir
-    # Licht kommt von oben, also negativ in y-Richtung für 2D-Koordinaten
-    # Wir marschieren entgegen der Lichtrichtung (also zum Licht hin)
-    step_x = -lx * 0.5  # x-Skalierung wie bei Normalen
-    step_y = -ly
-    step_z = -lz
-    
-    schatten = [[1.0 for _ in range(b)] for _ in range(h)]
-    
+    if lz >= 0:
+        return shadow
     for y in range(h):
         for x in range(b):
-            if tk.daten[y][x] <= 0.0:
-                schatten[y][x] = 1.0
+            n = normals[y][x]
+            ndotl = vec3_dot(n, licht_dir)
+            if ndotl <= 0:
+                shadow[y][x] = 0.0
                 continue
-            
-            # Startpunkt leicht versetzt (Bias gegen Self-Shadow-Acne)
-            start_z = tk.daten[y][x] + 0.01
-            cur_x = x + step_x * 0.5
-            cur_y = y + step_y * 0.5
-            cur_z = start_z + step_z * 0.5
-            
+            px = x + 0.5
+            py = y + 0.5
+            pz = tk.daten[y][x]
+            step_x = -lx / schritte
+            step_y = -ly / schritte
+            step_z = -lz / schritte
             blocked = False
-            for i in range(schritte):
-                if cur_z <= 0.0:
+            for i in range(1, schritte):
+                px += step_x
+                py += step_y
+                pz += step_z
+                if pz <= 0:
                     break
-                if cur_x < 0 or cur_x >= b - 1 or cur_y < 0 or cur_y >= h - 1:
-                    break
-                
-                h_feld = tk.get_bilinear(cur_y, cur_x)
-                if cur_z <= h_feld + 0.001:  # Epsilon für numerische Stabilität
-                    blocked = True
-                    break
-                
-                cur_x += step_x
-                cur_y += step_y
-                cur_z += step_z
-            
-            schatten[y][x] = 0.3 if blocked else 1.0  # Weicher Schatten, nicht ganz schwarz
-    
-    return schatten
+                ix = int(px)
+                iy = int(py)
+                if 0 <= ix < b and 0 <= iy < h:
+                    h_terrain = tk.get_bilinear(iy, ix)
+                    if pz < h_terrain - 1e-4:
+                        blocked = True
+                        break
+            shadow[y][x] = 0.0 if blocked else 1.0
+    return shadow
 
-def blinn_phong(normal: Vec3, licht_dir: Vec3, view_dir: Vec3, schatten_faktor: float,
-                kd: Color = (200, 180, 160), ks: Color = (255, 255, 255),
-                ka: Color = (30, 25, 20), shininess: float = 32.0) -> Color:
-    """Blinn-Phong Shading mit Schatten."""
-    n_dot_l = max(0.0, vec3_dot(normal, licht_dir))
-    
-    # Halfway-Vektor für Blinn-Phong
-    hx = licht_dir[0] + view_dir[0]
-    hy = licht_dir[1] + view_dir[1]
-    hz = licht_dir[2] + view_dir[2]
-    h_len = math.sqrt(hx*hx + hy*hy + hz*hz)
-    if h_len > 1e-9:
-        half = (hx/h_len, hy/h_len, hz/h_len)
-        n_dot_h = max(0.0, vec3_dot(normal, half))
-        spec = n_dot_h ** shininess
-    else:
-        spec = 0.0
-    
-    r = int(ka[0] + schatten_faktor * (kd[0] * n_dot_l + ks[0] * spec))
-    g = int(ka[1] + schatten_faktor * (kd[1] * n_dot_l + ks[1] * spec))
-    b = int(ka[2] + schatten_faktor * (kd[2] * n_dot_l + ks[2] * spec))
-    
-    return (min(255, max(0, r)), min(255, max(0, g)), min(255, max(0, b)))
 
-def render(tk: Tiefenkarte, licht_dir: Vec3, view_dir: Vec3) -> List[List[Color]]:
-    """Vollständiger Render-Pass: Normalen, Schatten, Shading."""
+def blinn_phong(normal: Vec3, licht_dir: Vec3, view_dir: Vec3,
+                kd: float = 0.8, ks: float = 0.3, shininess: float = 32.0) -> float:
+    """Blinn-Phong BRDF, gibt Helligkeitsfaktor 0..1 zurück."""
+    ndotl = max(0.0, vec3_dot(normal, licht_dir))
+    if ndotl == 0.0:
+        return 0.0
+    half_vec = vec3_norm(vec3_add(licht_dir, view_dir))
+    ndoth = max(0.0, vec3_dot(normal, half_vec))
+    spec = ks * (ndoth ** shininess)
+    diffuse = kd * ndotl
+    return min(1.0, diffuse + spec)
+
+
+def ambient_occlusion(tk: Tiefenkarte, normals: List[List[Vec3]], samples: int = 8, radius: float = 2.0) -> List[List[float]]:
+    """Screen-Space Ambient Occlusion (vereinfacht)."""
+    h, b = tk.h, tk.b
+    ao = [[1.0 for _ in range(b)] for _ in range(h)]
+    for y in range(h):
+        for x in range(b):
+            n = normals[y][x]
+            occ = 0
+            for i in range(samples):
+                angle = 2.0 * math.pi * i / samples
+                dx = math.cos(angle) * radius
+                dy = math.sin(angle) * radius
+                sx = x + dx
+                sy = y + dy
+                if 0 <= sx < b and 0 <= sy < h:
+                    h_sample = tk.get_bilinear(sy, sx)
+                    h_center = tk.daten[y][x]
+                    if h_sample > h_center:
+                        occ += 1
+            ao[y][x] = 1.0 - (occ / samples) * 0.5
+    return ao
+
+# ---------- Render-Pipeline ----------
+
+def render(tk: Tiefenkarte,
+           licht_dir: Vec3 = (0.5, -0.3, -0.8),
+           view_dir: Vec3 = (0.0, 0.0, 1.0),
+           skala: float = 1.0,
+           gamma: float = 2.2) -> List[List[Color]]:
+    """Rendert die Tiefenkarte zu einem Farbbild (Höhe x Breite)."""
+    h, b = tk.h, tk.b
+    out_h = max(1, int(h * skala))
+    out_b = max(1, int(b * skala))
+    
     normals = tk.normalen()
-    schatten = diffuse_schatten(tk, normals, licht_dir)
+    shadow = diffuse_schatten(tk, normals, licht_dir)
+    ao = ambient_occlusion(tk, normals)
     
     bild: List[List[Color]] = []
-    for y in range(tk.h):
+    for y in range(out_h):
         reihe: List[Color] = []
-        for x in range(tk.b):
-            if tk.daten[y][x] <= 0.0:
-                reihe.append((0, 0, 0))  # Hintergrund schwarz
+        sy = y / skala
+        for x in range(out_b):
+            sx = x / skala
+            iy = int(sy)
+            ix = int(sx)
+            if 0 <= iy < h and 0 <= ix < b:
+                n = normals[iy][ix]
+                h_val = tk.daten[iy][ix]
+                sh = shadow[iy][ix]
+                ao_val = ao[iy][ix]
+                
+                if h_val <= 0:
+                    reihe.append((10, 10, 20))
+                    continue
+                
+                lighting = blinn_phong(n, licht_dir, view_dir)
+                lighting *= sh
+                lighting *= ao_val
+                
+                base_color = (200, 180, 140)
+                r = base_color[0] * lighting
+                g = base_color[1] * lighting
+                b_col = base_color[2] * lighting
+                
+                height_tint = h_val * 0.3
+                r += 50 * height_tint
+                g += 40 * height_tint
+                b_col += 30 * height_tint
+                
+                def gammac(c: float) -> int:
+                    c = max(0.0, min(1.0, c / 255.0))
+                    return int(pow(c, 1.0 / gamma) * 255 + 0.5)
+                
+                reihe.append((gammac(r), gammac(g), gammac(b_col)))
             else:
-                col = blinn_phong(normals[y][x], licht_dir, view_dir, schatten[y][x])
-                reihe.append(col)
+                reihe.append((0, 0, 0))
         bild.append(reihe)
     return bild
 
-def schreibe_ppm(bild: List[List[Color]], out=sys.stdout.buffer) -> None:
-    """Schreibt PPM Binary (P6) auf stdout."""
+
+def schreiben_ppm(bild: List[List[Color]], out=sys.stdout.buffer) -> None:
+    """Schreibt P6-PPM (binär) auf stdout."""
     h = len(bild)
     b = len(bild[0]) if h > 0 else 0
-    out.write(f"P6 {b} {h} 255\n".encode('ascii'))
+    out.write(f"P6\n{b} {h}\n255\n".encode('ascii'))
     for reihe in bild:
-        for r, g, b_ in reihe:
-            out.write(bytes([r, g, b_]))
+        for r, g, b_col in reihe:
+            out.write(bytes([r & 255, g & 255, b_col & 255]))
 
-def lies_int(prompt: str, default: int, min_wert: int = 1, max_wert: int = 200) -> int:
-    """Liest Integer mit Default und EOF-Schutz."""
-    try:
-        s = input(prompt).strip()
-        if not s:
-            return default
-        val = int(s)
-        return max(min_wert, min(max_wert, val))
-    except (EOFError, ValueError):
-        return default
 
-def lies_form(prompt: str, default: str, optionen: List[str]) -> str:
-    """Liest Form-Auswahl mit Default und EOF-Schutz."""
+def schreiben_ascii(bild: List[List[Color]]) -> None:
+    """Fallback: kleines ASCII-Preview auf stderr."""
+    chars = " .:-=+*#%@"
+    for reihe in bild:
+        line = ""
+        for r, g, b_col in reihe:
+            lum = (r + g + b_col) / 3.0 / 255.0
+            idx = int(lum * (len(chars) - 1))
+            line += chars[idx]
+        print(line, file=sys.stderr)
+
+# ---------- Eingabe & Hauptprogramm ----------
+
+def frage(prompt: str, default: str = "") -> str:
     try:
-        s = input(prompt).strip().lower()
-        if not s:
-            return default
-        if s in optionen:
-            return s
-        print(f"Unbekannte Form '{s}', nehme '{default}'.", file=sys.stderr)
-        return default
+        val = input(f"{prompt} ")
+        return val.strip() if val.strip() else default
     except EOFError:
+        print("\nKeine Eingabe – Tschüss!", file=sys.stderr)
+        sys.exit(0)
+
+
+def wahl(prompt: str, optionen: List[str], default: str) -> str:
+    val = frage(f"{prompt} [{', '.join(optionen)}] [{default}]", default)
+    if val in optionen:
+        return val
+    print(f"Unbekannte Wahl '{val}', nehme '{default}'.", file=sys.stderr)
+    return default
+
+
+def zahl(prompt: str, default: int, min_wert: int = 1, max_wert: int = 200) -> int:
+    val = frage(f"{prompt} [{default}]", str(default))
+    try:
+        n = int(val)
+        return max(min_wert, min(max_wert, n))
+    except ValueError:
         return default
+
 
 def main() -> None:
     print("Schatten-Simulator – Träumt weiter, kleiner Dodo.", file=sys.stderr)
     
-    h = lies_int("Höhe [20]: ", 20, 5, 100)
-    b = lies_int("Breite [40]: ", 40, 5, 200)
+    h = zahl("Höhe", 20, 5, 100)
+    b = zahl("Breite", 40, 5, 200)
     
-    formen = {
-        'kugel': erzeuge_kugel,
-        'kegel': erzeuge_kegel,
-        'pyramide': erzeuge_stufenpyramide,
-        'wellblech': erzeuge_wellblech,
-        'huegel': erzeuge_zufaellige_huegel,
-    }
-    form_namen = list(formen.keys())
-    form = lies_form(f"Form {form_namen} [kugel]: ", "kugel", form_namen)
+    formen = ['kugel', 'kegel', 'pyramide', 'wellblech', 'huegel']
+    form = wahl("Form", formen, 'kugel')
     
-    tk = formen[form](h, b)
+    skala_str = frage("Ausgabe-Skalierung (1.0 = 1:1, 0.5 = halb so gross) [1.0]", "1.0")
+    try:
+        skala = float(skala_str)
+    except ValueError:
+        skala = 1.0
+    skala = max(0.1, min(4.0, skala))
     
-    # Licht von oben-links-hinten
-    licht = vec3_norm((-0.5, -0.3, -1.0))
-    # Kamera schaut von vorne (Viewer in +Z)
-    view = (0.0, 0.0, 1.0)
+    if form == 'kugel':
+        tk = erzeuge_kugel(h, b)
+    elif form == 'kegel':
+        tk = erzeuge_kegel(h, b)
+    elif form == 'pyramide':
+        tk = erzeuge_stufenpyramide(h, b)
+    elif form == 'wellblech':
+        tk = erzeuge_wellblech(h, b)
+    else:
+        tk = erzeuge_zufaellige_huegel(h, b)
     
-    bild = render(tk, licht, view)
-    schreibe_ppm(bild)
-    
-    # Kurze Statistik auf stderr
     mn, mx, span = tk.statistik()
-    print(f"Fertig: {h}x{b}, Form={form}, Höhe {mn:.3f}..{mx:.3f} (Spannweite {span:.3f})", file=sys.stderr)
+    print(f"Fertig: {tk.h}x{tk.b}, Form={form}, Höhe {mn:.3f}..{mx:.3f} (Spannweite {span:.3f})", file=sys.stderr)
+    
+    bild = render(tk, skala=skala)
+    
+    # ASCII-Preview auf stderr
+    schreiben_ascii(bild)
+    
+    # PPM auf stdout
+    schreiben_ppm(bild)
 
 if __name__ == "__main__":
     main()
