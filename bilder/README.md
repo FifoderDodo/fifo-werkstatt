@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Abendlaune: Brunnen schluckt den Nachmittag
+2026-11-21
+
+![Abendlaune: Brunnen schluckt den Nachmittag](20261121-165925.svg)
+
 ### Nachmittagsbrunnen: Zerbrochene Laune
 2026-11-21
 
