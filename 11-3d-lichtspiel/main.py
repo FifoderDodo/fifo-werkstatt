@@ -1,30 +1,35 @@
-# 3D-Lichtspiel – Teil 7: Volumetrische Tiefe – Scattering, Mist, Farbtemperatur, Jitter
-# Fifo der Dodo fügt atmosphärische Streuung und herbstlichen Nebel hinzu – Lichtkegel atmen jetzt
+# 3D-Lichtspiel – Teil 9: Optimierung der Lichtkegel & Streuungs-Seed
+# Fifo der Dodo feilt an der Performance und gibt dem Nebel einen festen Samen.
 
 import math
 import sys
 import random
 import unicodedata
+import time
 
 
 class ShaderParams:
     """Container für alle einstellbaren Shader-Parameter mit Defaults."""
     def __init__(self):
-        self.penumbra_breite = 0.15      # Weichheit des Schattenrandes (0.01 - 0.5)
-        self.umbra_dunkelheit = 0.05     # Restlicht im Kernschatten (0.0 - 0.5)
-        self.falloff_exponent = 2.0      # Lichtabfall mit Distanz (1.0 - 4.0)
-        self.blur_radius = 3             # Box-Blur Kernel Radius (1 - 8)
-        self.ambient = 0.02              # Grundhelligkeit (0.0 - 0.2)
-        self.volumetric_gain = 1.2       # Verstärkung der Lichtkegel-Sichtbarkeit (0.5 - 3.0)
-        self.gamma = 0.6                 # Gamma-Korrektur für ASCII-Mapping (0.3 - 1.0)
-        # NEU: Volumetrische Tiefe & Herbst-Atmosphäre
-        self.scattering_coeff = 0.35     # Mie-Streuungskoeffizient für Lichtkegel (0.1 - 1.0)
-        self.absorption_coeff = 0.12     # Absorption im Medium / Nebel (0.0 - 0.3)
-        self.mist_density = 0.18         # Nebeldichte für Tiefenwirkung (0.0 - 0.4)
-        self.mist_height_falloff = 0.8   # Nebel nimmt nach oben ab (0.5 - 1.5)
-        self.color_temp = 3200.0         # Farbtemperatur Kelvin – warmherbstlich (2500-5500)
-        self.jitter_strength = 0.15      # Feines Rauschen für organische Kegelränder (0.0 - 0.3)
-        self.phase_g = 0.6               # Henyey-Greenstein Asymmetrie (0.0-0.9, vorwärts)
+        self.penumbra_breite = 0.15
+        self.umbra_dunkelheit = 0.05
+        self.falloff_exponent = 2.0
+        self.blur_radius = 3
+        self.ambient = 0.02
+        self.volumetric_gain = 1.2
+        self.gamma = 0.6
+        # Volumetrische Tiefe & Herbst-Atmosphäre
+        self.scattering_coeff = 0.35
+        self.absorption_coeff = 0.12
+        self.mist_density = 0.18
+        self.mist_height_falloff = 0.8
+        self.color_temp = 3200.0
+        self.jitter_strength = 0.15
+        self.phase_g = 0.6
+        # NEU: Seed für reproduzierbares Rauschen & Optimierung
+        self.noise_seed = 42
+        self.march_steps = 32        # Raymarch-Schritte (16-64, weniger = schneller)
+        self.jitter_enabled = True   # Jitter an/aus für Performance-Vergleich
     
     def klonen(self):
         klon = ShaderParams()
@@ -33,19 +38,16 @@ class ShaderParams:
 
 
 def _norm(s: str) -> str:
-    """Normalisiert String für robusten Vergleich: NFC, lower, strip."""
     return unicodedata.normalize('NFC', s).strip().lower()
 
 
 def gauß_gewichte(kernel_radius: int) -> list:
-    """Erzeugt 1D-Gewichte für Box-Blur (näherungsweise Gauß). Summe = 1.0."""
     size = kernel_radius * 2 + 1
     gewicht = 1.0 / size
     return [gewicht] * size
 
 
 def box_blur_1d(puffer: list, gewichte: list, horizontal: bool = True) -> list:
-    """Wendet 1D-Box-Blur auf 2D-Float-Puffer an (separabel)."""
     h = len(puffer)
     w = len(puffer[0])
     k_rad = len(gewichte) // 2
@@ -75,14 +77,12 @@ def box_blur_1d(puffer: list, gewichte: list, horizontal: bool = True) -> list:
 
 
 def henyey_greenstein(cos_theta: float, g: float) -> float:
-    """Phasenfunktion für Volumetrisches Streulicht (vorwärts-gerichtet)."""
     g2 = g * g
     denom = (1.0 + g2 - 2.0 * g * cos_theta) ** 1.5
     return (1.0 - g2) / (4.0 * math.pi * denom) if denom > 1e-6 else 1.0
 
 
 def kelvin_to_rgb_factor(temp_k: float) -> tuple:
-    """Näherung: Farbtemperatur -> RGB-Multiplikatoren (normalisiert auf Grün=1.0)."""
     t = temp_k / 100.0
     if t <= 66:
         r = 1.0
@@ -96,13 +96,11 @@ def kelvin_to_rgb_factor(temp_k: float) -> tuple:
         b = 0.0
     else:
         b = 0.54320679 * math.log(t - 10.0) - 1.19625409
-    # Normalisieren so dass Grün ~1.0 für Helligkeitserhalt
     g = max(0.01, g)
     return (r / g, 1.0, b / g)
 
 
 def intensitaet_zu_ascii(wert: float, gamma: float = 0.6) -> str:
-    """Mappt Float-Intensität (0.0-1.0+) auf ASCII-Stufen mit Gamma."""
     if wert <= 0.0:
         return ' '
     w = min(1.0, max(0.0, wert)) ** gamma
@@ -122,11 +120,6 @@ def intensitaet_zu_ascii(wert: float, gamma: float = 0.6) -> str:
 
 def schattenfaktor_für_punkt(px: float, py: float, qx: float, qy: float, radius: float, 
                               bäume: list, params: ShaderParams) -> float:
-    """
-    Berechnet Schattierung (0.0 = voller Schatten, 1.0 = voll beleuchtet) für einen Punkt (px,py)
-    relativ zur Lichtquelle (qx,qy) mit Reichweite radius.
-    Nutzt Similarität der Dreiecke für Penumbra (weicher Schattenrand).
-    """
     dx = px - qx
     dy = py - qy
     dist_q_p = math.hypot(dx, dy)
@@ -156,9 +149,7 @@ def schattenfaktor_für_punkt(px: float, py: float, qx: float, qy: float, radius
         if abstand_zu_strahl >= bradius:
             continue
         
-        tiefe_diff = dist_q_p - proj
         schatten_radius_hier = bradius * (dist_q_p / dist_q_b)
-        
         if schatten_radius_hier <= 0.0:
             continue
             
@@ -173,309 +164,236 @@ def schattenfaktor_für_punkt(px: float, py: float, qx: float, qy: float, radius
             faktor = 1.0
         else:
             t = (rand_faktor - (1.0 - penumbra)) / (2.0 * penumbra)
-            t = max(0.0, min(1.0, t))
-            faktor = umbra + (1.0 - umbra) * (t * t * (3.0 - 2.0 * t))
+            faktor = umbra + (1.0 - umbra) * t
         
         if faktor < min_shadow:
             min_shadow = faktor
-            if min_shadow <= umbra:
-                break
-    
+            
     return min_shadow
 
 
-def zeichne_lichtkegel(breite: int, hoehe: int, quellen: list, bäume: list, params: ShaderParams) -> list:
-    """Erzeugt 2D-Gitter mit volumetric Licht & Schatten: Float-Puffer -> Blur -> ASCII."""
-    float_buf = [[params.ambient for _ in range(breite)] for __ in range(hoehe)]
+def noise_2d(x: float, y: float, seed: int) -> float:
+    """Einfaches deterministisches 2D-Rauschen (Integer-Hash)."""
+    # Großer Primzahl-Mix für Pseudo-Zufall
+    n = int(x * 123.45) ^ int(y * 678.91) ^ seed
+    n = (n ^ (n >> 13)) * 0x5bd1e995
+    n = (n ^ (n >> 15)) * 0x5bd1e995
+    n = n ^ (n >> 15)
+    return (n & 0x7fffffff) / 0x7fffffff * 2.0 - 1.0  # -1 bis 1
+
+
+def berechne_volumetrisch(breite: int, hoehe: int, quelle: tuple, radius: float, 
+                          bäume: list, params: ShaderParams) -> list:
+    """Raymarching für volumetrische Lichtkegel mit Schatten & Streuung.
+    Optimiert: Weniger Schritte, früher Abbruch, separater Shadow-Cache."""
+    qx, qy = quelle
+    rgb_factors = kelvin_to_rgb_factor(params.color_temp)
     
-    # Farbtemperatur-Faktoren für herbstliche Stimmung
-    r_mult, g_mult, b_mult = kelvin_to_rgb_factor(params.color_temp)
-    
-    for qx, qy, radius, richtung_x, richtung_y in quellen:
-        r2 = radius * radius
-        x0 = max(0, int(qx - radius))
-        x1 = min(breite, int(qx + radius) + 1)
-        y0 = max(0, int(qy - radius))
-        y1 = min(hoehe, int(qy + radius) + 1)
-        
-        for y in range(y0, y1):
-            dy = y - qy
-            dy2 = dy * dy
-            row = float_buf[y]
-            for x in range(x0, x1):
-                dx = x - qx
-                dist2 = dx * dx + dy2
-                
-                if dist2 > r2:
-                    continue
-                
-                dist = math.sqrt(dist2)
-                # Falloff mit einstellbarem Exponenten
-                falloff = 1.0 / (1.0 + (dist / max(1.0, radius * 0.3)) ** params.falloff_exponent)
-                
-                # Richtungsfaktor (Kegelform)
-                if radius > 0.01:
-                    dot = (dx * richtung_x + dy * richtung_y) / radius
-                    kegel = max(0.0, dot)  # Nur Vorwärts
-                else:
-                    kegel = 1.0
-                
-                # Schatten
-                shadow = schattenfaktor_für_punkt(x, y, qx, qy, radius, bäume, params)
-                
-                # Volumetrisches Streulicht (Mie) – Henyey-Greenstein
-                # cos_theta ≈ Ausrichtung zur Blickrichtung (hier vereinfacht: Kegelrichtung)
-                cos_theta = kegel
-                phase = henyey_greenstein(cos_theta, params.phase_g)
-                
-                # Nebel/Absorption mit Höhenabhängigkeit (y nach oben = kleiner y-Index)
-                # Normalisierte Höhe: 0.0 unten, 1.0 oben
-                norm_h = 1.0 - (y / max(1, hoehe - 1))
-                mist_factor = math.exp(-params.absorption_coeff * dist * (1.0 + params.mist_density * norm_h * params.mist_height_falloff))
-                
-                # Jitter für organische Kanten
-                jitter = 1.0
-                if params.jitter_strength > 0.0:
-                    # Deterministisches Rauschen basierend auf Position
-                    seed_val = (x * 73.14 + y * 19.41 + qx * 11.73 + qy * 31.09) % 1.0
-                    jitter = 1.0 + params.jitter_strength * (seed_val - 0.5) * 2.0
-                
-                # Kombinierte Intensität
-                intensität = (falloff * kegel * shadow * phase 
-                              * params.volumetric_gain * params.scattering_coeff 
-                              * mist_factor * jitter)
-                
-                # Additiv auf Buffer (mehrere Quellen addieren)
-                row[x] += intensität
-    
-    # Blur-Pass für weiche Kegelränder
-    if params.blur_radius > 0:
-        gewichte = gauß_gewichte(params.blur_radius)
-        float_buf = box_blur_1d(float_buf, gewichte, True)
-        float_buf = box_blur_1d(float_buf, gewichte, False)
-    
-    # ASCII-Mapping
-    ascii_buf = []
+    # Shadow-Cache: Berechne Schattenfaktor pro Pixel einmal (2D), 
+    # damit Raymarching nur noch Transparenz akkumuliert.
+    print("  Berechne Shadow-Map...")
+    shadow_map = [[1.0 for _ in range(breite)] for __ in range(hoehe)]
     for y in range(hoehe):
-        zeile = ''.join(intensitaet_zu_ascii(float_buf[y][x], params.gamma) for x in range(breite))
-        ascii_buf.append(zeile)
+        for x in range(breite):
+            # Weltkoordinaten (Zentrum = 0,0)
+            wx = (x - breite * 0.5) * 0.1
+            wy = (y - hoehe * 0.5) * 0.1
+            shadow_map[y][x] = schattenfaktor_für_punkt(wx, wy, qx, qy, radius, bäume, params)
     
-    return ascii_buf
+    print(f"  Raymarching ({params.march_steps} Schritte)...")
+    vol_buffer = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
+    
+    # Vorberechnete Schrittgröße
+    step_len = radius / params.march_steps
+    inv_steps = 1.0 / params.march_steps
+    
+    for y in range(hoehe):
+        wy = (y - hoehe * 0.5) * 0.1
+        for x in range(breite):
+            wx = (x - breite * 0.5) * 0.1
+            
+            dx = wx - qx
+            dy = wy - qy
+            dist = math.hypot(dx, dy)
+            
+            if dist > radius or dist < 0.01:
+                continue
+            
+            # Richtung von Licht zum Pixel
+            ux = dx / dist
+            uy = dy / dist
+            
+            # View-Richtung (Kamera schaut von -Z, hier vereinfacht von oben -Y Richtung?)
+            # Wir simulieren "God Rays" von der Seite: View-Dir = (0, -1) oder ähnlich.
+            # Einfacher: Phase-Funktion nutzt Winkel zwischen Lichtstrahl und Blickrichtung.
+            # Blickrichtung fest: Kamera steht "vor" der Szene (Richtung +Y in Welt?)
+            # Hier: Licht kommt von oben links, Kamera schaut von vorn (+Z projiziert auf -Y).
+            view_dx, view_dy = 0.0, -1.0 
+            cos_theta = ux * view_dx + uy * view_dy
+            phase = henyey_greenstein(cos_theta, params.phase_g)
+            
+            transmittance = 1.0
+            scatter_acc = 0.0
+            
+            # Raymarching vom Licht zum Pixel (Forward Marching)
+            for i in range(params.march_steps):
+                t = (i + 0.5) * inv_steps  # 0.5/steps ... 1.0
+                sample_dist = dist * t
+                
+                sx = qx + ux * sample_dist
+                sy = qy + uy * sample_dist
+                
+                # Nebeldichte mit Höhenabfall (sy ist "Höhe" in 2D-Schnitt)
+                # Annahme: y=0 ist Boden, y>0 ist oben. Kamera schaut entlang -y.
+                # Mist fällt mit sy ab (je höher, desto weniger).
+                height_factor = max(0.0, 1.0 - sy * params.mist_height_falloff)
+                density = params.mist_density * height_factor
+                
+                # Jitter für organische Kanten (nur wenn an)
+                if params.jitter_enabled:
+                    jitter = noise_2d(sx * 10.0, sy * 10.0, params.noise_seed + i) * params.jitter_strength
+                    density += jitter
+                
+                # Extinktion (Absorption + Out-Scattering)
+                extinction = (params.absorption_coeff + params.scattering_coeff) * density
+                transmittance *= math.exp(-extinction * step_len * 10.0)  # Skalierung
+                
+                if transmittance < 0.001:
+                    break
+                
+                # In-Scattering: Licht, das in Blickrichtung gestreut wird
+                # Schatten an dieser Sample-Position holen (Bilinear filtern wäre schöner, nearest ist schnell)
+                sample_x = int((sx / 0.1) + breite * 0.5)
+                sample_y = int((sy / 0.1) + hoehe * 0.5)
+                shadow = 1.0
+                if 0 <= sample_x < breite and 0 <= sample_y < hoehe:
+                    shadow = shadow_map[sample_y][sample_x]
+                
+                # Lichtintensität an Sample-Stelle (Inverse Square Falloff)
+                light_intensity = shadow * (1.0 / max(0.01, sample_dist ** params.falloff_exponent))
+                
+                scatter_acc += light_intensity * params.scattering_coeff * density * phase * transmittance * step_len * 10.0
+            
+            vol_buffer[y][x] = scatter_acc * params.volumetric_gain
+    
+    return vol_buffer
 
 
-def erzeuge_szene(params: ShaderParams) -> tuple:
-    """Erzeugt Bäume und Lichtquellen für den Herbstpark."""
-    breite, hoehe = 80, 40
-    random.seed(42)  # Reproduzierbar
-    
-    # Bäume: (x, y, radius)
-    bäume = []
-    for _ in range(25):
-        bx = random.uniform(5, breite - 5)
-        by = random.uniform(5, hoehe - 5)
-        br = random.uniform(1.5, 3.5)
-        bäume.append((bx, by, br))
-    
-    # Lichtquellen: (x, y, radius, dir_x, dir_y)
-    quellen = [
-        (10.0, 10.0, 18.0, 0.8, 0.6),   # Sonne tief rechts-unten
-        (70.0, 30.0, 15.0, -0.7, -0.3), # Laterne links oben
-        (40.0, 20.0, 22.0, 0.0, -1.0),  # Mondlicht von oben
+def render_frame(breite: int, hoehe: int, params: ShaderParams) -> list:
+    """Haupt-Render-Funktion: Baut Szene, rendert Volumetrik, blurrt, mapped zu ASCII."""
+    # Szenen-Definition: (x, y, radius)
+    bäume = [
+        (-3.0, 2.0, 0.8), (4.0, -1.5, 1.0), (-5.0, -3.0, 0.6),
+        (6.0, 4.0, 1.2), (0.0, -5.0, 0.9), (-2.0, -6.0, 0.7),
+        (7.0, -2.0, 1.1), (-6.0, 5.0, 0.5)
     ]
+    quelle = (0.0, 0.0)  # Lichtquelle in der Mitte
+    radius = 12.0
     
-    return breite, hoehe, quellen, bäume
+    # 1. Volumetrische Berechnung
+    vol = berechne_volumetrisch(breite, hoehe, quelle, radius, bäume, params)
+    
+    # 2. Blur für weiche Kegel
+    if params.blur_radius > 0:
+        gew = gauß_gewichte(params.blur_radius)
+        vol = box_blur_1d(vol, gew, True)
+        vol = box_blur_1d(vol, gew, False)
+    
+    # 3. Ambient & Tonemapping
+    frame = []
+    for y in range(hoehe):
+        row = ''
+        for x in range(breite):
+            val = vol[y][x] + params.ambient
+            row += intensitaet_zu_ascii(val, params.gamma)
+        frame.append(row)
+    return frame
 
 
-def menü_shader_parameter(params: ShaderParams) -> ShaderParams:
-    """Interaktives Menü zum Live-Tweaken der Shader-Parameter."""
-    felder = [
-        ('penumbra_breite', 'Penumbra-Breite', 0.01, 0.5),
-        ('umbra_dunkelheit', 'Umbra-Dunkelheit', 0.0, 0.5),
-        ('falloff_exponent', 'Falloff-Exponent', 1.0, 4.0),
-        ('blur_radius', 'Blur-Radius (int)', 1, 8),
-        ('ambient', 'Ambient-Grundhelligkeit', 0.0, 0.2),
-        ('volumetric_gain', 'Volumetric Gain', 0.5, 3.0),
-        ('gamma', 'Gamma-Korrektur', 0.3, 1.0),
-        ('scattering_coeff', 'Streuungskoeffizient', 0.1, 1.0),
-        ('absorption_coeff', 'Absorptionskoeffizient', 0.0, 0.3),
-        ('mist_density', 'Nebeldichte', 0.0, 0.4),
-        ('mist_height_falloff', 'Nebel-Höhenabfall', 0.5, 1.5),
-        ('color_temp', 'Farbtemperatur (K)', 2500.0, 5500.0),
-        ('jitter_strength', 'Jitter-Stärke', 0.0, 0.3),
-        ('phase_g', 'Phasen-Asymmetrie (g)', 0.0, 0.9),
-    ]
-    
+def parameter_menue(params: ShaderParams):
+    """Interaktives Menü zum Tweaken."""
     while True:
-        print('\n=== Shader-Parameter anpassen ===')
-        for i, (attr, name, mn, mx) in enumerate(felder, 1):
-            val = getattr(params, attr)
-            print(f'  {i:2d}. {name}: {val:.3f}  [{mn} – {mx}]')
-        print('  0. Zurück zum Hauptmenü')
-        
+        print("\n--- 3D-Lichtspiel Parameter (Teil 9) ---")
+        print(f"1. March Steps: {params.march_steps} (Speed vs Quality)")
+        print(f"2. Scattering Coeff: {params.scattering_coeff:.2f}")
+        print(f"3. Mist Density: {params.mist_density:.2f}")
+        print(f"4. Phase G (Forward): {params.phase_g:.2f}")
+        print(f"5. Color Temp (K): {params.color_temp:.0f}")
+        print(f"6. Jitter: {'An' if params.jitter_enabled else 'Aus'} (Strength: {params.jitter_strength:.2f})")
+        print(f"7. Noise Seed: {params.noise_seed}")
+        print(f"8. Volumetric Gain: {params.volumetric_gain:.2f}")
+        print(f"9. Blur Radius: {params.blur_radius}")
+        print("0. Rendern & Beenden")
         try:
-            wahl = input('Parameter wählen (0-{}): '.format(len(felder))).strip()
+            wahl = input("Wähle (0-9): ").strip()
         except EOFError:
-            print('\n🦤 Tschüss!')
+            print("\nKein Input, fliege weg. Tschüss!")
             sys.exit(0)
         
-        if not wahl:
-            continue
         if wahl == '0':
             break
-        
-        try:
-            idx = int(wahl) - 1
-            if 0 <= idx < len(felder):
-                attr, name, mn, mx = felder[idx]
-                try:
-                    neu = float(input(f'Neuer Wert für {name} [{mn}–{mx}]: ').strip())
-                    neu = max(mn, min(mx, neu))
-                    if attr == 'blur_radius':
-                        neu = int(neu)
-                    setattr(params, attr, neu)
-                    print(f'  → {name} = {neu}')
-                except ValueError:
-                    print('  Ungültige Zahl.')
-            else:
-                print('  Ungültige Auswahl.')
-        except ValueError:
-            print('  Bitte Zahl eingeben.')
-    
-    return params
-
-
-def tageszeit_vorlage(params: ShaderParams, vorlage: str) -> ShaderParams:
-    """Setzt Parameter-Vorlagen für verschiedene Tageszeiten."""
-    v = _norm(vorlage)
-    if v in ('morgens', 'morgen', 'dawn', '1'):
-        params.penumbra_breite = 0.12
-        params.umbra_dunkelheit = 0.08
-        params.falloff_exponent = 2.2
-        params.blur_radius = 4
-        params.ambient = 0.04
-        params.volumetric_gain = 1.5
-        params.gamma = 0.55
-        params.scattering_coeff = 0.45
-        params.absorption_coeff = 0.15
-        params.mist_density = 0.28
-        params.mist_height_falloff = 0.7
-        params.color_temp = 3500.0
-        params.jitter_strength = 0.18
-        params.phase_g = 0.65
-        print('🌅 Morgendämmerung – kühler Nebel, weiche Schatten')
-    elif v in ('mittag', 'noon', '2'):
-        params.penumbra_breite = 0.08
-        params.umbra_dunkelheit = 0.02
-        params.falloff_exponent = 1.8
-        params.blur_radius = 2
-        params.ambient = 0.08
-        params.volumetric_gain = 0.8
-        params.gamma = 0.7
-        params.scattering_coeff = 0.2
-        params.absorption_coeff = 0.05
-        params.mist_density = 0.05
-        params.mist_height_falloff = 1.0
-        params.color_temp = 5500.0
-        params.jitter_strength = 0.08
-        params.phase_g = 0.5
-        print('☀️ Mittag – harte Schatten, wenig Volumetrik')
-    elif v in ('abends', 'abend', 'dusk', '3'):
-        params.penumbra_breite = 0.18
-        params.umbra_dunkelheit = 0.04
-        params.falloff_exponent = 2.5
-        params.blur_radius = 5
-        params.ambient = 0.03
-        params.volumetric_gain = 1.8
-        params.gamma = 0.5
-        params.scattering_coeff = 0.55
-        params.absorption_coeff = 0.18
-        params.mist_density = 0.22
-        params.mist_height_falloff = 0.85
-        params.color_temp = 2800.0
-        params.jitter_strength = 0.22
-        params.phase_g = 0.7
-        print('🌇 Abenddämmerung – goldene Stunde, tiefe Kegel')
-    elif v in ('nacht', 'night', '4'):
-        params.penumbra_breite = 0.22
-        params.umbra_dunkelheit = 0.01
-        params.falloff_exponent = 3.0
-        params.blur_radius = 6
-        params.ambient = 0.01
-        params.volumetric_gain = 2.2
-        params.gamma = 0.45
-        params.scattering_coeff = 0.6
-        params.absorption_coeff = 0.1
-        params.mist_density = 0.15
-        params.mist_height_falloff = 1.2
-        params.color_temp = 4200.0  # Mondlicht
-        params.jitter_strength = 0.12
-        params.phase_g = 0.6
-        print('🌙 Nacht – Mondlicht, starker Kontrast, feiner Nebel')
-    elif v in ('herbst', 'autumn', '5'):
-        params.penumbra_breite = 0.16
-        params.umbra_dunkelheit = 0.05
-        params.falloff_exponent = 2.3
-        params.blur_radius = 4
-        params.ambient = 0.025
-        params.volumetric_gain = 1.6
-        params.gamma = 0.55
-        params.scattering_coeff = 0.5
-        params.absorption_coeff = 0.14
-        params.mist_density = 0.25
-        params.mist_height_falloff = 0.8
-        params.color_temp = 3000.0
-        params.jitter_strength = 0.2
-        params.phase_g = 0.68
-        print('🍂 Herbst-Spezial – warmer Nebel, tiefe Lichtkegel')
-    else:
-        print('Unbekannte Vorlage. Verfügbar: morgens, mittag, abends, nacht, herbst')
-    return params
-
+        elif wahl == '1':
+            try: params.march_steps = max(8, min(128, int(input("Steps (8-128): "))))
+            except: pass
+        elif wahl == '2':
+            try: params.scattering_coeff = max(0.0, min(2.0, float(input("Scattering (0-2): "))))
+            except: pass
+        elif wahl == '3':
+            try: params.mist_density = max(0.0, min(1.0, float(input("Mist (0-1): "))))
+            except: pass
+        elif wahl == '4':
+            try: params.phase_g = max(0.0, min(0.99, float(input("Phase G (0-0.99): "))))
+            except: pass
+        elif wahl == '5':
+            try: params.color_temp = max(1000.0, min(10000.0, float(input("Temp K (1000-10000): "))))
+            except: pass
+        elif wahl == '6':
+            params.jitter_enabled = not params.jitter_enabled
+            if params.jitter_enabled:
+                try: params.jitter_strength = max(0.0, min(0.5, float(input("Jitter Strength (0-0.5): "))))
+                except: pass
+        elif wahl == '7':
+            try: params.noise_seed = int(input("Seed (int): "))
+            except: pass
+        elif wahl == '8':
+            try: params.volumetric_gain = max(0.1, min(5.0, float(input("Gain (0.1-5): "))))
+            except: pass
+        elif wahl == '9':
+            try: params.blur_radius = max(0, min(10, int(input("Blur Radius (0-10): "))))
+            except: pass
+        else:
+            print("Unbekannt.")
 
 def main():
-    print('🦤 3D-Lichtspiel – Volumetrisches Licht & Schatten im Herbstpark')
-    print('=' * 60)
+    print("~~~ 3D-Lichtspiel: Herbst-Park ~~~")
+    print("Fifo der Dodo optimiert die Lichtkegel (Teil 9).")
     
     params = ShaderParams()
     
-    while True:
-        print('\n=== Hauptmenü ===')
-        print('  1. Szene rendern')
-        print('  2. Shader-Parameter anpassen')
-        print('  3. Tageszeit-Vorlage laden')
-        print('  4. Beenden')
-        
-        try:
-            wahl = input('Deine Wahl (1-4): ').strip()
-        except EOFError:
-            print('\n🦤 Tschüss!')
-            break
-        
-        if wahl == '1':
-            breite, hoehe, quellen, bäume = erzeuge_szene(params)
-            ascii_art = zeichne_lichtkegel(breite, hoehe, quellen, bäume, params)
-            print(f'\n--- Render: {breite}x{hoehe} ---')
-            for zeile in ascii_art:
-                print(zeile)
-            print('--- Ende ---')
-        
-        elif wahl == '2':
-            params = menü_shader_parameter(params)
-        
-        elif wahl == '3':
-            try:
-                v = input('Vorlage (morgens/mittag/abends/nacht/herbst): ').strip()
-                params = tageszeit_vorlage(params, v)
-            except EOFError:
-                print('\n🦤 Tschüss!')
-                break
-        
-        elif wahl == '4':
-            print('🦤 Bis bald im Park!')
-            break
-        
+    # Standard-Größe für Terminal
+    breite, hoehe = 80, 40
+    
+    parameter_menue(params)
+    
+    print("\nRendering...")
+    start = time.time()
+    frame = render_frame(breite, hoehe, params)
+    dauer = time.time() - start
+    
+    print(f"\nFertig in {dauer:.2f}s. Seed: {params.noise_seed}, Steps: {params.march_steps}")
+    print("=" * breite)
+    for row in frame:
+        print(row)
+    print("=" * breite)
+    
+    # Nochmal?
+    try:
+        if input("\nNochmal mit neuen Parametern? (j/n): ").strip().lower() == 'j':
+            main()
         else:
-            print('Unbekannte Option.')
+            print("Fifo watschelt ins Laub. Tschüss!")
+    except EOFError:
+        print("\nEOF. Tschüss!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
