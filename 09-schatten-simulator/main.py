@@ -167,245 +167,186 @@ def raymarch_schatten(tk: Tiefenkarte, start: Vec3, l_dir: Vec3, max_dist: float
     curr_z = start[2] + l_dir[2] * offset
     
     schrittweite = max(0.5, max_dist / schritte)
-    
     for _ in range(schritte):
-        # Weltkoordinaten -> Tiefenkarten-Indizes
-        map_x = curr_x
-        map_y = curr_y
-        
-        if 0 <= map_x < tk.b - 1 and 0 <= map_y < tk.h - 1:
-            hoehe = tk.get_bilinear(map_y, map_x) * z_skalierung
-            if curr_z <= hoehe + 0.05 * z_skalierung:
-                return 0.0  # im Schatten
-        
+        # Weltkoordinaten in Heightmap-Indizes (y, x) umrechnen
+        h_here = tk.get_bilinear(curr_y, curr_x) * z_skalierung
+        if curr_z < h_here:
+            return 0.0  # im Schatten
         curr_x += l_dir[0] * schrittweite
         curr_y += l_dir[1] * schrittweite
         curr_z += l_dir[2] * schrittweite
-    
-    return 1.0  # beleuchtet
+    return 1.0  # kein Schatten
 
+def phong_shading(
+    normal: Vec3,
+    view_dir: Vec3,
+    lights: List[Lichtquelle],
+    pos: Vec3,
+    tk: Tiefenkarte,
+    z_skalierung: float,
+    ambient: float = 0.15,
+    diffus: float = 0.8,
+    spekular: float = 0.3,
+    glanz: float = 32.0
+) -> Tuple[float, float, float]:
+    """Berechnet Phong-Beleuchtung mit Weichschatten (mehrere Samples pro Licht)."""
+    r, g, b = ambient, ambient, ambient
+    for light in lights:
+        l_dir, dist = light.vektor_und_distanz(pos)
+        energie = light.energie_an(dist)
+        # Weichschatten: 3 Samples mit kleinem Jitter
+        schatten = 0.0
+        for j in range(3):
+            jitter = (random.uniform(-0.15, 0.15), random.uniform(-0.15, 0.15), random.uniform(-0.15, 0.15))
+            jittered_start = vec3_add(pos, jitter)
+            schatten += raymarch_schatten(tk, jittered_start, l_dir, dist, z_skalierung, schritte=16)
+        schatten /= 3.0
+        if schatten < 0.02:
+            continue
+        # Diffuse
+        ndl = max(0.0, vec3_dot(normal, l_dir))
+        # Spekular (Blinn-Phong)
+        half_vec = vec3_norm(vec3_add(l_dir, view_dir))
+        ndh = max(0.0, vec3_dot(normal, half_vec))
+        spec = (ndh ** glanz) * spekular
+        diff = ndl * diffus
+        r += (diff + spec) * energie * schatten
+        g += (diff + spec) * energie * schatten
+        b += (diff + spec) * energie * schatten
+    return (min(1.0, r), min(1.0, g), min(1.0, b))
 
-def phong_schatten(tk: Tiefenkarte, normalen: List[List[Vec3]], y: int, x: int,
-                   lichter: List[Lichtquelle], v_aug: Vec3, z_skalierung: float,
-                   k_a: float = 0.15, k_d: float = 0.7, k_s: float = 0.3, glanz: float = 32.0) -> float:
-    """Berechnet Phong-Beleuchtung mit Weichschatten für einen Pixel."""
-    n = normalen[y][x]
-    p_welt = (float(x), float(y), tk.daten[y][x] * z_skalierung)
-    
-    gesamt = k_a  # Ambient-Anteil
-    
-    for licht in lichter:
-        l_dir, dist = licht.vektor_und_distanz(p_welt)
-        energie = licht.energie_an(dist)
-        
-        # Schattenfaktor (0.0 = voller Schatten, 1.0 = voll beleuchtet)
-        schatten = raymarch_schatten(tk, p_welt, l_dir, dist if licht.typ == 'punkt' else 50.0, z_skalierung)
-        
-        if schatten > 0.01:
-            # Diffus
-            ndotl = max(0.0, vec3_dot(n, l_dir))
-            diffus = k_d * ndotl
-            
-            # Spekular (Blinn-Phong)
-            h = vec3_norm(vec3_add(l_dir, v_aug))
-            ndoth = max(0.0, vec3_dot(n, h))
-            spekular = k_s * (ndoth ** glanz)
-            
-            gesamt += (diffus + spekular) * energie * schatten
-    
-    return min(1.0, max(0.0, gesamt))
+# ---------- ANSI-Renderer ----------
 
-# ---------- ANSI-Rendering ----------
+def rgb_to_ansi256(r: float, g: float, b: float) -> int:
+    """Konvertiert 0-1 RGB in ANSI-256-Farbindex (6x6x6-Würfel + Graustufen)."""
+    r_i = int(r * 5 + 0.5)
+    g_i = int(g * 5 + 0.5)
+    b_i = int(b * 5 + 0.5)
+    if r_i == g_i == b_i:
+        # Graustufe 232-255
+        gray = int(r * 23 + 0.5)
+        return 232 + max(0, min(23, gray))
+    return 16 + 36 * r_i + 6 * g_i + b_i
 
-ASCII_RAMP = " .'`^\\\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@%$"
+def ansi_fg(code: int) -> str:
+    return f"\x1b[38;5;{code}m"
 
-def helligkeit_zu_ascii(wert: float) -> str:
-    idx = int(wert * (len(ASCII_RAMP) - 1))
-    return ASCII_RAMP[max(0, min(len(ASCII_RAMP) - 1, idx))]
+def ansi_reset() -> str:
+    return "\x1b[0m"
 
-def farbe_256(r: float, g: float, b: float) -> int:
-    """Konvertiert RGB (0-1) zu nächstem 256-Farbraum-Index (16-231)."""
-    ri = int(r * 5)
-    gi = int(g * 5)
-    bi = int(b * 5)
-    return 16 + 36 * ri + 6 * gi + bi
-
-def render_ansi(tk: Tiefenkarte, normalen: List[List[Vec3]], lichter: List[Lichtquelle],
-                z_skalierung: float, v_aug: Vec3, breite: int = 80) -> List[str]:
-    """Rendert die Tiefenkarte als ANSI-farbiges ASCII-Bild."""
-    h, b = tk.h, tk.b
-    if b == 0 or h == 0:
-        return []
-    
-    skala = breite / b
-    out_h = max(1, int(h * skala * 0.5))  # 0.5 für Zeichen-Seitenverhältnis
-    
-    zeilen: List[str] = []
-    for yy in range(out_h):
-        src_y = yy / skala / 0.5
-        zeile_chars: List[str] = []
-        for xx in range(breite):
-            src_x = xx / skala
-            
-            # Bilineare Interpolation für Normalen und Höhe
-            y0 = int(math.floor(src_y))
-            x0 = int(math.floor(src_x))
-            y1 = min(h - 1, y0 + 1)
-            x1 = min(b - 1, x0 + 1)
-            dy = src_y - y0
-            dx = src_x - x0
-            
-            if 0 <= y0 < h and 0 <= x0 < b:
-                # Normalen interpolieren
-                n00 = normalen[y0][x0]
-                n01 = normalen[y0][x1]
-                n10 = normalen[y1][x0]
-                n11 = normalen[y1][x1]
-                
-                nx = (n00[0] * (1-dx) + n01[0] * dx) * (1-dy) + (n10[0] * (1-dx) + n11[0] * dx) * dy
-                ny = (n00[1] * (1-dx) + n01[1] * dx) * (1-dy) + (n10[1] * (1-dx) + n11[1] * dx) * dy
-                nz = (n00[2] * (1-dx) + n01[2] * dx) * (1-dy) + (n10[2] * (1-dx) + n11[2] * dx) * dy
-                n_interp = vec3_norm((nx, ny, nz))
-                
-                # Höhe interpolieren für Welt-Position
-                h00 = tk.daten[y0][x0]
-                h01 = tk.daten[y0][x1]
-                h10 = tk.daten[y1][x0]
-                h11 = tk.daten[y1][x1]
-                h_interp = (h00 * (1-dx) + h01 * dx) * (1-dy) + (h10 * (1-dx) + h11 * dx) * dy
-                
-                p_welt = (src_x, src_y, h_interp * z_skalierung)
-                
-                # Beleuchtung berechnen
-                helligkeit = 0.15  # Ambient
-                for licht in lichter:
-                    l_dir, dist = licht.vektor_und_distanz(p_welt)
-                    energie = licht.energie_an(dist)
-                    schatten = raymarch_schatten(tk, p_welt, l_dir,
-                                                dist if licht.typ == 'punkt' else 50.0, z_skalierung)
-                    if schatten > 0.01:
-                        ndotl = max(0.0, vec3_dot(n_interp, l_dir))
-                        h_vec = vec3_norm(vec3_add(l_dir, v_aug))
-                        ndoth = max(0.0, vec3_dot(n_interp, h_vec))
-                        helligkeit += (0.7 * ndotl + 0.3 * (ndoth ** 32.0)) * energie * schatten
-                
-                helligkeit = min(1.0, max(0.0, helligkeit))
-                
-                # Farbe basierend auf Höhe und Beleuchtung
-                hoehe_norm = (h_interp - tk.statistik()[0]) / max(0.001, tk.statistik()[2])
-                r = 0.2 + 0.6 * hoehe_norm * helligkeit
-                g = 0.3 + 0.5 * (1.0 - hoehe_norm) * helligkeit
-                b_col = 0.5 + 0.3 * helligkeit
-                
-                farb_idx = farbe_256(r, g, b_col)
-                ascii_char = helligkeit_zu_ascii(helligkeit)
-                zeile_chars.append(f"\033[38;5;{farb_idx}m{ascii_char}")
+def render_ansi(tk: Tiefenkarte, normals: List[List[Vec3]], lights: List[Lichtquelle], z_skalierung: float, breite: int = 80, hoehe: int = 40) -> List[str]:
+    """Rendert die Tiefenkarte als ANSI-Farbbild mit bilinearer Interpolation."""
+    view_dir = (0.0, 0.0, -1.0)  # Kamera schaut von oben (-Z)
+    max_dist = max(tk.b, tk.h) * z_skalierung * 1.5
+    out_lines: List[str] = []
+    for zeile in range(hoehe):
+        line_parts: List[str] = []
+        for spalte in range(breite):
+            # Zielkoordinaten in Heightmap-Raum
+            u = (spalte + 0.5) / breite * (tk.b - 1)
+            v = (zeile + 0.5) / hoehe * (tk.h - 1)
+            h = tk.get_bilinear(v, u) * z_skalierung
+            # Normal bilinear interpolieren
+            n = (0.0, 0.0, 1.0)
+            if 0 <= v < tk.h - 1 and 0 <= u < tk.b - 1:
+                y0, x0 = int(v), int(u)
+                dy, dx = v - y0, u - x0
+                n00 = normals[y0][x0]
+                n10 = normals[y0][x0+1]
+                n01 = normals[y0+1][x0]
+                n11 = normals[y0+1][x0+1]
+                nx = (n00[0]*(1-dx)+n10[0]*dx)*(1-dy) + (n01[0]*(1-dx)+n11[0]*dx)*dy
+                ny = (n00[1]*(1-dx)+n10[1]*dx)*(1-dy) + (n01[1]*(1-dx)+n11[1]*dx)*dy
+                nz = (n00[2]*(1-dx)+n10[2]*dx)*(1-dy) + (n01[2]*(1-dx)+n11[2]*dx)*dy
+                n = vec3_norm((nx, ny, nz))
+            pos = (u, v, h)
+            col = phong_shading(n, view_dir, lights, pos, tk, z_skalierung)
+            ansi_code = rgb_to_ansi256(*col)
+            # Zeichen nach Helligkeit wählen
+            lum = 0.2126*col[0] + 0.7152*col[1] + 0.0722*col[2]
+            if lum > 0.7:
+                ch = "#"
+            elif lum > 0.5:
+                ch = "o"
+            elif lum > 0.3:
+                ch = "*"
+            elif lum > 0.15:
+                ch = "."
             else:
-                zeile_chars.append(" ")
-        zeilen.append(" ".join(zeile_chars) + "\033[0m")
-    return zeilen
+                ch = " "
+            line_parts.append(f"{ansi_fg(ansi_code)}{ch}{ansi_reset()}")
+        out_lines.append("".join(line_parts))
+    return out_lines
 
-# ---------- Beispieldaten & Hauptprogramm ----------
-
-def generiere_landkarte(breite: int = 60, hoehe: int = 40, seed: int = 42) -> Tiefenkarte:
-    """Erzeugt eine prozedurale Höhenkarte mit Value Noise."""
-    noise = ValueNoise(seed)
-    daten: List[List[float]] = []
-    for y in range(hoehe):
-        reihe: List[float] = []
-        for x in range(breite):
-            # Mehrere Noise-Layer für interessante Landschaft
-            basis = noise.fractal(x, y, okta=4, persistenz=0.5, laengenskalierung=0.08)
-            detail = noise.fractal(x, y, okta=3, persistenz=0.4, laengenskalierung=0.15) * 0.3
-            fluss = noise.fractal(x * 0.5, y * 0.5, okta=2, persistenz=0.6, laengenskalierung=0.03) * 0.2
-            # Leichte Kuppenformung
-            mitten_x, mitten_y = breite * 0.5, hoehe * 0.5
-            dist_mitte = math.sqrt((x - mitten_x)**2 + (y - mitten_y)**2) / max(breite, hoehe)
-            kuppen = (1.0 - dist_mitte) * 0.4
-            
-            hoehe = basis + detail + fluss + kuppen
-            reihe.append(max(0.0, min(1.0, hoehe)))
-        daten.append(reihe)
-    return Tiefenkarte(daten)
-
-def eingabe_mit_default(prompt: str, default: str, typ: type = str) -> any:
-    """Robuste Eingabe mit Default-Wert und Typ-Konvertierung."""
-    try:
-        val = input(f"{prompt} [{default}]: ").strip()
-        if not val:
-            return typ(default)
-        return typ(val)
-    except (ValueError, EOFError):
-        return typ(default)
+# ---------- Hauptprogramm ----------
 
 def main() -> None:
-    print("\n=== Schatten-Simulator v52 ===")
-    print("Prozedurale 3D-Tiefenberechnung mit Weichschatten & ANSI-Rendering")
-    print("Teil 52/55: Feinabstimmung Tiefenberechnung & Helligkeitstest\n")
+    random.seed(42)  # reproduzierbar
+    print("Schatten-Simulator – Part 53/55")
+    print("================================")
+    try:
+        # Parameter per Input oder Defaults
+        b = int(input("Breite der Heightmap (Default 120): ") or "120")
+        h = int(input("Höhe der Heightmap (Default 60): ") or "60")
+        skal = float(input("Z-Skalierung (Default 8.0): ") or "8.0")
+        seed = int(input("Noise-Seed (Default 12345): ") or "12345")
+        okta = int(input("Oktaven (Default 6): ") or "6")
+        pers = float(input("Persistenz (Default 0.5): ") or "0.5")
+        lac = float(input("Lakunarität (Default 2.0): ") or "2.0")
+    except (EOFError, ValueError):
+        print("\nEingabe abgebrochen oder ungültig – nutze Defaults.")
+        b, h, skal, seed, okta, pers, lac = 120, 60, 8.0, 12345, 6, 0.5, 2.0
     
-    # Parameter abfragen
-    breite = eingabe_mit_default("Kartenbreite", "60", int)
-    hoehe = eingabe_mit_default("Kartenhöhe", "40", int)
-    seed = eingabe_mit_default("Noise-Seed", "42", int)
-    z_skalierung = eingabe_mit_default("Z-Skalierung (Tiefe)", "2.5", float)
-    render_breite = eingabe_mit_default("Render-Breite (Zeichen)", "80", int)
+    # Prozedurale Landschaft generieren
+    noise = ValueNoise(seed)
+    daten: List[List[float]] = []
+    for y in range(h):
+        reihe: List[float] = []
+        for x in range(b):
+            # Mehrere Noise-Layer für interessante Formen
+            base = noise.fractal(x, y, okta, pers, 0.015)
+            detail = noise.fractal(x*2, y*2, 3, 0.3, 0.08) * 0.15
+            ridge = 1.0 - abs(noise.fractal(x*0.5, y*0.5, 4, 0.5, 0.03))
+            reihe.append(max(0.0, min(1.0, base*0.6 + detail + ridge*0.25)))
+        daten.append(reihe)
     
-    print("\nGeneriere Höhenkarte...")
-    tk = generiere_landkarte(breite, hoehe, seed)
-    mn, mx, span = tk.statistik()
-    print(f"Höhenbereich: {mn:.3f} - {mx:.3f} (Spanne: {span:.3f})")
+    tk = Tiefenkarte(daten)
+    mn, mx, rng = tk.statistik()
+    print(f"Heightmap: {b}x{h}, Range [{mn:.3f}, {mx:.3f}], Spanne {rng:.3f}")
     
-    print("Berechne Normalen...")
-    normalen = tk.normalen(z_skalierung)
+    normals = tk.normalen(z_faktor=skal)
     
-    # Licht-Setup
-    print("\nLichtquellen konfigurieren:")
-    print("1: Gerichtetes Licht (Sonne)")
-    print("2: Punktlicht (Lampe)")
-    print("3: Beide kombiniert")
-    licht_wahl = eingabe_mit_default("Wahl", "3", int)
+    # Lichtquellen definieren
+    lights = [
+        Lichtquelle('gerichtet', vec3_norm((0.6, -0.4, -1.0)), 1.2),
+        Lichtquelle('punkt', (b*0.5, h*0.2, skal*1.5), 0.8, 0.001),
+        Lichtquelle('punkt', (b*0.8, h*0.8, skal*1.0), 0.5, 0.002),
+    ]
     
-    lichter: List[Lichtquelle] = []
-    if licht_wahl in (1, 3):
-        # Sonnenlicht von oben-links-hinten
-        lichter.append(Lichtquelle('gerichtet', vec3_norm((-0.5, -0.3, -1.0)), intensitaet=1.2))
-    if licht_wahl in (2, 3):
-        # Punktlicht in der Mitte, etwas erhöht
-        lichter.append(Lichtquelle('punkt', (breite * 0.5, hoehe * 0.5, 15.0), intensitaet=3.0, abfall=0.008))
+    # Rendern
+    print("\nRendere ANSI-Bild (80x40)...")
+    frame = render_ansi(tk, normals, lights, skal, 80, 40)
+    for line in frame:
+        print(line)
     
-    # View-Vektor (Kamera schaut von oben nach unten, leicht geneigt)
-    v_aug = vec3_norm((0.1, 0.2, -1.0))
+    # Helligkeits-Testpunkte
+    print("\nHelligkeits-Test an 5 zufälligen Stellen:")
+    for _ in range(5):
+        tx = random.uniform(0, b-1)
+        ty = random.uniform(0, h-1)
+        th = tk.get_bilinear(ty, tx) * skal
+        tn = normals[int(ty)][int(tx)] if 0 <= int(ty) < h and 0 <= int(tx) < b else (0,0,1)
+        tp = (tx, ty, th)
+        col = phong_shading(tn, (0,0,-1), lights, tp, tk, skal)
+        lum = 0.2126*col[0] + 0.7152*col[1] + 0.0722*col[2]
+        print(f"  ({tx:.1f},{ty:.1f}) h={th:.2f} col=({col[0]:.2f},{col[1]:.2f},{col[2]:.2f}) lum={lum:.2f}")
     
-    print("\nRendere ASCII-Bild mit Schatten...")
-    bild = render_ansi(tk, normalen, lichter, z_skalierung, v_aug, render_breite)
-    
-    print("\n" + "=" * render_breite)
-    for zeile in bild:
-        print(zeile)
-    print("=" * render_breite)
-    
-    # Helligkeitsstatistik
-    print("\n--- Helligkeitstest ---")
-    test_punkte = [(hoehe//2, breite//2), (hoehe//4, breite//4), (3*hoehe//4, 3*breite//4)]
-    for ty, tx in test_punkte:
-        if 0 <= ty < hoehe and 0 <= tx < breite:
-            n = normalen[ty][tx]
-            p = (float(tx), float(ty), tk.daten[ty][tx] * z_skalierung)
-            hell = phong_schatten(tk, normalen, ty, tx, lichter, v_aug, z_skalierung)
-            print(f"  Pixel ({tx},{ty}) Höhe={tk.daten[ty][tx]:.3f} Normalen=({n[0]:.2f},{n[1]:.2f},{n[2]:.2f}) -> Helligkeit={hell:.3f}")
-    
-    print("\nFertig! Drücke Enter zum Beenden...")
+    print("\nFertig. Drücke Enter für Ende oder Strg+C zum Abbruch.")
     try:
         input()
     except EOFError:
         pass
+    print("Tschüss!")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nAbgebrochen.")
-    except Exception as e:
-        print(f"\nFehler: {e}")
-        import traceback
-        traceback.print_exc()
+    main()
