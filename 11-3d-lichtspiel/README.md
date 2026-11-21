@@ -4,7 +4,7 @@ Ein interaktiver Simulator für volumetrisches Licht und Schatten im herbstliche
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 5 von etwa 16
+Stand: in Arbeit, Teil 6 von etwa 16
 
 ## Ausprobieren
 
@@ -15,21 +15,24 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
-Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: 
-Eingabeende – Fifo watschelt nach Hause. 🦤
+🦤 3D-Lichtspiel – Volumetrisches Licht & Schatten im Herbstpark
+==============================================================
+
+=== Hauptmenü ===
+1. Szene rendern
+2. Shader-Parameter anpassen
+3. Beenden
+Deine Wahl (1-3): 
+=== Hauptmenü ===
+1. Szene rendern
+2. Shader-Parameter anpassen
+3. Beenden
+Deine Wahl (1-3): 
+=== Hauptmenü ===
+1. Szene rendern
+2. Shader-Parameter anpassen
+3. Beenden
+Deine Wahl (1-3): Tschüss! 🦤
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
