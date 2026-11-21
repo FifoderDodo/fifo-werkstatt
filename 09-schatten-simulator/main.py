@@ -5,6 +5,7 @@ import random
 from typing import List, Tuple, Optional
 
 Vec3 = Tuple[float, float, float]
+Color = Tuple[int, int, int]
 
 # ---------- Vektor-Hilfsfunktionen ----------
 
@@ -151,210 +152,252 @@ def harte_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
     """Einfacher harte Schatten per Ray-Marching entlang Licht-Richtung."""
     lx, ly, lz = vec3_norm(licht_dir)
     h, b = karte.h, karte.b
-    # Lichtrichtung zeigt von der Oberfläche zur Lichtquelle.
-    # Wir marschieren von der Oberfläche in Richtung Lichtquelle.
-    # Schrittweite in xy-Ebene so, dass wir maximal schritte Schritte bis zum Rand machen.
+    # Licht kommt von oben (lz > 0). Wir marschieren von Oberfläche zur Lichtquelle.
+    # Wenn lz <= 0, Licht kommt von unten/seiten -> kein Schattenwurf nach oben hin in diesem Modell.
+    if lz <= 1e-6:
+        return [[1.0] * b for _ in range(h)]
+
     max_d = math.sqrt(h * h + b * b)
     step_xy = max_d / schritte
-    # Normierte xy-Komponente der Lichtrichtung
     l_xy = math.sqrt(lx * lx + ly * ly)
-    if l_xy < 1e-6:
-        # Licht kommt von genau oben -> keine Schatten
-        return [[1.0] * b for _ in range(h)]
-    inv_xy = 1.0 / l_xy
-    dir_x = lx * inv_xy * step_xy
-    dir_y = ly * inv_xy * step_xy
-    step_z = lz * inv_xy * step_xy  # Höhenänderung pro Schritt (Höhenwerte 0-1, xy in Pixeln)
-
-    shadow = [[1.0] * b for _ in range(h)]
+    
+    result: List[List[float]] = []
     for y in range(h):
+        reihe: List[float] = []
         for x in range(b):
-            h0 = karte.daten[y][x]
-            # Startpunkt leicht versetzt (bias) um Selbstschatten-Artefakte zu vermeiden
-            cx = x + 0.5 + dir_x * bias
-            cy = y + 0.5 + dir_y * bias
-            cz = h0 + step_z * bias
+            h_hier = karte.daten[y][x]
+            if h_hier <= 0.0:
+                reihe.append(1.0)
+                continue
+            
+            # Startpunkt leicht über Oberfläche (Bias)
+            cur_x = x + lx * bias * 10
+            cur_y = y + ly * bias * 10
+            cur_z = h_hier + bias
+            
+            # Schrittweite in Weltkoordinaten (xy pro Schritt, z pro Schritt)
+            # Wir wollen 'schritte' Schritte bis zum Rand oder Licht.
+            step_x = lx * step_xy
+            step_y = ly * step_xy
+            step_z = lz * step_xy * (max_d / max(h, b)) * 0.5 # Heuristik für Z-Skalierung
+            
             blocked = False
             for _ in range(schritte):
-                cx += dir_x
-                cy += dir_y
-                cz += step_z
-                if cx < 0.5 or cx >= b - 0.5 or cy < 0.5 or cy >= h - 0.5:
+                cur_x += step_x
+                cur_y += step_y
+                cur_z += step_z
+                
+                if cur_z > 1.0: # Über max Höhe -> raus
                     break
-                h_map = karte.get_bilinear(cy, cx)
-                if h_map > cz:
+                if not (0 <= cur_x < b - 1 and 0 <= cur_y < h - 1):
+                    break
+                
+                terrain_h = karte.get_bilinear(cur_y, cur_x)
+                if terrain_h > cur_z:
                     blocked = True
                     break
-            if blocked:
-                shadow[y][x] = 0.0
-    return shadow
+            
+            reihe.append(0.0 if blocked else 1.0)
+        result.append(reihe)
+    return result
 
 def box_blur(src: List[List[float]], radius: int) -> List[List[float]]:
-    """Einfacher Box-Blur (separabel) für weiche Schatten."""
+    """Trennbare Box-Blur (horizontal + vertikal)."""
     if radius <= 0:
         return src
     h = len(src)
     b = len(src[0]) if h > 0 else 0
-    # Horizontale Pass
     tmp = [[0.0] * b for _ in range(h)]
+    # Horizontal
     for y in range(h):
         row = src[y]
         sum_val = 0.0
-        # Initialer Fensterbereich
-        for x in range(-radius, radius + 1):
-            ix = max(0, min(b - 1, x))
-            sum_val += row[ix]
         for x in range(b):
-            tmp[y][x] = sum_val / (2 * radius + 1)
-            # Fenster verschieben
-            left = max(0, x - radius)
-            right = min(b - 1, x + radius + 1)
-            if right < b:
-                sum_val += row[right] - row[left]
-    # Vertikale Pass
+            sum_val += row[x]
+            if x - radius - 1 >= 0:
+                sum_val -= row[x - radius - 1]
+            tmp[y][x] = sum_val / (min(x + radius, b - 1) - max(x - radius, 0) + 1)
+    # Vertikal
     dst = [[0.0] * b for _ in range(h)]
     for x in range(b):
         sum_val = 0.0
-        for y in range(-radius, radius + 1):
-            iy = max(0, min(h - 1, y))
-            sum_val += tmp[iy][x]
         for y in range(h):
-            dst[y][x] = sum_val / (2 * radius + 1)
-            top = max(0, y - radius)
-            bottom = min(h - 1, y + radius + 1)
-            if bottom < h:
-                sum_val += tmp[bottom][x] - tmp[top][x]
+            sum_val += tmp[y][x]
+            if y - radius - 1 >= 0:
+                sum_val -= tmp[y - radius - 1][x]
+            dst[y][x] = sum_val / (min(y + radius, h - 1) - max(y - radius, 0) + 1)
     return dst
 
-def ascii_export(werte: List[List[float]], zeichen: str = "@%#*+=-:. ") -> str:
-    """Wandelt ein 2D-Array von 0-1 Werten in ASCII-Art um."""
-    h = len(werte)
-    if h == 0:
-        return ""
-    b = len(werte[0])
-    n = len(zeichen) - 1
-    lines = []
-    for y in range(h):
-        line_chars = []
-        for x in range(b):
-            v = max(0.0, min(1.0, werte[y][x]))
-            idx = int(v * n)
-            line_chars.append(zeichen[idx])
-        lines.append(''.join(line_chars))
-    return '\n'.join(lines)
+def mische_schatten(hart: List[List[float]], weich: List[List[float]], mischung: float = 0.5) -> List[List[float]]:
+    h = len(hart)
+    b = len(hart[0]) if h > 0 else 0
+    return [[hart[y][x] * (1.0 - mischung) + weich[y][x] * mischung for x in range(b)] for y in range(h)]
 
-def save_ppm(dateiname: str, werte: List[List[float]], farbton: Tuple[int, int, int] = (255, 255, 255)) -> None:
-    """Speichert ein Grauwertbild als PPM (P3 ASCII)."""
-    h = len(werte)
-    if h == 0:
-        return
-    b = len(werte[0])
-    r_mult, g_mult, b_mult = farbton
-    with open(dateiname, 'w') as f:
-        f.write(f'P3\n{b} {h}\n255\n')
+# ---------- Farb-Mapping (NEU) ----------
+
+def hoehe_zu_farbe(h: float) -> Color:
+    """Einfaches Farb-Gradient-Mapping: Tief=Blau, Mittel=Grün/Braun, Hoch=Weiß."""
+    h = max(0.0, min(1.0, h))
+    if h < 0.25: # Wasser/Tief
+        t = h / 0.25
+        r = int(0 + t * 30)
+        g = int(50 + t * 100)
+        b = int(150 + t * 100)
+    elif h < 0.5: # Strand/Flachland
+        t = (h - 0.25) / 0.25
+        r = int(180 + t * 60)
+        g = int(160 + t * 40)
+        b = int(80 - t * 30)
+    elif h < 0.75: # Wald/Berg
+        t = (h - 0.5) / 0.25
+        r = int(60 + t * 60)
+        g = int(120 + t * 40)
+        b = int(30 + t * 20)
+    else: # Schnee/Gipfel
+        t = (h - 0.75) / 0.25
+        r = int(180 + t * 75)
+        g = int(180 + t * 75)
+        b = int(180 + t * 75)
+    return (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
+
+def wende_licht_farbe(farbe: Color, intensitaet: float, licht_farbe: Color = (255, 240, 220), umgebung: Color = (30, 30, 50)) -> Color:
+    """Mischt Oberflächenfarbe mit Lichtfarbe und Umgebungslicht."""
+    i = max(0.0, min(1.0, intensitaet))
+    r = int(farbe[0] * i * (licht_farbe[0] / 255.0) + farbe[0] * (1.0 - i) * (umgebung[0] / 255.0))
+    g = int(farbe[1] * i * (licht_farbe[1] / 255.0) + farbe[1] * (1.0 - i) * (umgebung[1] / 255.0))
+    b = int(farbe[2] * i * (licht_farbe[2] / 255.0) + farbe[2] * (1.0 - i) * (umgebung[2] / 255.0))
+    return (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
+
+# ---------- ASCII & Export ----------
+
+ASCII_RAMP = "@%#*+=-:. "
+
+def ascii_art(wissen: List[List[float]]) -> str:
+    h = len(wissen)
+    b = len(wissen[0]) if h > 0 else 0
+    zeilen = []
+    for y in range(h):
+        zeile = []
+        for x in range(b):
+            v = max(0.0, min(1.0, wissen[y][x]))
+            idx = int(v * (len(ASCII_RAMP) - 1))
+            zeile.append(ASCII_RAMP[idx])
+        zeilen.append(''.join(zeile))
+    return '\n'.join(zeilen)
+
+def speichere_ppm(dateiname: str, daten: List[List[Color]]):
+    h = len(daten)
+    b = len(daten[0]) if h > 0 else 0
+    with open(dateiname, 'wb') as f:
+        f.write(f'P6\n{b} {h}\n255\n'.encode('ascii'))
         for y in range(h):
-            line_vals = []
             for x in range(b):
-                v = max(0.0, min(1.0, werte[y][x]))
-                r = int(v * r_mult)
-                g = int(v * g_mult)
-                b_val = int(v * b_mult)
-                line_vals.extend([str(r), str(g), str(b_val)])
-            f.write(' '.join(line_vals) + '\n')
+                r, g, b_ = daten[y][x]
+                f.write(bytes([r, g, b_]))
+    print(f'PPM gespeichert: {dateiname} ({b}x{h})')
 
 # ---------- Hauptprogramm ----------
 
-def main() -> None:
-    print("Schatten-Simulator – Teil 31")
-    print("Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech")
+def waehle_form() -> Tiefenkarte:
+    print('\nForm wählen:')
+    print('  1: Kugel')
+    print('  2: Kegel')
+    print('  3: Stufenpyramide')
+    print('  4: Wellblech')
+    print('  5: Zufällige Hügel (Perlin-ish)')
     while True:
         try:
-            eingabe = input("Form wählen (1-4, Enter=Kugel): ").strip()
+            w = input('> ').strip()
+            if w == '1': return erzeuge_kugel()
+            if w == '2': return erzeuge_kegel()
+            if w == '3': return erzeuge_stufenpyramide()
+            if w == '4': return erzeuge_wellblech()
+            if w == '5':
+                # Einfache zufällige Hügel via Sinus-Overlay
+                h, b = 20, 40
+                karte = [[0.0]*b for _ in range(h)]
+                for _ in range(5):
+                    cx, cy = random.random()*b, random.random()*h
+                    r = 5 + random.random()*10
+                    for y in range(h):
+                        for x in range(b):
+                            d = math.hypot(x-cx, y-cy)
+                            if d < r:
+                                karte[y][x] += (1.0 - d/r) * 0.5
+                # Clamp
+                for y in range(h):
+                    for x in range(b):
+                        karte[y][x] = min(1.0, karte[y][x])
+                return Tiefenkarte(karte)
+            print('Ungültig. 1-5.')
         except EOFError:
-            print("\nTschüss!")
-            break
-        if eingabe == '':
-            form = 1
-        else:
-            try:
-                form = int(eingabe)
-            except ValueError:
-                print("Ungültige Eingabe, versuch's nochmal.")
-                continue
-        if form not in (1, 2, 3, 4):
-            print("Ungültige Form, versuch's nochmal.")
-            continue
+            print('\nTschüss!')
+            sys.exit(0)
 
-        if form == 1:
-            karte = erzeuge_kugel()
-        elif form == 2:
-            karte = erzeuge_kegel()
-        elif form == 3:
-            karte = erzeuge_stufenpyramide()
-        else:
-            karte = erzeuge_wellblech()
+def waehle_licht() -> Vec3:
+    print('\nLichtrichtung (x y z), z>0 heißt von oben. Enter = Standard (1, -1, 2):')
+    try:
+        s = input('> ').strip()
+        if not s:
+            return (1.0, -1.0, 2.0)
+        parts = s.split()
+        if len(parts) == 3:
+            return (float(parts[0]), float(parts[1]), float(parts[2]))
+    except (ValueError, EOFError):
+        pass
+    return (1.0, -1.0, 2.0)
 
-        # Lichtrichtung
-        try:
-            licht_eingabe = input("Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2): ").strip()
-        except EOFError:
-            print("\nTschüss!")
-            break
-        if licht_eingabe == '':
-            licht_dir = (1.0, -1.0, 2.0)
-        else:
-            parts = licht_eingabe.split()
-            if len(parts) != 3:
-                print("Ungültige Lichtrichtung, verwende Standard.")
-                licht_dir = (1.0, -1.0, 2.0)
-            else:
-                try:
-                    licht_dir = (float(parts[0]), float(parts[1]), float(parts[2]))
-                except ValueError:
-                    print("Ungültige Lichtrichtung, verwende Standard.")
-                    licht_dir = (1.0, -1.0, 2.0)
+def main() -> None:
+    random.seed(42)
+    print('=== Schatten-Simulator (Teil 32) ===')
+    print('Träume von Tiefe...')
+    
+    karte = waehle_form()
+    licht = waehle_licht()
+    
+    print('\nBerechne Normalen...')
+    normals = karte.normalen(z_skalierung=2.0)
+    
+    print('Berechne diffuses Licht (Lambert)...')
+    diff = diffuse_schatten(normals, licht)
+    
+    print('Ray-Marching für harte Schatten...')
+    hart = harte_schatten_raymarch(karte, licht, schritte=64, bias=0.01)
+    
+    print('Box-Blur für weiche Schatten (Radius 2)...')
+    weich = box_blur(hart, radius=2)
+    
+    print('Mische Schatten (50/50)...')
+    schatten = mische_schatten(hart, weich, 0.5)
+    
+    print('Kombiniere: Diffus * Schatten...')
+    h, b = karte.h, karte.b
+    final_grau = [[diff[y][x] * schatten[y][x] for x in range(b)] for y in range(h)]
+    
+    # NEU: Farb-Rendering für PPM
+    print('Rendere Farbbild (PPM)...')
+    farb_bild: List[List[Color]] = []
+    for y in range(h):
+        reihe: List[Color] = []
+        for x in range(b):
+            basis_farbe = hoehe_zu_farbe(karte.daten[y][x])
+            intensitaet = final_grau[y][x]
+            pixel_farbe = wende_licht_farbe(basis_farbe, intensitaet)
+            reihe.append(pixel_farbe)
+        farb_bild.append(reihe)
+    
+    print('\n--- ASCII Vorschau (Grauwert) ---')
+    print(ascii_art(final_grau))
+    
+    try:
+        name = input('\nDateiname für PPM (Enter = shadow.ppm): ').strip()
+        if not name:
+            name = 'shadow.ppm'
+        speichere_ppm(name, farb_bild)
+    except EOFError:
+        print('\nKein Dateiname, überspringe Speichern.')
+    
+    print('\nFertig. Gute Nacht!')
 
-        # Blur-Radius
-        try:
-            blur_eingabe = input("Blur-Radius für weiche Schatten (Enter=0): ").strip()
-        except EOFError:
-            print("\nTschüss!")
-            break
-        if blur_eingabe == '':
-            blur_radius = 0
-        else:
-            try:
-                blur_radius = int(blur_eingabe)
-                if blur_radius < 0:
-                    blur_radius = 0
-            except ValueError:
-                print("Ungültiger Radius, verwende 0.")
-                blur_radius = 0
-
-        # Berechnungen
-        normals = karte.normalen()
-        diffuse = diffuse_schatten(normals, licht_dir)
-        hard_shadow = harte_schatten_raymarch(karte, licht_dir)
-        if blur_radius > 0:
-            soft_shadow = box_blur(hard_shadow, blur_radius)
-            shadow = soft_shadow
-        else:
-            shadow = hard_shadow
-
-        # Kombiniere diffus und Schatten
-        combined = [[diffuse[y][x] * shadow[y][x] for x in range(karte.b)] for y in range(karte.h)]
-
-        # ASCII Ausgabe
-        print("\nSchatten (ASCII):")
-        print(ascii_export(shadow, "##@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"))
-        print("\nKombiniert (ASCII):")
-        print(ascii_export(combined, "@%#*+=-:. "))
-
-        # PPM speichern
-        dateiname = "shadow.ppm"
-        save_ppm(dateiname, combined, (255, 200, 150))
-        print(f"\nGespeichert als {dateiname}")
-        print("---")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
