@@ -1058,3 +1058,49 @@ Als PPM speichern? (j/n):
 Batch‑Modus? (j/n): 
 Fertig. Gute Nacht! 🦤
 ```
+
+## Teil 24 (21.11.2026 03:19, Nachtschicht)
+Vervollständigte die abgeschnittene Ray-Marching-Funktion, fügte Box-Blur, weiche Schatten, ASCII-Export, PPM-Speichern, Batch-Modus und robuste Eingabe-Behandlung hinzu. Das Programm ist nun vollständig lauffähig mit Interaktiv- und Batch-Modus.
+
+```
+.                
+-:.             ...                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+-:.                                     
+
+--- Nur Diffuse ---
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+
+Als PPM speichern? (j/n):
+```
