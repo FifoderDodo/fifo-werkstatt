@@ -72,3 +72,24 @@ Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerun
 Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: 
 Eingabeende – Fifo watschelt nach Hause. 🦤
 ```
+
+## Teil 4 (21.11.2026 19:41)
+frage_wahl nutzt jetzt unicodedata.normalize('NFC') und akzeptiert Aliase (daemmerung, tag, herbst). main() ist komplett: generiert zufällige Laternenquellen passend zur Tageszeit, ruft zeichne_lichtkegel auf und gibt ASCII-Art aus. EOFError wird überall freundlich abgefangen.
+
+```
+dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: 
+Eingabeende – Fifo watschelt nach Hause. 🦤
+```
