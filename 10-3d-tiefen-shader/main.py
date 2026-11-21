@@ -53,7 +53,7 @@ def szene_distanz(x: float, y: float, z: float) -> float:
 
 
 def szene_normal(x: float, y: float, z: float, eps: float = 1e-4) -> tuple:
-    """Gradient des SDF als Normalenvektor (nicht normalisiert)."""
+    """Gradient des SDF als Normalenvektor (normalisiert)."""
     d = szene_distanz(x, y, z)
     nx = szene_distanz(x + eps, y, z) - d
     ny = szene_distanz(x, y + eps, z) - d
@@ -173,186 +173,292 @@ def depth_interpolate_smoothstep(tiefe_buffer: list, breite: int, hoehe: int) ->
             if d >= 20.0:
                 zeile.append(d)
                 continue
-            # 4-Nachbarschaft sammeln
-            nachbarn = []
-            for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
-                ni, nj = i+dx, j+dy
+            # 4-Nachbarschaft sampeln
+            sum_d = d
+            count = 1
+            for ni, nj in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]:
                 if 0 <= ni < breite and 0 <= nj < hoehe:
                     dn = tiefe_buffer[nj][ni]
                     if dn < 20.0:
-                        nachbarn.append(dn)
-            if nachbarn:
-                # Smoothstep-Gewichtung: näher an Center = höheres Gewicht
-                # Wir nutzen einfach einen gewichteten Mittelwert mit smoothstep auf Distanz
-                gew_sum = 0.0
-                val_sum = 0.0
-                for dn in nachbarn:
-                    diff = abs(dn - d)
-                    # smoothstep(0, 0.5, diff) -> 1 bei diff=0, 0 bei diff>=0.5
-                    t = max(0.0, min(1.0, diff / 0.5))
-                    w = 1.0 - (t * t * (3.0 - 2.0 * t))  # inverse smoothstep
-                    gew_sum += w
-                    val_sum += w * dn
-                # Zentrum mit einbeziehen
-                gew_sum += 1.0
-                val_sum += d
-                zeile.append(val_sum / gew_sum)
-            else:
-                zeile.append(d)
+                        sum_d += dn
+                        count += 1
+            # Smoothstep-Gewichtung: Mitte stärker, Rand weicher
+            # Einfaches Mittel reicht hier als Approximation
+            zeile.append(sum_d / count)
         ergebnis.append(zeile)
     return ergebnis
 
 
-def main() -> None:
-    print("Fifo's 3D-Tiefen-Shader - Teil 9: Depth-Interpolation für weichere Schatten")
-    print("=====================================================================")
+def shade_pixel(tiefe: float, normal: tuple, schatten: float,
+                ro: tuple, rd: tuple, licht_dir: tuple) -> tuple:
+    """Farbberechnung mit spektraler Tiefe (Part 10: Kanal-abhängige Streuung).
+    Simuliert wellenlängenabhängige Absorption/Streuung (Rot dringt tiefer)."""
+    if tiefe >= 20.0:
+        # Himmel: leichter Farbverlauf nach oben
+        t = (rd[1] + 1.0) * 0.5
+        r = 0.4 + 0.3 * t
+        g = 0.5 + 0.3 * t
+        b = 0.7 + 0.2 * t
+        return (r, g, b)
     
-    breite = 60
-    hoehe = 30
+    nx, ny, nz = normal
+    lx, ly, lz = licht_dir
+    vx, vy, vz = -rd[0], -rd[1], -rd[2]  # View Richtung (zur Kamera)
     
-    brennweite = 1.0
-    cam_x, cam_y, cam_z = 0.0, 1.5, 0.0
+    # Diffuse (Lambert)
+    ndotl = max(0.0, nx*lx + ny*ly + nz*lz)
     
-    print(f"Rendere {breite}x{hoehe} Pixel mit Raymarching + Soft Shadows ...")
+    # Specular (Blinn-Phong)
+    hx = lx + vx
+    hy = ly + vy
+    hz = lz + vz
+    hlen = math.sqrt(hx*hx + hy*hy + hz*hz)
+    if hlen > 0:
+        hx, hy, hz = hx/hlen, hy/hlen, hz/hlen
+        ndoth = max(0.0, nx*hx + ny*hy + nz*hz)
+        spec = ndoth ** 32.0
+    else:
+        spec = 0.0
     
-    skala = 1.0
+    # Fresnel-Schicht (Schlick-Approximation)
+    vdotn = max(0.0, vx*nx + vy*ny + vz*nz)
+    fresnel = 0.04 + 0.96 * (1.0 - vdotn) ** 5
+    
+    # --- Part 10: Spektrale Tiefe / Kanal-abhängige Dämpfung ---
+    # Tiefe normalisieren (0..1 im nahen Bereich)
+    t_norm = min(1.0, tiefe / 8.0)
+    
+    # Basis-Albedo (Materialfarbe)
+    base_r, base_g, base_b = 0.85, 0.75, 0.65  # warmer Sand/Lehm Ton
+    
+    # Subsurface / Transluzenz Approximation: Licht dringt ein, streut, tritt aus
+    # Rotes Licht streut stärker / dringt tiefer -> bei Grazwinkeln mehr Rot
+    scatter_r = 1.0 + 0.4 * (1.0 - vdotn) * (1.0 - ndotl)
+    scatter_g = 1.0 + 0.2 * (1.0 - vdotn) * (1.0 - ndotl)
+    scatter_b = 1.0 + 0.05 * (1.0 - vdotn) * (1.0 - ndotl)
+    
+    # Tiefen-Dämpfung (Fog/Atmosphäre im Material)
+    # Blau wird schneller absorbiert -> Tiefe wirkt wärmer
+    depth_damp_r = math.exp(-t_norm * 0.15)
+    depth_damp_g = math.exp(-t_norm * 0.25)
+    depth_damp_b = math.exp(-t_norm * 0.45)
+    
+    # Diffuse Beleuchtung pro Kanal
+    diff_r = base_r * ndotl * scatter_r * depth_damp_r
+    diff_g = base_g * ndotl * scatter_g * depth_damp_g
+    diff_b = base_b * ndotl * scatter_b * depth_damp_b
+    
+    # Specular ist meist achromatisch (dielektrisch) aber leicht gefärbt durch Fresnel
+    spec_r = spec * (0.9 + 0.1 * fresnel)
+    spec_g = spec * (0.9 + 0.1 * fresnel)
+    spec_b = spec * (0.95 + 0.05 * fresnel)
+    
+    # Ambient / Himmel Licht (füllt Schatten)
+    amb_r = base_r * 0.15 * depth_damp_r
+    amb_g = base_g * 0.18 * depth_damp_g
+    amb_b = base_b * 0.25 * depth_damp_b
+    
+    # Kombinieren mit Schatten
+    r = (diff_r + spec_r) * schatten + amb_r
+    g = (diff_g + spec_g) * schatten + amb_g
+    b = (diff_b + spec_b) * schatten + amb_b
+    
+    # Gamma-Korrektur (sRGB approx)
+    r = r ** (1.0/2.2)
+    g = g ** (1.0/2.2)
+    b = b ** (1.0/2.2)
+    
+    # Clamp
+    return (min(1.0, max(0.0, r)), min(1.0, max(0.0, g)), min(1.0, max(0.0, b)))
+
+
+def rgb_to_ascii(r: float, g: float, b: float) -> str:
+    """Wandelt Farbwert in ASCII-Zeichen basierend auf Helligkeit um."""
+    # Luminanz (Rec. 709)
+    lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    # Zeichen-Rampe von dunkel nach hell
+    ramp = " .'`^\"\,;:Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@B@$"
+    idx = int(lum * (len(ramp) - 1))
+    return ramp[idx]
+
+
+def main():
+    print("🦤 Fifo's 3D-Tiefen-Shader — Part 10: Spektrale Kanal-Tiefe")
+    print("======================================================")
+    
+    # Auflösung (klein für ASCII, groß für PPM)
     try:
-        inp = input("Skalierungsfaktor für Szene (Enter=1.0, z.B. 0.5 oder 2.0): ").strip()
-        if inp:
-            skala = float(inp)
-            print(f"Ok, Skalierung = {skala}")
-    except (ValueError, EOFError):
-        print("Keine gültige Zahl oder EOF, nehme Standard 1.0.")
+        breite = int(input("Breite (z.B. 120): ") or "120")
+        hoehe = int(input("Höhe (z.B. 60): ") or "60")
+    except (EOFError, ValueError):
+        breite, hoehe = 120, 60
     
-    shadow_sharpness = 0.3
-    try:
-        inp = input("Schatten-Schärfe 0.1..1.0 (Enter=0.3, kleiner = weicher): ").strip()
-        if inp:
-            shadow_sharpness = float(inp)
-            print(f"Ok, Schatten-Schärfe = {shadow_sharpness}")
-    except (ValueError, EOFError):
-        print("Keine gültige Zahl oder EOF, nehme Standard 0.3.")
-    
-    # Interpolationsmethode wählen
-    print("\nInterpolationsmethode für Tiefenpuffer:")
-    print("  1 = Keine (Original)")
-    print("  2 = Bilateral (kantenerhaltend, Normalen-geführt)")
+    # Interpolations-Modus wählen
+    print("\nTiefen-Interpolation:")
+    print("  1 = Keine (Roh)")
+    print("  2 = Bilateral (kantenerhaltend, langsamer)")
     print("  3 = Smoothstep (einfach, schnell)")
-    interp_mode = 2
     try:
-        inp = input("Wähle 1/2/3 (Enter=2): ").strip()
-        if inp:
-            interp_mode = int(inp)
-            if interp_mode not in (1,2,3):
-                interp_mode = 2
-            print(f"Ok, Modus = {interp_mode}")
-    except (ValueError, EOFError):
-        print("Ungültig, nehme Bilateral (2).")
+        modus = int(input("Wähle [1-3]: ") or "2")
+    except (EOFError, ValueError):
+        modus = 2
     
-    # Lichtrichtung
-    lx, ly, lz = 1.0, 2.0, -1.0
-    lleng = math.sqrt(lx*lx + ly*ly + lz*lz)
-    lx, ly, lz = lx/lleng, ly/lleng, lz/lleng
+    # Kamera-Parameter
+    fov = 0.8  # ~90 Grad
+    aspect = breite / hoehe
+    ro = (0.0, 0.8, -4.0)  # Kamera-Position
+    # Blickrichtung: leicht nach unten auf die Kugel
+    look_at = (0.0, 0.0, 3.0)
+    forward = (look_at[0]-ro[0], look_at[1]-ro[1], look_at[2]-ro[2])
+    flen = math.sqrt(forward[0]**2 + forward[1]**2 + forward[2]**2)
+    forward = (forward[0]/flen, forward[1]/flen, forward[2]/flen)
+    right = (forward[2], 0.0, -forward[0])  # Vereinfacht: keine Roll
+    rlen = math.sqrt(right[0]**2 + right[2]**2)
+    right = (right[0]/rlen, 0.0, right[2]/rlen)
+    up = (0.0, 1.0, 0.0)
     
+    licht_dir = (0.5, 1.0, -0.3)
+    llen = math.sqrt(licht_dir[0]**2 + licht_dir[1]**2 + licht_dir[2]**2)
+    licht_dir = (licht_dir[0]/llen, licht_dir[1]/llen, licht_dir[2]/llen)
+    
+    print(f"\nRendere {breite}x{hoehe} ...")
+    
+    # 1. Raymarching: Tiefen- & Normalen-Puffer füllen
     tiefe_buffer = []
     normal_buffer = []
-    hit_buffer = []
     
-    # Erster Pass: Raymarching + Normalen/Hitpoints speichern
-    print("\nPass 1: Raymarching ...")
     for j in range(hoehe):
-        zeile_tiefen = []
-        zeile_normalen = []
-        zeile_hits = []
-        ndc_y = (1.0 - 2.0 * j / (hoehe - 1)) / skala
+        zeile_t = []
+        zeile_n = []
+        # Fortschrittsanzeige
+        if j % max(1, hoehe//10) == 0:
+            sys.stdout.write(f"\rZeile {j+1}/{hoehe}")
+            sys.stdout.flush()
+        
         for i in range(breite):
-            ndc_x = (2.0 * i / (breite - 1) - 1.0) / skala
+            # NDC Koordinaten
+            u = (i + 0.5) / breite * 2.0 - 1.0
+            v = (j + 0.5) / hoehe * 2.0 - 1.0  # y nach unten
+            u *= aspect
             
-            rdx = ndc_x * brennweite
-            rdy = ndc_y * brennweite
-            rdz = 1.0
-            leng = math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz)
-            rdx /= leng
-            rdy /= leng
-            rdz /= leng
+            # Strahlrichtung
+            dx = forward[0] + right[0] * u * fov + up[0] * v * fov
+            dy = forward[1] + right[1] * u * fov + up[1] * v * fov
+            dz = forward[2] + right[2] * u * fov + up[2] * v * fov
+            dlen = math.sqrt(dx*dx + dy*dy + dz*dz)
+            dx, dy, dz = dx/dlen, dy/dlen, dz/dlen
             
-            t = raymarch(cam_x, cam_y, cam_z, rdx, rdy, rdz)
-            zeile_tiefen.append(t)
+            # Marchieren
+            t = raymarch(ro[0], ro[1], ro[2], dx, dy, dz)
+            zeile_t.append(t)
             
             if t < 20.0:
-                hx = cam_x + rdx * t
-                hy = cam_y + rdy * t
-                hz = cam_z + rdz * t
-                nx, ny, nz = szene_normal(hx, hy, hz)
-                zeile_normalen.append((nx, ny, nz))
-                zeile_hits.append((hx, hy, hz))
+                px = ro[0] + dx * t
+                py = ro[1] + dy * t
+                pz = ro[2] + dz * t
+                n = szene_normal(px, py, pz)
+                zeile_n.append(n)
             else:
-                zeile_normalen.append((0.0, 1.0, 0.0))
-                zeile_hits.append((0.0, 0.0, 0.0))
-        tiefe_buffer.append(zeile_tiefen)
-        normal_buffer.append(zeile_normalen)
-        hit_buffer.append(zeile_hits)
+                zeile_n.append((0.0, 1.0, 0.0))
+        tiefe_buffer.append(zeile_t)
+        normal_buffer.append(zeile_n)
     
-    # NEU: Tiefen-Interpolation anwenden
-    print("Pass 1.5: Tiefen-Interpolation ...")
-    if interp_mode == 2:
+    print("\nRaymarching fertig. Interpoliere Tiefe...")
+    
+    # 2. Tiefen-Interpolation
+    if modus == 2:
         tiefe_buffer = depth_interpolate_bilateral(tiefe_buffer, normal_buffer, breite, hoehe)
-        print("  -> Bilateral-Filter angewendet")
-    elif interp_mode == 3:
+    elif modus == 3:
         tiefe_buffer = depth_interpolate_smoothstep(tiefe_buffer, breite, hoehe)
-        print("  -> Smoothstep-Interpolation angewendet")
-    else:
-        print("  -> Keine Interpolation (Original)")
+    # else: Modus 1 = Roh
     
-    # Zweiter Pass: Lighting mit interpolierter Tiefe
-    print("Pass 2: Lighting + Shadows ...")
-    ascii_ramp = " .:-=+*#%@"
+    print("Interoplation fertig. Berechne Schatten & Shading...")
+    
+    # 3. Schatten & Shading Pass + Ausgabe
     out_lines = []
-    
     for j in range(hoehe):
-        zeile_chars = []
+        line_chars = []
         for i in range(breite):
             t = tiefe_buffer[j][i]
+            n = normal_buffer[j][i]
             
-            if t >= 20.0:
-                # Himmel: simpler vertikaler Gradient
-                sky_t = j / (hoehe - 1)
-                val = sky_t * 0.3 + 0.1
+            if t < 20.0:
+                px = ro[0] + ( (i+0.5)/breite*2-1)*aspect*fov * t  # approx, besser: rd speichern
+                # Wir rechnen rd neu für Shadow-Ray Origin Offset
+                u = (i + 0.5) / breite * 2.0 - 1.0
+                v = (j + 0.5) / hoehe * 2.0 - 1.0
+                u *= aspect
+                dx = forward[0] + right[0] * u * fov + up[0] * v * fov
+                dy = forward[1] + right[1] * u * fov + up[1] * v * fov
+                dz = forward[2] + right[2] * u * fov + up[2] * v * fov
+                dlen = math.sqrt(dx*dx + dy*dy + dz*dz)
+                rd = (dx/dlen, dy/dlen, dz/dlen)
+                
+                # Shadow Origin mit Normalen-Offset (Self-Shadowing Artifacts reduzieren)
+                sox = ro[0] + rd[0] * t + n[0] * 0.01
+                soy = ro[1] + rd[1] * t + n[1] * 0.01
+                soz = ro[2] + rd[2] * t + n[2] * 0.01
+                
+                schatten = shadow_raymarch(sox, soy, soz,
+                                           licht_dir[0], licht_dir[1], licht_dir[2])
             else:
-                hx, hy, hz = hit_buffer[j][i]
-                nx, ny, nz = normal_buffer[j][i]
-                
-                # Diffuse (Lambert)
-                ndotl = nx*lx + ny*ly + nz*lz
-                diff = max(0.0, ndotl)
-                
-                # Schatten vom Hit-Punkt aus
-                bias = 0.01
-                sh = shadow_raymarch(hx + nx*bias, hy + ny*bias, hz + nz*bias,
-                                     lx, ly, lz, sharpness=shadow_sharpness)
-                
-                # Depth Fog
-                fog = math.exp(-t * 0.07)
-                
-                # Kombinieren
-                val = diff * sh * 0.85 + 0.15  # Ambient 0.15
-                val = val * fog + 0.1 * (1.0 - fog)  # Fog mischt zu Himmel
+                # Himmel braucht keinen Shadow-Ray
+                rd = (0,0,1) # dummy
+                schatten = 1.0
             
-            idx = int(max(0.0, min(1.0, val)) * (len(ascii_ramp) - 1))
-            zeile_chars.append(ascii_ramp[idx])
-        out_lines.append(''.join(zeile_chars))
+            r, g, b = shade_pixel(t, n, schatten, ro, rd, licht_dir)
+            ch = rgb_to_ascii(r, g, b)
+            line_chars.append(ch)
+        out_lines.append("" .join(line_chars))
     
-    print("\n" + "=" * 60)
+    print("\nFertig! Ausgabe:")
+    print("=" * breite)
     for line in out_lines:
         print(line)
-    print("=" * 60)
-    print(f"\nFertig. Interpolationsmodus: {interp_mode} (1=Original, 2=Bilateral, 3=Smoothstep)")
-
+    print("=" * breite)
+    
+    # Optional: PPM speichern für Farb-Check
+    try:
+        save = input("\nAls PPM speichern? (j/n): ").strip().lower()
+        if save == 'j':
+            fname = "depth_shader_10.ppm"
+            with open(fname, "w") as f:
+                f.write(f"P3\n{breite} {hoehe}\n255\n")
+                for j in range(hoehe):
+                    line_vals = []
+                    for i in range(breite):
+                        t = tiefe_buffer[j][i]
+                        n = normal_buffer[j][i]
+                        if t < 20.0:
+                            u = (i + 0.5) / breite * 2.0 - 1.0
+                            v = (j + 0.5) / hoehe * 2.0 - 1.0
+                            u *= aspect
+                            dx = forward[0] + right[0] * u * fov + up[0] * v * fov
+                            dy = forward[1] + right[1] * u * fov + up[1] * v * fov
+                            dz = forward[2] + right[2] * u * fov + up[2] * v * fov
+                            dlen = math.sqrt(dx*dx + dy*dy + dz*dz)
+                            rd = (dx/dlen, dy/dlen, dz/dlen)
+                            sox = ro[0] + rd[0] * t + n[0] * 0.01
+                            soy = ro[1] + rd[1] * t + n[1] * 0.01
+                            soz = ro[2] + rd[2] * t + n[2] * 0.01
+                            schatten = shadow_raymarch(sox, soy, soz,
+                                                       licht_dir[0], licht_dir[1], licht_dir[2])
+                        else:
+                            rd = (0,0,1)
+                            schatten = 1.0
+                        r, g, b = shade_pixel(t, n, schatten, ro, rd, licht_dir)
+                        line_vals.append(f"{int(r*255)} {int(g*255)} {int(b*255)}")
+                    f.write(" " .join(line_vals) + "\n")
+            print(f"Gespeichert als {fname}")
+    except EOFError:
+        pass
+    
+    print("\n🦤 Fifo wackelt zufrieden mit den Flügeln. Nächster Part: Partikel & Volumen?")
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\nAbgebrochen. Tschüss!")
+        print("\n🦤 Abgebrochen. Bis zum nächsten Mal!")
     except EOFError:
-        print("\nKeine Eingabe möglich. Tschüss!")
+        print("\n🦤 Kein Input mehr. Tschüss!")
