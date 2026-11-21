@@ -84,15 +84,15 @@ def raymarch(ox: float, oy: float, oz: float,
 
 def shadow_raymarch(ox: float, oy: float, oz: float,
                     lx: float, ly: float, lz: float,
-                    max_schritte: int = 50, max_dist: float = 20.0,
-                    softness: float = 0.5) -> float:
+                    max_schritte: int = 60, max_dist: float = 30.0,
+                    sharpness: float = 0.3) -> float:
     """Soft-Shadow Raymarching nach Iñigo Quilez.
-    Akkumuliert Schattenfaktor mit k * dist / tiefe.
-    softness wirkt als k: größer = weichere Penumbra.
+    sharpness (ehemals softness) steuert die Schärfe: kleiner = weichere Penumbra.
+    k = sharpness * 32.0; shadow = min(shadow, k * dist / tiefe).
     Gibt 1.0 = voll beleuchtet, 0.0 = tiefster Schatten."""
     tiefe = 0.0
     schatten = 1.0
-    k = softness * 32.0  # Skalierung für angenehmen Bereich
+    k = sharpness * 32.0  # Skalierung: kleiner sharpness -> weichere Schatten
     for _ in range(max_schritte):
         px = ox + lx * tiefe
         py = oy + ly * tiefe
@@ -101,17 +101,17 @@ def shadow_raymarch(ox: float, oy: float, oz: float,
         if tiefe > 0.0:
             # Quilez-Formel: shadow = min(shadow, k * dist / tiefe)
             schatten = min(schatten, k * dist / tiefe)
-        # Kein harter Abbruch mehr, nur bei extrem naher Geometrie
+        # Kein harter Abbruch, nur bei extrem naher Geometrie
         if dist < 0.001:
             return 0.0
-        tiefe += max(dist, 0.01)  # Mindestschritt gegen Stottern
+        tiefe += max(dist, 0.001)  # Kleinerer Mindestschritt für feinere Penumbra
         if tiefe > max_dist:
             break
     return max(0.0, min(1.0, schatten))
 
 
 def main() -> None:
-    print("Fifo's 3D-Tiefen-Shader - Teil 6: Optimierte Soft-Shadows & Specular")
+    print("Fifo's 3D-Tiefen-Shader - Teil 7: Weichere Soft-Shadows & Konfiguration")
     print("===================================================================")
     
     breite = 60
@@ -131,6 +131,16 @@ def main() -> None:
     except (ValueError, EOFError):
         print("Keine gültige Zahl oder EOF, nehme Standard 1.0.")
     
+    # Neue Eingabe für Schatten-Schärfe (kleiner = weicher)
+    shadow_sharpness = 0.3
+    try:
+        inp = input("Schatten-Schärfe 0.1..1.0 (Enter=0.3, kleiner = weicher): ").strip()
+        if inp:
+            shadow_sharpness = float(inp)
+            print(f"Ok, Schatten-Schärfe = {shadow_sharpness}")
+    except (ValueError, EOFError):
+        print("Keine gültige Zahl oder EOF, nehme Standard 0.3.")
+    
     # Lichtrichtung
     lx, ly, lz = 1.0, 2.0, -1.0
     lleng = math.sqrt(lx*lx + ly*ly + lz*lz)
@@ -138,10 +148,12 @@ def main() -> None:
     
     tiefe_buffer = []
     schatten_buffer = []
+    normal_buffer = []  # Speichere Normalen für zweiten Pass
     
     for j in range(hoehe):
         zeile_tiefen = []
         zeile_schatten = []
+        zeile_normalen = []
         ndc_y = (1.0 - 2.0 * j / (hoehe - 1)) / skala
         for i in range(breite):
             ndc_x = (2.0 * i / (breite - 1) - 1.0) / skala
@@ -162,6 +174,7 @@ def main() -> None:
                 hy = cam_y + rdy * t
                 hz = cam_z + rdz * t
                 nx, ny, nz = szene_normal(hx, hy, hz)
+                zeile_normalen.append((nx, ny, nz))
                 
                 # Normal-Map-Bias für Schattenstrahl-Startpunkt
                 bias = 0.015
@@ -169,140 +182,80 @@ def main() -> None:
                 sy = hy + ny * bias
                 sz = hz + nz * bias
                 
-                # Soft Shadow Raymarch mit optimierter Formel
+                # Soft Shadow Raymarch mit einstellbarer Schärfe
                 shadow = shadow_raymarch(sx, sy, sz, lx, ly, lz,
-                                         max_schritte=50, max_dist=20.0,
-                                         softness=0.5)
+                                         max_schritte=60, max_dist=30.0,
+                                         sharpness=shadow_sharpness)
                 zeile_schatten.append(shadow)
             else:
+                zeile_normalen.append((0.0, 1.0, 0.0))
                 zeile_schatten.append(1.0)
         tiefe_buffer.append(zeile_tiefen)
         schatten_buffer.append(zeile_schatten)
+        normal_buffer.append(zeile_normalen)
     
-    # Lighting & ASCII Ausgabe
-    ascii_ramp = " .'`^\"\,;:Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@"
+    # Zweiter Pass: Lighting mit Diffuse, Ambient, Specular, Tiefen-Nebel
+    ascii_ramp = " .'`^\"~,:;!<+*/?#&@"  # 20 Stufen
     ramp_len = len(ascii_ramp) - 1
     
-    print("\nRendering fertig. Ausgabe:\n")
+    print("\nErgebnis:")
     for j in range(hoehe):
-        zeile = ""
+        line_chars = []
         for i in range(breite):
             t = tiefe_buffer[j][i]
-            if t >= 20.0:
-                zeile += " "
-                continue
-            
             shadow = schatten_buffer[j][i]
-            # Normalen bereits berechnet? Wir holen sie nochmal (kostet wenig bei 60x30)
-            hx = cam_x + rdx * t  # aber rdx,rdy,rdz sind die letzten des Loops! Fehler.
-            # Korrektur: Wir müssen die Strahlrichtung pro Pixel speichern oder neu rechnen.
-            # Einfacher: Wir berechnen Normalen und Lighting im ersten Loop gleich mit.
-            # Aus Performance-Gründen bei der kleinen Auflösung okay, aber sauberer:
-            # Wir restructuren: Im ersten Loop speichern wir Treffpunkt und Normalen.
-            # Da der Code schon lang ist, machen wir einen zweiten Pass mit neuem Raymarch.
-            # Aber wir haben die Tiefe, also können wir den Treffpunkt rekonstruieren,
-            # wenn wir die Strahlrichtung kennen. Wir speichern die Strahlrichtung pro Pixel.
-            # Wir ändern die Struktur: wir speichern hit_info pro Pixel.
-            pass
-        # Platzhalter für die Ausgabe, wird unten ersetzt
-    
-    # Wir schreiben den Hauptloop neu, um Hit-Infos zu speichern.
-    # Aber um den Diff kurz zu halten, machen wir einen zweiten Pass mit gespeicherten Tiefen und Strahlrichtungen.
-    # Wir speichern rdx, rdy, rdz pro Pixel in einem Buffer.
-    
-    # --- NEUER ANSATZ: Wir speichern Hit-Punkte und Normalen im ersten Pass ---
-    # Wir definieren eine Liste für Hit-Daten: (hx, hy, hz, nx, ny, nz, shadow)
-    # und rendern dann in einem zweiten Schritt.
-    
-    print("(Interne Neuorganisation: Hit-Daten werden gespeichert für Lighting-Pass...)")
-    
-    hit_buffer = []  # pro Zeile Liste von Dicts oder None
-    for j in range(hoehe):
-        zeile_hits = []
-        ndc_y = (1.0 - 2.0 * j / (hoehe - 1)) / skala
-        for i in range(breite):
-            ndc_x = (2.0 * i / (breite - 1) - 1.0) / skala
+            nx, ny, nz = normal_buffer[j][i]
             
-            rdx = ndc_x * brennweite
-            rdy = ndc_y * brennweite
-            rdz = 1.0
-            leng = math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz)
-            rdx /= leng
-            rdy /= leng
-            rdz /= leng
-            
-            t = raymarch(cam_x, cam_y, cam_z, rdx, rdy, rdz)
-            
-            if t < 20.0:
-                hx = cam_x + rdx * t
-                hy = cam_y + rdy * t
-                hz = cam_z + rdz * t
-                nx, ny, nz = szene_normal(hx, hy, hz)
-                
-                bias = 0.015
-                sx = hx + nx * bias
-                sy = hy + ny * bias
-                sz = hz + nz * bias
-                
-                shadow = shadow_raymarch(sx, sy, sz, lx, ly, lz,
-                                         max_schritte=50, max_dist=20.0,
-                                         softness=0.5)
-                
-                # View-Direction für Specular
-                vx, vy, vz = -rdx, -rdy, -rdz
-                # Reflektionsvektor R = 2*(N·L)*N - L
-                n_dot_l = nx*lx + ny*ly + nz*lz
-                rx = 2 * n_dot_l * nx - lx
-                ry = 2 * n_dot_l * ny - ly
-                rz = 2 * n_dot_l * nz - lz
-                # Specular: (R·V)^shininess
-                r_dot_v = rx*vx + ry*vy + rz*vz
-                spec = max(0.0, r_dot_v) ** 32.0
-                
-                zeile_hits.append({
-                    't': t,
-                    'nx': nx, 'ny': ny, 'nz': nz,
-                    'shadow': shadow,
-                    'spec': spec,
-                    'n_dot_l': n_dot_l
-                })
-            else:
-                zeile_hits.append(None)
-        hit_buffer.append(zeile_hits)
-    
-    # Jetzt ASCII-Ausgabe mit Lighting
-    print("\nRendering fertig. Ausgabe:\n")
-    for j in range(hoehe):
-        zeile = ""
-        for i in range(breite):
-            hit = hit_buffer[j][i]
-            if hit is None:
-                zeile += " "
+            if t >= 20.0:
+                # Himmel: nur Nebel-Farbe basierend auf y-Richtung des Strahls
+                # Einfacher Farbverlauf: oben dunkler, unten heller
+                ndc_y = (1.0 - 2.0 * j / (hoehe - 1)) / skala
+                sky_val = 0.3 + 0.5 * (ndc_y + 1.0) * 0.5
+                idx = int(max(0.0, min(1.0, sky_val)) * ramp_len)
+                line_chars.append(ascii_ramp[idx])
                 continue
             
-            # Diffuse (Lambert) + Shadow
-            n_dot_l = hit['n_dot_l']
-            diffuse = max(0.0, n_dot_l) * hit['shadow']
+            # Trefferpunkt
+            hx = cam_x + ( (2.0 * i / (breite - 1) - 1.0) / skala ) * brennweite / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ) * t
+            hy = cam_y + ( (1.0 - 2.0 * j / (hoehe - 1)) / skala ) * brennweite / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ) * t
+            hz = cam_z + 1.0 / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ) * t
+            
+            # Diffuse (Lambert)
+            diffuse = max(0.0, nx * lx + ny * ly + nz * lz)
+            
+            # Specular (Blinn-Phong)
+            vx, vy, vz = - ( (2.0 * i / (breite - 1) - 1.0) / skala ) * brennweite / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ), \
+                                 - ( (1.0 - 2.0 * j / (hoehe - 1)) / skala ) * brennweite / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 ), \
+                                 - 1.0 / math.sqrt( ((2.0 * i / (breite - 1) - 1.0) / skala)**2 * brennweite**2 + ((1.0 - 2.0 * j / (hoehe - 1)) / skala)**2 * brennweite**2 + 1.0 )
+            hx_dir = lx + vx
+            hy_dir = ly + vy
+            hz_dir = lz + vz
+            hlen = math.sqrt(hx_dir*hx_dir + hy_dir*hy_dir + hz_dir*hz_dir)
+            if hlen > 0:
+                hx_dir /= hlen; hy_dir /= hlen; hz_dir /= hlen
+                spec = max(0.0, nx * hx_dir + ny * hy_dir + nz * hz_dir)
+                spec = spec ** 32.0  # Glanz
+            else:
+                spec = 0.0
             
             # Ambient
-            ambient = 0.15
+            ambient = 0.25
             
-            # Specular nur im Licht
-            spec = hit['spec'] * hit['shadow']
+            # Kombinieren
+            color = ambient + shadow * (diffuse * 0.7 + spec * 0.5)
             
-            # Gesamthelligkeit
-            brightness = ambient + 0.7 * diffuse + 0.5 * spec
-            brightness = max(0.0, min(1.0, brightness))
+            # Tiefen-Nebel (exponentiell)
+            fog = math.exp(-t * 0.12)
+            color = color * fog + (1.0 - fog) * 0.15
             
-            # Tiefe für Nebel-Effekt
-            depth_factor = 1.0 - min(1.0, hit['t'] / 20.0)
-            brightness *= 0.7 + 0.3 * depth_factor
+            # Gamma-Korrektur für linearen Look
+            color = color ** 0.4545
             
-            idx = int(brightness * ramp_len)
-            zeile += ascii_ramp[idx]
-        print(zeile)
+            idx = int(max(0.0, min(1.0, color)) * ramp_len)
+            line_chars.append(ascii_ramp[idx])
+        print(''.join(line_chars))
     
-    print("\nFifo watschelt zufrieden davon. Nächster Schritt: Reflections? AO? Volumetrics?")
+    print("\nFertig.")
 
 if __name__ == "__main__":
     main()
