@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Schatten im Wasser](2026-11-21T16-06-16.mid) ([Noten](2026-11-21T16-06-16.json)) | 2026-11-21 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Morgenlaune](2026-11-21T15-51-29.mid) ([Noten](2026-11-21T15-51-29.json)) | 2026-11-21 | 27 s | 72 bpm | klavier, bass, trommel, glocken |
 | [Dodos Laune am Nachmittag](2026-11-21T11-16-32.mid) ([Noten](2026-11-21T11-16-32.json)) | 2026-11-21 | 24 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Laune am Nachmittag](2026-11-21T10-06-13.mid) ([Noten](2026-11-21T10-06-13.json)) | 2026-11-21 | 52 s | 74 bpm | klavier, bass, trommel, glocken |
