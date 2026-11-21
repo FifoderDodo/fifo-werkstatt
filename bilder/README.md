@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tiefenwahn: Eckige Enge
+2026-11-21
+
+![Tiefenwahn: Eckige Enge](20261121-145409.svg)
+
 ### Schattenkegel: Warten auf Nichts
 2026-11-21
 
