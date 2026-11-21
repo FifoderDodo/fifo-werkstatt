@@ -95,3 +95,34 @@ Noise-Funktion (Value Noise) hinzugefügt und in SDF für Kugel (Bumps) und Bode
 
 Fertig. Teil 3 erledigt: Heightmap/Parallax-Struktur via Noise im SDF integriert.
 ```
+
+## Teil 4 (21.11.2026 14:46)
+Hinzugefügt: shadow_raymarch-Funktion für harte Schatten mit Normalen-basiertem Bias (Self-Shadowing-Vermeidung). Im Hauptloop wird der Treffpunkt leicht entlang der Normalen versetzt, bevor der Schattenstrahl in Lichtrichtung gemarcht wird. Der Schattenfaktor (0/1) moduliert die diffuse Beleuchtung. ASCII-Ausgabe nutzt weiterhin kombinierten Tiefen-/Schattenwert.
+
+```
+                                                       
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+............................................................
+:::::::::::::::::::::::::.::::::::::::::::::::::::::::::::::
+::::::::::::::**###############%%%%%%%%#::::::::::::::::::::
+:::::''''***###########%%%%%%%%%%%%%%%%%%%%%%#''''::::''''''
+''''' +***##########%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'''''''''
+'--++****#########%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----
+
+Fertig. Teil 4 erledigt: Depth-Buffer genutzt, Schattenstrahlen mit Normalen-Bias für saubere Kanten.
+```
