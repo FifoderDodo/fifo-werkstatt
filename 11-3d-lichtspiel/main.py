@@ -1,10 +1,27 @@
-# 3D-Lichtspiel – Teil 5: Schattenwürfe durch Bäume, weiche Penumbra, pro Lichtquelle
-# Fifo der Dodo lässt die Laternen hinter Baumkronen tanzen – Tiefe wird greifbar
+# 3D-Lichtspiel – Teil 6: Shader-Parameter exponiert, Live-Tweaking im Menü
+# Fifo der Dodo schraubt an den Reglern – Penumbra, Falloff, Blur, alles flüssig einstellbar
 
 import math
 import sys
 import random
 import unicodedata
+
+
+class ShaderParams:
+    """Container für alle einstellbaren Shader-Parameter mit Defaults."""
+    def __init__(self):
+        self.penumbra_breite = 0.15      # Weichheit des Schattenrandes (0.01 - 0.5)
+        self.umbra_dunkelheit = 0.05     # Restlicht im Kernschatten (0.0 - 0.5)
+        self.falloff_exponent = 2.0      # Lichtabfall mit Distanz (1.0 - 4.0)
+        self.blur_radius = 3             # Box-Blur Kernel Radius (1 - 8)
+        self.ambient = 0.02              # Grundhelligkeit (0.0 - 0.2)
+        self.volumetric_gain = 1.2       # Verstärkung der Lichtkegel-Sichtbarkeit (0.5 - 3.0)
+        self.gamma = 0.6                 # Gamma-Korrektur für ASCII-Mapping (0.3 - 1.0)
+    
+    def klonen(self):
+        klon = ShaderParams()
+        klon.__dict__.update(self.__dict__)
+        return klon
 
 
 def _norm(s: str) -> str:
@@ -28,13 +45,15 @@ def box_blur_1d(puffer: list, gewichte: list, horizontal: bool = True) -> list:
     
     if horizontal:
         for y in range(h):
+            row_src = puffer[y]
+            row_dst = ergebnis[y]
             for x in range(w):
                 acc = 0.0
                 for i, gew in enumerate(gewichte):
                     xi = x - k_rad + i
                     if 0 <= xi < w:
-                        acc += puffer[y][xi] * gew
-                ergebnis[y][x] = acc
+                        acc += row_src[xi] * gew
+                row_dst[x] = acc
     else:
         for x in range(w):
             for y in range(h):
@@ -47,11 +66,11 @@ def box_blur_1d(puffer: list, gewichte: list, horizontal: bool = True) -> list:
     return ergebnis
 
 
-def intensitaet_zu_ascii(wert: float) -> str:
-    """Mappt Float-Intensität (0.0-1.0+) auf ASCII-Stufen."""
+def intensitaet_zu_ascii(wert: float, gamma: float = 0.6) -> str:
+    """Mappt Float-Intensität (0.0-1.0+) auf ASCII-Stufen mit Gamma."""
     if wert <= 0.0:
         return ' '
-    w = min(1.0, max(0.0, wert)) ** 0.6
+    w = min(1.0, max(0.0, wert)) ** gamma
     if w > 0.85:
         return '@'
     elif w > 0.65:
@@ -66,7 +85,8 @@ def intensitaet_zu_ascii(wert: float) -> str:
         return ' '
 
 
-def schattenfaktor_für_punkt(px: float, py: float, qx: float, qy: float, radius: float, bäume: list) -> float:
+def schattenfaktor_für_punkt(px: float, py: float, qx: float, qy: float, radius: float, 
+                              bäume: list, params: ShaderParams) -> float:
     """
     Berechnet Schattierung (0.0 = voller Schatten, 1.0 = voll beleuchtet) für einen Punkt (px,py)
     relativ zur Lichtquelle (qx,qy) mit Reichweite radius.
@@ -77,81 +97,61 @@ def schattenfaktor_für_punkt(px: float, py: float, qx: float, qy: float, radius
     dist_q_p = math.hypot(dx, dy)
     
     if dist_q_p > radius or dist_q_p < 0.01:
-        return 1.0  # Ausser Reichweite oder genau an Quelle -> kein Schattenwurf relevant
+        return 1.0
     
-    # Richtung von Quelle zu Punkt
     ux = dx / dist_q_p
     uy = dy / dist_q_p
     
     min_shadow = 1.0
     
     for bx, by, bradius in bäume:
-        # Vektor Quelle -> Baum
         vx = bx - qx
         vy = by - qy
         dist_q_b = math.hypot(vx, vy)
         
         if dist_q_b < 0.01:
-            continue # Baum steht auf Laterne
+            continue
         
-        # Prüfen: Liegt Baum *zwischen* Quelle und Punkt? (Projection auf Strahl)
-        proj = vx * ux + vy * uy  # Skalarprojektion auf Strahlrichtung
+        proj = vx * ux + vy * uy
         if proj <= 0.01 or proj >= dist_q_p:
-            continue # Baum hinter Quelle oder hinter Punkt
+            continue
         
-        # Senkrechter Abstand vom Baumzentrum zum Lichtstrahl
-        # |v x u| = |v| * sin(winkel) = |vx*uy - vy*ux|
         abstand_zu_strahl = abs(vx * uy - vy * ux)
         
         if abstand_zu_strahl >= bradius:
-            continue # Strahl verfehlt Baum
+            continue
         
-        # Wir schneiden den Baum. Berechne Penumbra.
-        # Tiefenvergleich: Wie weit ist Baum vom Punkt entfernt entlang Strahl?
         tiefe_diff = dist_q_p - proj
-        
-        # Halbwinkel des Schattens am Baumrand (Geometrie: similar triangles)
-        # Sinus = bradius / dist_q_b. Für kleine Winkel ~ Winkel.
-        # Schatten breitet sich aus: radius_shadow = bradius + tiefe_diff * tan(winkel)
-        # tan(winkel) = bradius / sqrt(dist_q_b^2 - bradius^2) ≈ bradius / dist_q_b
-        # Vereinfacht: Lineare Interpolation zwischen Umbra (Kern) und Penumbra (Rand)
-        
-        # Kernschatten (Umbra) existiert nur wenn Lichtquelle Punktquelle (hier: ja).
-        # Wir machen weichen Übergang basierend auf relativer Position im Schattenkegel.
-        # Relative Position quer zum Strahl im Schattenkegel:
-        # Der Schattenkegel hat an der Baumposition Radius bradius.
-        # An der Punktposition Radius = bradius * (dist_q_p / dist_q_b)
         schatten_radius_hier = bradius * (dist_q_p / dist_q_b)
         
-        # Normalisierter Abstand vom Strahlzentrum (0 = Zentrum, 1 = Rand Kernschatten)
-        # Aber Penumbra geht über Kernschattenrand hinaus.
-        # Nutzen wir smoothstep über die Kante des geometrischen Schattens.
-        rand_faktor = abstand_zu_strahl / schatten_radius_hier if schatten_radius_hier > 0 else 1.0
+        if schatten_radius_hier <= 0.0:
+            continue
+            
+        rand_faktor = abstand_zu_strahl / schatten_radius_hier
         
-        # 0.0 = mitten im Schatten, 1.0 = draussen. Smoothstep für weichen Rand.
-        # Penumbra-Breite ~ 10-20% des Schattenradius
-        penumbra_breite = 0.15
-        if rand_faktor < 1.0 - penumbra_breite:
-            faktor = 0.05  # Fast ganz dunkel (Umbra + Streulicht)
-        elif rand_faktor > 1.0 + penumbra_breite:
-            faktor = 1.0   # Kein Schatten
+        penumbra = params.penumbra_breite
+        umbra = params.umbra_dunkelheit
+        
+        if rand_faktor < 1.0 - penumbra:
+            faktor = umbra
+        elif rand_faktor > 1.0 + penumbra:
+            faktor = 1.0
         else:
-            # Smoothstep im Penumbra-Bereich
-            t = (rand_faktor - (1.0 - penumbra_breite)) / (2.0 * penumbra_breite)
+            t = (rand_faktor - (1.0 - penumbra)) / (2.0 * penumbra)
             t = max(0.0, min(1.0, t))
-            faktor = 0.05 + 0.95 * (t * t * (3.0 - 2.0 * t))  # Smoothstep 0.05 -> 1.0
+            faktor = umbra + (1.0 - umbra) * (t * t * (3.0 - 2.0 * t))
         
         if faktor < min_shadow:
             min_shadow = faktor
-            if min_shadow <= 0.05:
-                break # Ganz dunkel, reicht
+            if min_shadow <= umbra:
+                break
     
     return min_shadow
 
 
-def zeichne_lichtkegel(breite: int, hoehe: int, quellen: list, bäume: list, blur_radius: int = 3, ambient: float = 0.0) -> list:
+def zeichne_lichtkegel(breite: int, hoehe: int, quellen: list, bäume: list, params: ShaderParams) -> list:
     """Erzeugt 2D-Gitter mit volumetric Licht & Schatten: Float-Puffer -> Blur -> ASCII."""
-    float_buf = [[ambient for _ in range(breite)] for __ in range(hoehe)]
+    float_buf = [[params.ambient for _ in range(breite)] for __ in range(hoehe)]
     
     for qx, qy, radius, richtung_x, richtung_y in quellen:
         r2 = radius * radius
@@ -160,207 +160,209 @@ def zeichne_lichtkegel(breite: int, hoehe: int, quellen: list, bäume: list, blu
         y0 = max(0, int(qy - radius))
         y1 = min(hoehe, int(qy + radius) + 1)
         
-        # Temporärer Layer für diese Quelle (für korrekte Schatten *vor* Blur)
-        layer = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
-        
         for y in range(y0, y1):
             dy = y - qy
+            dy2 = dy * dy
+            row = float_buf[y]
             for x in range(x0, x1):
                 dx = x - qx
-                dist2 = dx*dx + dy*dy
+                dist2 = dx * dx + dy2
+                
                 if dist2 > r2:
                     continue
+                
                 dist = math.sqrt(dist2)
+                # Falloff mit einstellbarem Exponenten
+                falloff = 1.0 / (1.0 + (dist / max(1.0, radius * 0.3)) ** params.falloff_exponent)
                 
-                if dist > 0.1:
-                    punkt_rx = dx / dist
-                    punkt_ry = dy / dist
-                    cos_winkel = punkt_rx * richtung_x + punkt_ry * richtung_y
-                    if cos_winkel < 0.5:  # ~60 Grad Öffnungswinkel
-                        continue
-                    winkel_faktor = cos_winkel * cos_winkel
+                # Richtungsfaktor (Kegelform)
+                if radius > 0.01:
+                    dot = (dx * richtung_x + dy * richtung_y) / radius
+                    kegel = max(0.0, dot)  # Nur Vorwärts
                 else:
-                    winkel_faktor = 1.0
+                    kegel = 1.0
                 
-                norm_dist = dist / radius
-                radial_faktor = math.exp(-4.0 * norm_dist * norm_dist)
+                # Schatten berechnen
+                schatten = schattenfaktor_für_punkt(x, y, qx, qy, radius, bäume, params)
                 
-                # NEU: Schatten abfragen
-                schatten = schattenfaktor_für_punkt(x, y, qx, qy, radius, bäume)
+                # Volumetric Gain anwenden
+                wert = falloff * kegel * schatten * params.volumetric_gain
                 
-                beitrag = radial_faktor * winkel_faktor * schatten
-                layer[y][x] += beitrag
-        
-        # Layer auf Hauptpuffer addieren
-        for y in range(hoehe):
-            for x in range(breite):
-                float_buf[y][x] += layer[y][x]
+                # Akkumulieren (additiv für mehrere Quellen)
+                row[x] += wert
     
-    # Clamping vor Blur
-    for y in range(hoehe):
-        for x in range(breite):
-            if float_buf[y][x] > 1.0:
-                float_buf[y][x] = 1.0
-    
-    gewichte = gauß_gewichte(blur_radius)
-    float_buf = box_blur_1d(float_buf, gewichte, horizontal=True)
-    float_buf = box_blur_1d(float_buf, gewichte, horizontal=False)
-    
-    bild = [[' ' for _ in range(breite)] for __ in range(hoehe)]
-    
-    # Bodendetails (Laub, Gras) - nur unten
-    random.seed(1337)
-    for _ in range(breite * hoehe // 40):
-        x = random.randint(0, breite - 1)
-        y = random.randint(hoehe // 2, hoehe - 1)
-        bild[y][x] = random.choice(['.', ',', '`'])
-    
-    # Baumstämme als feste Silhouetten reinzeichnen (sehr dunkel)
+    # Baumstämme als harte Silhouetten (nach Licht, vor Blur)
     for bx, by, bradius in bäume:
         ix, iy = int(bx), int(by)
         if 0 <= ix < breite and 0 <= iy < hoehe:
-            bild[iy][ix] = '│'
-            # Ein paar Pixel drumherum für Dicke
-            for dy in (-1, 0, 1):
-                for dx in (-1, 0, 1):
-                    nx, ny = ix + dx, iy + dy
-                    if 0 <= nx < breite and 0 <= ny < hoehe and bild[ny][nx] == ' ':
-                        bild[ny][nx] = '░'
+            float_buf[iy][ix] = 0.0
+            # Etwas Rinde andeuten
+            for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+                nx, ny = ix+dx, iy+dy
+                if 0 <= nx < breite and 0 <= ny < hoehe:
+                    float_buf[ny][nx] = min(float_buf[ny][nx], params.ambient * 0.5)
     
-    # Licht über Blend-Logik legen
+    # Separable Blur
+    gewichte = gauß_gewichte(params.blur_radius)
+    float_buf = box_blur_1d(float_buf, gewichte, True)
+    float_buf = box_blur_1d(float_buf, gewichte, False)
+    
+    # ASCII Konvertierung mit Gamma
+    ascii_art = []
     for y in range(hoehe):
-        for x in range(breite):
-            zeichen = intensitaet_zu_ascii(float_buf[y][x])
-            if zeichen != ' ':
-                aktuell = bild[y][x]
-                ordnung = ' .,`░│+*#@'
-                try:
-                    if ordnung.index(zeichen) > ordnung.index(aktuell):
-                        bild[y][x] = zeichen
-                except ValueError:
-                    bild[y][x] = zeichen
+        zeile = ''.join(intensitaet_zu_ascii(float_buf[y][x], params.gamma) for x in range(breite))
+        ascii_art.append(zeile)
     
-    return bild
+    return ascii_art
 
 
-def frage_int(prompt: str, default: int, min_v: int, max_v: int) -> int:
-    """Fragt robust eine Ganzzahl ab, fängt EOFError ab."""
-    while True:
-        try:
-            val = input(prompt) or str(default)
-            val = int(val)
-            return max(min_v, min(max_v, val))
-        except ValueError:
-            print("  Fifo braucht eine Zahl. Nochmal! 🦤")
-        except EOFError:
-            print("\nEingabeende – Fifo watschelt nach Hause. 🦤")
-            sys.exit(0)
-
-
-def frage_wahl(prompt: str, default: str, optionen: list, aliases: dict = None) -> str:
-    """
-    Fragt robust eine Option ab (case-insensitiv, Unicode-normalisiert).
-    aliases: Dict {alias_normiert: ziel_option_original}
-    """
-    opt_map = {_norm(o): o for o in optionen}
-    
-    if aliases:
-        for alias, ziel in aliases.items():
-            if _norm(ziel) in opt_map:
-                opt_map[_norm(alias)] = opt_map[_norm(ziel)]
-    
-    gültige_anzeige = ', '.join(optionen)
-    
-    while True:
-        try:
-            val = (input(prompt) or default)
-            key = _norm(val)
-            if key in opt_map:
-                return opt_map[key]
-            print(f"  Fifo kennt nur: {gültige_anzeige}. Nochmal! 🦤")
-        except EOFError:
-            print("\nEingabeende – Fifo watschelt nach Hause. 🦤")
-            sys.exit(0)
-
-
-def main():
-    print("🍂 3D-Lichtspiel – Herbstpark-Simulator (Volumetric Blur & Shadows) 🍂")
-    print("Fifo der Dodo justiert die Streuungskernel und pflanzt Schattenbäume...\n")
-    
-    breite = frage_int("Breite (40-160) [100]: ", 100, 40, 160)
-    hoehe = frage_int("Höhe (20-80) [40]: ", 40, 20, 80)
-    
-    aliases = {
-        'daemmerung': 'dämmerung',
-        'tag': 'herbsttag',
-        'herbst': 'herbsttag',
-        'nacht': 'nacht'
-    }
-    zeit = frage_wahl(
-        "Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: ",
-        "dämmerung",
-        ["dämmerung", "nacht", "herbsttag"],
-        aliases
-    )
-    
-    # Parameter je Tageszeit
-    if zeit == "nacht":
-        anzahl_laternen = random.randint(5, 9)
-        ambient = 0.02
-        blur_r = 4
-        laternen_radius = (12, 20)
-    elif zeit == "dämmerung":
-        anzahl_laternen = random.randint(4, 7)
-        ambient = 0.08
-        blur_r = 3
-        laternen_radius = (10, 18)
-    else: # herbsttag
-        anzahl_laternen = random.randint(2, 4)
-        ambient = 0.25
-        blur_r = 2
-        laternen_radius = (8, 15)
+def generiere_szene(tageszeit: str, breite: int, hoehe: int):
+    """Erzeugt Bäume und Laternen passend zur Tageszeit."""
+    random.seed(hash(tageszeit) % (2**32))
+    bäume = []
+    anzahl_bäume = max(3, (breite * hoehe) // 1200)
+    for _ in range(anzahl_bäume):
+        bx = random.uniform(2, breite - 3)
+        by = random.uniform(2, hoehe - 3)
+        bradius = random.uniform(1.5, 3.5)
+        bäume.append((bx, by, bradius))
     
     quellen = []
-    random.seed(42) # Feste Seed für reproduzierbare Park-Layouts pro Run
+    if tageszeit == 'nacht':
+        anzahl = max(2, (breite * hoehe) // 2000)
+        for _ in range(anzahl):
+            qx = random.uniform(3, breite - 4)
+            qy = random.uniform(3, hoehe - 4)
+            radius = random.uniform(8, 14)
+            winkel = random.uniform(0, 2 * math.pi)
+            richtung_x = math.cos(winkel)
+            richtung_y = math.sin(winkel) * 0.5  # Etwas abgeflacht
+            quellen.append((qx, qy, radius, richtung_x, richtung_y))
+    elif tageszeit == 'dämmerung':
+        anzahl = max(1, (breite * hoehe) // 3000)
+        for _ in range(anzahl):
+            qx = random.uniform(3, breite - 4)
+            qy = random.uniform(3, hoehe - 4)
+            radius = random.uniform(10, 18)
+            winkel = random.uniform(-0.5, 0.5)  # Mehr horizontal
+            richtung_x = math.cos(winkel)
+            richtung_y = math.sin(winkel) * 0.3
+            quellen.append((qx, qy, radius, richtung_x, richtung_y))
+    else:  # herbsttag
+        # Keine künstlichen Quellen, nur Ambient (wird in Parametern geregelt)
+        pass
     
-    for _ in range(anzahl_laternen):
-        # Laternen etwas verteilt, nicht am Rand
-        lx = random.uniform(breite * 0.1, breite * 0.9)
-        ly = random.uniform(hoehe * 0.15, hoehe * 0.85)
-        lrad = random.uniform(*laternen_radius)
-        # Richtung meist nach unten (Boden), leicht zufällig
-        rw = random.uniform(-0.3, 0.3)
-        rx = rw
-        ry = math.sqrt(max(0.0, 1.0 - rw*rw)) * (1 if random.random() > 0.5 else -1) # Nach oben oder unten
-        if zeit == "herbsttag":
-            ry = abs(ry) * -1 # Tagsüber eher nach unten auf Wege
-        quellen.append((lx, ly, lrad, rx, ry))
+    return bäume, quellen
+
+
+def menü_shader_params(params: ShaderParams) -> ShaderParams:
+    """Interaktives Untermenü zum Tweaken der Shader-Parameter."""
+    while True:
+        print("\n=== Shader-Parameter ===")
+        print(f"1. Penumbra-Breite     : {params.penumbra_breite:.2f}  (0.01 - 0.5)")
+        print(f"2. Umbra-Dunkelheit    : {params.umbra_dunkelheit:.2f}  (0.0 - 0.5)")
+        print(f"3. Falloff-Exponent    : {params.falloff_exponent:.1f}  (1.0 - 4.0)")
+        print(f"4. Blur-Radius         : {params.blur_radius}      (1 - 8)")
+        print(f"5. Ambient-Helligkeit  : {params.ambient:.3f}  (0.0 - 0.2)")
+        print(f"6. Volumetric Gain     : {params.volumetric_gain:.1f}  (0.5 - 3.0)")
+        print(f"7. Gamma               : {params.gamma:.2f}  (0.3 - 1.0)")
+        print("8. Zurück zum Hauptmenü")
+        try:
+            wahl = input("Wähle Parameter (1-8): ").strip()
+        except EOFError:
+            return params
+        
+        if wahl == '8':
+            return params
+        
+        try:
+            if wahl == '1':
+                v = float(input(f"Neuer Wert [{params.penumbra_breite:.2f}]: ") or params.penumbra_breite)
+                params.penumbra_breite = max(0.01, min(0.5, v))
+            elif wahl == '2':
+                v = float(input(f"Neuer Wert [{params.umbra_dunkelheit:.2f}]: ") or params.umbra_dunkelheit)
+                params.umbra_dunkelheit = max(0.0, min(0.5, v))
+            elif wahl == '3':
+                v = float(input(f"Neuer Wert [{params.falloff_exponent:.1f}]: ") or params.falloff_exponent)
+                params.falloff_exponent = max(1.0, min(4.0, v))
+            elif wahl == '4':
+                v = int(input(f"Neuer Wert [{params.blur_radius}]: ") or params.blur_radius)
+                params.blur_radius = max(1, min(8, v))
+            elif wahl == '5':
+                v = float(input(f"Neuer Wert [{params.ambient:.3f}]: ") or params.ambient)
+                params.ambient = max(0.0, min(0.2, v))
+            elif wahl == '6':
+                v = float(input(f"Neuer Wert [{params.volumetric_gain:.1f}]: ") or params.volumetric_gain)
+                params.volumetric_gain = max(0.5, min(3.0, v))
+            elif wahl == '7':
+                v = float(input(f"Neuer Wert [{params.gamma:.2f}]: ") or params.gamma)
+                params.gamma = max(0.3, min(1.0, v))
+            else:
+                print("Ungültige Auswahl.")
+        except ValueError:
+            print("Ungültige Zahl.")
+        except EOFError:
+            return params
+
+
+def main() -> None:
+    breite, hoehe = 100, 40
+    params = ShaderParams()
     
-    # BÄUME generieren: (x, y, radius)
-    bäume = []
-    anzahl_bäume = random.randint(6, 12)
-    for _ in range(anzahl_bäume):
-        bx = random.uniform(breite * 0.05, breite * 0.95)
-        by = random.uniform(hoehe * 0.1, hoehe * 0.9)
-        brad = random.uniform(1.5, 3.5)
-        # Nicht zu nah an Laternen (vermeiden dass Baum *in* Laterne steht)
-        ok = True
-        for qx, qy, qr, _, _ in quellen:
-            if math.hypot(bx - qx, by - qy) < qr * 0.5 + brad:
-                ok = False
-                break
-        if ok:
-            bäume.append((bx, by, brad))
+    print("🦤 3D-Lichtspiel – Volumetrisches Licht & Schatten im Herbstpark")
+    print("==============================================================")
     
-    print(f"\nFifo stellt {anzahl_laternen} Laternen und {len(bäume)} Bäume auf. Rechne Licht... 🦤")
-    
-    bild = zeichne_lichtkegel(breite, hoehe, quellen, bäume, blur_radius=blur_r, ambient=ambient)
-    
-    print(f"\n🍂 {zeit.capitalize()} im Park ({breite}x{hoehe}) 🍂")
-    for reihe in bild:
-        print(''.join(reihe))
-    
-    print("\nFifo nickt zufrieden. Die Schatten tanzen. 🦤")
+    while True:
+        print("\n=== Hauptmenü ===")
+        print("1. Szene rendern")
+        print("2. Shader-Parameter anpassen")
+        print("3. Beenden")
+        try:
+            wahl = input("Deine Wahl (1-3): ").strip()
+        except EOFError:
+            print("\nTschüss! 🦤")
+            break
+        
+        if wahl == '3':
+            print("Tschüss! 🦤")
+            break
+        
+        if wahl == '2':
+            params = menü_shader_params(params)
+            continue
+        
+        if wahl != '1':
+            continue
+        
+        try:
+            tageszeit = input("Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: ").strip() or "dämmerung"
+            tageszeit = _norm(tageszeit)
+            if tageszeit not in ("dämmerung", "nacht", "herbsttag"):
+                print("Fifo kennt nur: dämmerung, nacht, herbsttag.")
+                continue
+        except EOFError:
+            break
+        
+        bäume, quellen = generiere_szene(tageszeit, breite, hoehe)
+        
+        # Tag-spezifische Defaults überschreiben
+        if tageszeit == 'herbsttag':
+            params.ambient = 0.15
+            params.volumetric_gain = 0.8
+        elif tageszeit == 'dämmerung':
+            params.ambient = 0.03
+            params.volumetric_gain = 1.2
+        else:  # nacht
+            params.ambient = 0.01
+            params.volumetric_gain = 1.5
+        
+        print(f"\nRendere {tageszeit}... ({len(bäume)} Bäume, {len(quellen)} Laternen)")
+        bild = zeichne_lichtkegel(breite, hoehe, quellen, bäume, params)
+        print("\n" + "=" * breite)
+        for zeile in bild:
+            print(zeile)
+        print("=" * breite)
+        print(f"Parameter: Penumbra={params.penumbra_breite:.2f} Falloff={params.falloff_exponent:.1f} Blur={params.blur_radius} Gamma={params.gamma:.2f}")
 
 if __name__ == "__main__":
     main()
