@@ -1896,3 +1896,42 @@ Vervollständigte die diffuse_schatten-Funktion mit Raymarching-Schatten, fügte
 ################################################################################
 ################################################################################
 ```
+
+## Teil 42 (21.11.2026 08:43)
+Lichtquellen-System (Lichtquelle) mit gerichteten Vektoren und 3D-Punktlichtern inklusive Abstandsabfall implementiert. Blinn-Phong-Glanzlichter, Vektor-Raymarching für Schlagschatten und wählbare Licht-Setups zur Tiefenerzwingung ergänzt. Den Absturz gleich repariert.
+
+```
+ahl [1-4, Standard: 1]: 
+Waehle Licht-Setup:
+  1) Schraege Sonne von links-oben (starker Schlagschatten)
+  2) Nahes Punktlicht direkt ueber dem Objekt (Radiallicht mit Glanzpunkt)
+  3) Dual-Licht (Hauptsonne + kuehleres Gegenlicht fuer Plastizitaet)
+Licht-Setup [1-3, Standard: 1]: 
+[Berechne Vektoren fuer 'Glatte Kugel' mit Gerichtete Sonne Vektor (-1.2, -1.0, 0.8)]...
+
+--- RENDER-ERGEBNIS ---
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+uuuuuuuuuuuuuuYqbbbbbbbbbbbbqYuuuuuuuuuuuuuu
+uuuuuuuuuuuLdM$$BW#*ahkbdqmQvuZdLuuuuuuuuuuu
+uuuuuuuuu0$$$$B$B%&M*ohkbpqmZOLnjJ0uuuuuuuuu
+uuuuuuuu$$$$$$$@8W#*ahbdpqmZOQLJUx\cuuuuuuuu
+uuuuuuu$$$$$$@%W#oakbdpqmZO0QLJUXcu)\uuuuuuu
+uuuuuu$$$$$$%W#ohkdpqwmZO0QLCJUXzvnf}1uuuuuu
+uuuuu@$$$$%W*akbdqwmZOO0QLCJUYXcvnrt)[-uuuuu
+uuuuU$$$@W*hkdpwmZOO0QLCJJUYXzcunrf\1i_tuuuu
+uuuud$$&*hbpwmZO00QLCJJUYXXzcvnxrf/(}>i]uuuu
+uuuudw*kpwmZO0QLCCJUUYXXzcvunxrjt\({-I^]uuuu
+uuuuUJwZ0QLLCJJUUYXXzzcvuunxrjt/|){?>^`tuuuu
+uuuuuwnYUYYYXXzzccvvuunxxrjft/|(1[->"^!uuuuu
+uuuuuunjxuuuuuunnnxxrrjfft/\|){[?+!"^'uuuuuu
+uuuuuuuf/)/fffffffftt//\|()1}]-+i,"^'uuuuuuu
+uuuuuuuu)|[_{))((((())1{}[]-+>l""^`:uuuuuuuu
+uuuuuuuuu)?{]!I~_-----_+<>!;"""^`,)uuuuuuuuu
+uuuuuuuuuuu\~>?-l,"""""""""^^`"~\uuuuuuuuuuu
+uuuuuuuuuuuuuuf->l;,"""",;l>-fuuuuuuuuuuuuuu
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+--------------------------------------------
+Tiefenanalyse: Min-Helligkeit=0.04, Max-Helligkeit=1.00
+Schattenabdeckung: 8.0% | Glanzlichter: 8.1%
+Mathematische Tiefenerzwingung erfolgreich abgeschlossen!
+```
