@@ -2284,3 +2284,12 @@ Hab die Raymarch-Funktion in der main.py vervollständigt. Die Schrittweite und 
 Schatten-Simulator Initialisiert - Dodo-Modus aktiv.
 Schattenwert: 0.0
 ```
+
+## Teil 55 (21.11.2026 13:34)
+Raymarcher um 9-tap PCF (Percentage-Closer Filtering) erweitert für weiche Schattenkanten. Offset-Bias gegen Self-Shadowing hinzugefügt. Main nutzt nun flaches Seitenlicht und größere Map, damit Schatten sichtbar und weich werden.
+
+```
+Schatten-Simulator Initialisiert - Dodo-Modus aktiv.
+Schattenwert (weich, 9-tap PCF): 0.6667
+Schattenwert (hart, 1-tap):   1.0000
+```
