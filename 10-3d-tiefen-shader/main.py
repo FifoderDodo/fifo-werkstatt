@@ -84,30 +84,35 @@ def raymarch(ox: float, oy: float, oz: float,
 
 def shadow_raymarch(ox: float, oy: float, oz: float,
                     lx: float, ly: float, lz: float,
-                    normal_bias: float = 0.01,
-                    max_schritte: int = 40, max_dist: float = 20.0) -> float:
-    """Prüft, ob der Punkt im Schatten liegt (harter Schatten).
-    Startet den Strahl leicht versetzt entlang der Normalen (Bias), um Self-Shadowing zu vermeiden.
-    Gibt 1.0 für beleuchtet, 0.0 für im Schatten zurück."""
-    # Wir brauchen die Normale am Startpunkt für den Bias – wird vom Aufrufer mitgegeben
-    # (hier vereinfacht: Bias wird als Parameter übergeben, Normale wird extern berechnet)
-    # Der Aufrufer übergibt bereits den versetzten Startpunkt.
+                    max_schritte: int = 50, max_dist: float = 20.0,
+                    softness: float = 0.5) -> float:
+    """Soft-Shadow Raymarching.
+    Statt hart 0/1 wird ein Schattenfaktor akkumuliert:
+    Bei jedem Schritt schauen wir, wie nah wir an Geometrie sind (dist).
+    Je näher dist an 0, desto dunkler. Der Faktor softness steuert die Penumbra-Weite.
+    Gibt 1.0 = voll beleuchtet, 0.0 = tiefster Schatten."""
     tiefe = 0.0
+    schatten = 1.0
+    # Start-Bias wird vom Aufrufer über den versetzten Startpunkt gemacht
     for _ in range(max_schritte):
         px = ox + lx * tiefe
         py = oy + ly * tiefe
         pz = oz + lz * tiefe
         dist = szene_distanz(px, py, pz)
-        if dist < 0.01:  # Etwas toleranter für Schattenstrahl
-            return 0.0  # Im Schatten
+        # Soft-Shadow-Formel: je kleiner dist / tiefe, desto stärkerer Schatten
+        # softness ~ Penumbra-Größe (größer = weichere Kanten)
+        if tiefe > 0.0:
+            schatten = min(schatten, softness * dist / tiefe)
+        if dist < 0.008:  # Harter Treffer -> fast vollständig im Schatten
+            return 0.0
         tiefe += dist
         if tiefe > max_dist:
             break
-    return 1.0  # Nicht im Schatten
+    return max(0.0, min(1.0, schatten))
 
 
 def main() -> None:
-    print("Fifo's 3D-Tiefen-Shader - Teil 4: Depth-Buffer & Normal-Mapped Shadow Edges")
+    print("Fifo's 3D-Tiefen-Shader - Teil 5: Soft-Shadow Raymarching & Parameter-Tuning")
     print("====================================================================")
     
     breite = 60
@@ -116,7 +121,7 @@ def main() -> None:
     brennweite = 1.0
     cam_x, cam_y, cam_z = 0.0, 1.5, 0.0
     
-    print(f"Rendere {breite}x{hoehe} Pixel mit Raymarching + Shadow Rays ...")
+    print(f"Rendere {breite}x{hoehe} Pixel mit Raymarching + Soft Shadows ...")
     
     skala = 1.0
     try:
@@ -165,11 +170,14 @@ def main() -> None:
                 sy = hy + ny * bias
                 sz = hz + nz * bias
                 
-                # Schattenraymarch (hart)
-                shadow = shadow_raymarch(sx, sy, sz, lx, ly, lz)
+                # Soft Shadow Raymarch
+                # softness: 0.3 = härter, 0.8 = weicher (Penumbra)
+                # max_schritte: 50 für guten Kompromiss Geschwindigkeit/Qualität
+                shadow = shadow_raymarch(sx, sy, sz, lx, ly, lz,
+                                         max_schritte=50, max_dist=20.0, softness=0.5)
                 
                 diff = max(0.0, nx*lx + ny*ly + nz*lz)
-                ambient = 0.2
+                ambient = 0.15  # Etwas dunkleres Ambient für mehr Kontrast
                 nebelfaktor = 1.0 - min(1.0, t / 20.0)
                 helligkeit = ambient + diff * shadow * nebelfaktor
                 zeile_schatten.append(helligkeit)
@@ -178,29 +186,28 @@ def main() -> None:
         tiefe_buffer.append(zeile_tiefen)
         schatten_buffer.append(zeile_schatten)
     
-    ascii_rampe = " .:'-=+*#%@"
-    max_tiefe = 15.0
+    # ASCII-Rampe: dunkler -> heller
+    ascii_ramp = " .'`^\":;~!><{}[]()\\/|\\?-_+@#$%&*8BW"
+    ramp_len = len(ascii_ramp) - 1
     
-    print("\nSchattierte Tiefenkarte mit Normal-Mapped Shadow Edges (Bias via Normalen):")
+    print()
     for j in range(hoehe):
-        out = ""
+        zeile = ""
         for i in range(breite):
-            t = tiefe_buffer[j][i]
-            s = schatten_buffer[j][i]
-            tiefe_faktor = 1.0 - min(1.0, t / max_tiefe)
-            wert = 0.7 * s + 0.3 * tiefe_faktor
-            idx = int(min(len(ascii_rampe) - 1, max(0, wert * (len(ascii_rampe) - 1))))
-            out += ascii_rampe[idx]
-        print(out)
+            val = schatten_buffer[j][i]
+            idx = int(val * ramp_len)
+            if idx < 0: idx = 0
+            if idx > ramp_len: idx = ramp_len
+            zeile += ascii_ramp[idx]
+        print(zeile)
     
-    print("\nFertig. Teil 4 erledigt: Depth-Buffer genutzt, Schattenstrahlen mit Normalen-Bias für saubere Kanten.")
+    print()
+    print("Fertig. Drück Enter für Exit.")
+    try:
+        input()
+    except EOFError:
+        pass
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nAbbruch durch User. Tschüss!")
-    except Exception as e:
-        print(f"\nUps, Fehler: {e}")
-        sys.exit(1)
+    main()
