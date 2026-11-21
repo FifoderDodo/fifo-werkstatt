@@ -159,7 +159,6 @@ def noise_3d(x, y, z, seed):
     c101 = hash3d(ix + 1, iy, iz + 1)
     c011 = hash3d(ix, iy + 1, iz + 1)
     c111 = hash3d(ix + 1, iy + 1, iz + 1)
-    # trilineare interpolation
     def lerp(a, b, t):
         return a + t * (b - a)
     c00 = lerp(c000, c100, fx)
@@ -174,113 +173,69 @@ def render(params: ShaderParams, bäume, licht_pos, width=80, height=24):
     img = [[0.0 for _ in range(width)] for _ in range(height)]
     for y in range(height):
         for x in range(width):
-            # Normalisierte Bildschirmkoordinaten [-1,1]
             nx = (x / (width - 1)) * 2 - 1
             ny = (y / (height - 1)) * 2 - 1
-            # Simple ray direction (orthogonal)
-            ray_dir = (0, 0, -1)
-            # Position im Raum (z=0)
             pos = (nx, ny, 0)
-            # Grundbeleuchtung
             intensity = params.ambient
-            # Volumetrische Streuung (einfach)
-            dist = math.hypot(nx - licht_pos[0], ny - licht_pos[1])
-            falloff = 1.0 / (params.falloff_start + dist ** params.falloff_exponent)
-            intensity += params.volumetric_gain * falloff
-            # Schatten durch Bäume
-            shadow = schattenfaktor_für_punkt(nx, ny, licht_pos[0], licht_pos[1], 0.5, bäume, params)
+            # Abstand zum Licht
+            lx, ly, lz = licht_pos
+            dx, dy, dz = lx - pos[0], ly - pos[1], lz - pos[2]
+            dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+            # einfache Falloff
+            falloff = max(0.0, 1.0 - (dist - params.falloff_start) / (params.falloff_start))
+            falloff **= params.falloff_exponent
+            # volumetrische Streuung (rudimentär)
+            scatter = params.scattering_coeff * math.exp(-params.absorption_coeff * dist)
+            intensity += params.volumetric_gain * scatter * falloff
+            # Schatten vom nächsten Baum prüfen
+            shadow = 1.0
+            for baum in bäume:
+                sx = schattenfaktor_für_punkt(pos[0], pos[1], lx, ly, 2.0, bäume, params)
+                shadow = min(shadow, sx)
             intensity *= shadow
-            # Blinn-Phong Specular mit Rauschen
-            if params.specular_intensity > 0:
-                # Halbvektor zwischen Licht und Auge (einfaches orthogonales Auge)
-                h = ((licht_pos[0] - nx) * 0.5, (licht_pos[1] - ny) * 0.5, 0)
-                hlen = math.hypot(h[0], h[1]) + 1e-6
-                ndoth = max(0.0, (h[0] / hlen))
-                spec = (ndoth ** params.specular_power) * params.specular_intensity
-                # noise modulation
-                n = noise_3d(nx * params.specular_noise_scale,
-                             ny * params.specular_noise_scale,
-                             0.0,
-                             params.noise_seed)
-                spec *= (0.5 + 0.5 * n)
-                intensity += spec
             img[y][x] = intensity
-    # Apply optional blur
+    # Blur anwenden
     if params.blur_radius > 0:
-        w = gauß_gewichte(params.blur_radius)
-        img = box_blur_1d(img, w, True)
-        img = box_blur_1d(img, w, False)
-    # ASCII output
+        gew = gauß_gewichte(params.blur_radius)
+        img = box_blur_1d(img, gew, horizontal=True)
+        img = box_blur_1d(img, gew, horizontal=False)
+    # ASCII Ausgabe
     lines = []
     for row in img:
         line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
         lines.append(line)
     return '\n'.join(lines)
 
-def menu(params: ShaderParams):
-    options = [
-        ('Penumbra Breite', 'penumbra_breite'),
-        ('Umbra Dunkelheit', 'umbra_dunkelheit'),
-        ('Falloff Exponent', 'falloff_exponent'),
-        ('Falloff Start', 'falloff_start'),
-        ('Blur Radius', 'blur_radius'),
-        ('Ambient', 'ambient'),
-        ('Volumetric Gain', 'volumetric_gain'),
-        ('Gamma', 'gamma'),
-        ('Scattering Coeff', 'scattering_coeff'),
-        ('Absorption Coeff', 'absorption_coeff'),
-        ('Mist Density', 'mist_density'),
-        ('Mist Height Falloff', 'mist_height_falloff'),
-        ('Color Temp (K)', 'color_temp'),
-        ('Jitter Strength', 'jitter_strength'),
-        ('Phase g', 'phase_g'),
-        ('Noise Seed', 'noise_seed'),
-        ('March Steps', 'march_steps'),
-        ('Jitter Enabled', 'jitter_enabled'),
-        ('Specular Intensity', 'specular_intensity'),
-        ('Specular Power', 'specular_power'),
-        ('Specular Noise Scale', 'specular_noise_scale'),
-    ]
+def main():
+    params = ShaderParams()
+    # Beispiel-Bäume: (x, y, radius)
+    bäume = [(-0.3, 0.2, 0.2), (0.4, -0.1, 0.15), (0.0, 0.5, 0.25)]
+    licht_pos = (0.0, 0.8, -1.0)
+    print('Starte 3D‑Lichtspiel‑Simulation. Drücke Enter für nächsten Frame, EOF zum Beenden.')
+    frame = 0
     while True:
-        print('\n--- Parameter Menu ---')
-        for i, (name, attr) in enumerate(options, 1):
-            val = getattr(params, attr)
-            print(f"{i}) {name}: {val}")
-        print('R) Rendern')
-        print('Q) Beenden')
         try:
-            choice = input('Wahl: ').strip().lower()
-        except EOFError:
-            print('\nEOF erreicht, Programm beendet.')
-            sys.exit(0)
-        if choice == 'q':
-            sys.exit(0)
-        if choice == 'r':
-            # Beispielbäume und Lichtposition
-            bäume = [(-0.4, 0.2, 0.08), (0.3, -0.1, 0.07), (0.0, 0.5, 0.09)]
-            licht = (0.0, 0.8)
-            print(render(params, bäume, licht))
-            continue
-        if not choice.isdigit():
-            continue
-        idx = int(choice) - 1
-        if 0 <= idx < len(options):
-            _, attr = options[idx]
-            cur = getattr(params, attr)
-            new = input(f'Neuer Wert für {attr} (aktuell {cur}): ')
-            if isinstance(cur, bool):
-                setattr(params, attr, new.lower() in ('true', '1', 'yes', 'y'))
-            elif isinstance(cur, int):
-                try:
-                    setattr(params, attr, int(new))
-                except ValueError:
-                    pass
+            if frame == 0:
+                print('--- Frame 1 ---')
             else:
-                try:
-                    setattr(params, attr, float(new))
-                except ValueError:
-                    pass
+                print(f'--- Frame {frame+1} ---')
+            output = render(params, bäume, licht_pos)
+            print(output)
+            # leichte Bewegung des Lichts für Animation
+            licht_pos = (licht_pos[0] + (random.random() - 0.5) * 0.05,
+                         licht_pos[1] + (random.random() - 0.5) * 0.05,
+                         licht_pos[2])
+            frame += 1
+            if frame >= 20:
+                print('Maximale Frame‑Anzahl erreicht, Ende.')
+                break
+            input('Weiter (Enter) ...')
+        except EOFError:
+            print('\nEOF erhalten – Simulation wird freundlich beendet.')
+            break
+        except KeyboardInterrupt:
+            print('\nAbbruch durch Benutzer – Auf Wiedersehen.')
+            break
 
 if __name__ == '__main__':
-    params = ShaderParams()
-    menu(params)
+    main()
