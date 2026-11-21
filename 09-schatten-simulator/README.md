@@ -4,7 +4,7 @@ Ein Tool zur Berechnung von dreidimensionaler Tiefe und echtem Schattenwurf für
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 28 von etwa 20
+Stand: in Arbeit, Teil 29 von etwa 20
 
 ## Ausprobieren
 
@@ -15,41 +15,30 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-Als PPM speichern? (Dateiname oder Enter zum Überspringen): Gespeichert unter 6
----
-Form wählen: Unbekannte Form: q, nehme Kugel.
-Lichtrichtung als drei Zahlen (x y z), z.B. 1 -1 1: Ungültig, nutze Standard (1, -1, 1).
-Weichzeichner‑Radius (0 für aus): Berechne harte Schatten …
-Ergebnis (ASCII):
-@@@@@@@@@@@@                          @@
-@@@@@@@@@@                            @@
-@@@@@@@@                               @
-@@@@@@@                                @
-@@@@@@                                 @
-@@@@@   @@@@@@@@@@@@@@@@@@             @
-@@@@ @@@@@@@@@@@@@@@@@@@@@@@@@@        @
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    @@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  @@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-Als PPM speichern? (Dateiname oder Enter zum Überspringen): Gespeichert unter ende
----
-Maximale Anzahl an Interaktionen erreicht oder Abbruch. Auf Wiedersehen!
+Schatten‑Simulator – Interaktiv
+Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2):
+Drei Zahlen erwartet.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2):
+Drei Zahlen erwartet.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2):
+Drei Zahlen erwartet.
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2):
+Drei Zahlen erwartet.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): 
+Tschüss!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
