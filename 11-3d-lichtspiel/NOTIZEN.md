@@ -282,3 +282,68 @@ Teil 10 implementiert Point Light Falloff (Attenuation) im Raymarching-Loop mit 
 
 Fifo nickt zufrieden. Das Licht fällt jetzt natürlich ab.
 ```
+
+## Teil 11 (21.11.2026 23:14)
+Teil 11 fügt Blinn-Phong Specular Highlights zum Raymarching hinzu: neue ShaderParams (specular_intensity, specular_power, specular_noise_scale), 3D-Noise für Partikel-Normalen-Variation, Half-Vector-Berechnung im Marching-Loop, Specular-Akkumulation mit Falloff/Shadow/Transmittance. Menü um 3 Specular-Parameter erweitert.
+
+```
+ Scale:0.50
+20) JitterEnabled:       True
+R) Rendern
+Q) Beenden
+
+Wahl: Scattering Coeff (0.0-2.0): Parameter aktualisiert.
+
+=== 3D-Lichtspiel – Parameter ===
+1) Penumbra-Breite:      0.15
+2) Umbra-Dunkelheit:     0.05
+3) Falloff-Exponent:     2.00
+4) Falloff-Start:        0.50
+5) Blur-Radius:          3
+6) Ambient:              0.020
+7) Volumetric Gain:      1.20
+8) Gamma:                0.60
+9) Scattering Coeff:     0.00
+10) Absorption Coeff:    2.00
+11) Mist Density:        0.18
+12) Mist Height Falloff: 0.80
+13) Color Temp (K):      3200
+14) Jitter Strength:     0.15
+15) Phase g:             0.60
+16) March Steps:         32
+17) Specular Intensity:  0.80
+18) Specular Power:      32.0
+19) Specular Noise Scale:0.50
+20) JitterEnabled:       True
+R) Rendern
+Q) Beenden
+
+Wahl: Unbekannter Befehl.
+
+=== 3D-Lichtspiel – Parameter ===
+1) Penumbra-Breite:      0.15
+2) Umbra-Dunkelheit:     0.05
+3) Falloff-Exponent:     2.00
+4) Falloff-Start:        0.50
+5) Blur-Radius:          3
+6) Ambient:              0.020
+7) Volumetric Gain:      1.20
+8) Gamma:                0.60
+9) Scattering Coeff:     0.00
+10) Absorption Coeff:    2.00
+11) Mist Density:        0.18
+12) Mist Height Falloff: 0.80
+13) Color Temp (K):      3200
+14) Jitter Strength:     0.15
+15) Phase g:             0.60
+16) March Steps:         32
+17) Specular Intensity:  0.80
+18) Specular Power:      32.0
+19) Specular Noise Scale:0.50
+20) JitterEnabled:       True
+R) Rendern
+Q) Beenden
+
+Wahl: 
+Tschüss! Der Dodo watschelt davon. 🦤
+```
