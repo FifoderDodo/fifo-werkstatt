@@ -310,3 +310,10 @@ JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ
 Als PPM speichern? (j/n): 
 🦤 Fifo wackelt zufrieden mit den Flügeln. Nächster Part: Partikel & Volumen?
 ```
+
+## Teil 11 (21.11.2026 17:38)
+Habe die Smoothstep-Interpolation durch ein adaptives, toleranzbasiertes Nachbarschafts-Sampling ersetzt, um die Z-Puffer-Präzision bei Farbverläufen zu verbessern.
+
+```
+Fifo hat die Z-Puffer-Präzision optimiert: Die Kanten sind nun butterweich!
+```
