@@ -114,3 +114,27 @@ Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerun
 Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: 
 Eingabeende – Fifo watschelt nach Hause. 🦤
 ```
+
+## Teil 6 (21.11.2026 20:29)
+ShaderParams-Klasse hinzugefügt, alle harten Konstanten (Penumbra, Umbra, Falloff, Blur, Ambient, Gain, Gamma) sind jetzt live im Menü einstellbar. zeichne_lichtkegel und schattenfaktor_für_punkt nutzen die Parameter. Hauptmenü um 'Shader-Parameter anpassen' erweitert. Tageszeit-Vorlagen setzen sinnvolle Defaults.
+
+```
+🦤 3D-Lichtspiel – Volumetrisches Licht & Schatten im Herbstpark
+==============================================================
+
+=== Hauptmenü ===
+1. Szene rendern
+2. Shader-Parameter anpassen
+3. Beenden
+Deine Wahl (1-3): 
+=== Hauptmenü ===
+1. Szene rendern
+2. Shader-Parameter anpassen
+3. Beenden
+Deine Wahl (1-3): 
+=== Hauptmenü ===
+1. Szene rendern
+2. Shader-Parameter anpassen
+3. Beenden
+Deine Wahl (1-3): Tschüss! 🦤
+```
