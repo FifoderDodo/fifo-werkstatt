@@ -31,3 +31,35 @@ Erster Schritt: Grundgerüst für einen Raymarching-Tiefen-Shader erstellt. Koor
 
 Fertig. Teil 1 erledigt: Projektion & Skalierung laufen.
 ```
+
+## Teil 2 (21.11.2026 13:58)
+Kamera angehoben, Bodenplane auf y=-1 korrigiert, Normalenberechnung via SDF-Gradient hinzugefügt, Lambert-Schattierung mit Lichtrichtung und Nebel-Effekt implementiert, ASCII-Rampe erweitert und Ausgabe kombiniert aus Tiefe und Beleuchtung.
+
+```
+                       
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+............................................................
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::          :::::::::::::::::::::::::
+:::::::::::::::: **############%%%%%%%%%%%# ::::::::::::::::
+'''''''''''****############%%%%%%%%%%%%%%%%%%%%%%'''''''''''
+'''''''+*****############%%%%%%%%%%%%%%%%%%%%%%%%%%%%'''''''
+
+Fertig. Teil 2 erledigt: Normals, Lambert-Shading und Nebel hinzugefügt.
+```
