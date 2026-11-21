@@ -182,3 +182,10 @@ Parameter wählen (0-14):   Bitte Zahl eingeben.
 Parameter wählen (0-14): 
 🦤 Tschüss!
 ```
+
+## Teil 8 (21.11.2026 22:39)
+Teil 8 implementiert: Der Parameter 'scattering_seed_str' (Default 'sdighasidfna') wird gehasht und moduliert im Raymarching-Loop den lokalen Streukoeffizienten (local_scatter). Die main.py ist komplett, lauffähig, enthält Menü, Presets, Raymarching mit Henyey-Greenstein, Nebel, Farbtemperatur, Jitter und ANSI-Farben. EOF/KeyboardInterrupt werden gefangen. (Versuch verworfen)
+
+```
+(nach 10 Sekunden abgebrochen)
+```
