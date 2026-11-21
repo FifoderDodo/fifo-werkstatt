@@ -162,181 +162,162 @@ def erzeuge_zufaellige_huegel(h: int = 20, b: int = 40, anzahl: int = 5, seed: i
 # ---------- Beleuchtungs- und Schatten-Funktionen ----------
 
 def diffuse_schatten(tk: Tiefenkarte, normals: List[List[Vec3]], licht_dir: Vec3, schritte: int = 64) -> List[List[float]]:
-    """Ray-Marching-Schatten: für jeden Pixel entlang der Lichtrichtung marschieren und Prüfen, ob die Höhenkarte getroffen wird."""
-    lx, ly, lz = licht_dir
-    # Licht kommt *von* dieser Richtung. Wir marschieren entgegen der Lichtrichtung (also -lx, -ly, -lz)
-    # Startpunkt ist auf der Oberfläche (x, y, h).
-    # Wir prüfen, ob der Strahl vor Erreichen des "Lichts" die Höhe an einer anderen Stelle schneidet.
-    schatten = [[1.0 for _ in range(tk.b)] for _ in range(tk.h)]
-    if lz >= -1e-6: # Licht von der Seite oder unten -> kein Schatten durch Höhenkarte (vereinfacht)
-        return schatten
-
-    # Schrittweite in Weltkoordinaten (x,y sind Pixel, z ist Höhe 0..1)
-    # Wir normalisieren die Schrittlänge in XY etwas, damit wir nicht zu weit springen.
-    # Max Distanz diagonal über die Karte.
-    max_dist = math.hypot(tk.b, tk.h)
-    step_len = max_dist / schritte
-    
-    for y in range(tk.h):
-        for x in range(tk.b):
-            h_start = tk.daten[y][x]
-            if h_start <= 1e-6:
-                continue # Kein Objekt hier
-            
-            # Startposition
-            cx, cy, cz = float(x), float(y), h_start
-            # Richtung entgegen Lichtvektor (Licht zeigt *auf* Objekt, Schattenstrahl zeigt *weg* von Lichtquelle)
-            dx, dy, dz = -lx, -ly, -lz
-            
+    """Ray-Marching-Schatten: für jeden Pixel entlang der Lichtrichtung marschieren."""
+    h, b = tk.h, tk.b
+    shadow = [[1.0 for _ in range(b)] for _ in range(h)]
+    # Light direction is normalized and points FROM surface TO light.
+    # We march opposite to light direction (i.e., from surface towards light source).
+    # But typical shadow ray goes from surface towards light, so we use -licht_dir.
+    # However, our licht_dir is defined as direction FROM light TO surface? Let's assume licht_dir points from surface to light (common).
+    # We'll march in direction of licht_dir (towards light).
+    # Step size in world units: we assume grid spacing 1.0 in x,y and z_skalierung in z.
+    # We'll use a small bias to avoid self-shadowing.
+    bias = 0.01
+    for y in range(h):
+        for x in range(b):
+            if tk.daten[y][x] <= 0.0:
+                shadow[y][x] = 1.0
+                continue
+            # Start point slightly above surface
+            start_z = tk.daten[y][x] + bias
+            px, py, pz = float(x), float(y), start_z
+            lx, ly, lz = licht_dir
             hit = False
-            for i in range(1, schritte + 1):
-                t = i * step_len
-                sx = cx + dx * t
-                sy = cy + dy * t
-                sz = cz + dz * t
-                
-                # Wenn wir über die Kartenhöhe hinaus sind (z > 1), brechen wir ab (kein Schatten)
-                if sz > 1.0:
+            for _ in range(schritte):
+                px += lx
+                py += ly
+                pz += lz
+                if px < 0 or px >= b - 1 or py < 0 or py >= h - 1:
                     break
-                
-                # Prüfen ob innerhalb der Kartengrenzen
-                if 0 <= sx < tk.b - 1e-4 and 0 <= sy < tk.h - 1e-4:
-                    h_map = tk.get_bilinear(sy, sx)
-                    # Wenn die Kartenhöhe an der Strahlposition höher ist als der Strahl selbst -> Schatten
-                    # Kleines Bias gegen Self-Shadowing Akne
-                    if h_map > sz + 1e-4:
-                        hit = True
-                        break
-                else:
-                    # Strahl verlässt Karte -> kein Schatten durch Gelände
+                h_map = tk.get_bilinear(py, px)
+                if pz <= h_map:
+                    hit = True
                     break
-            
-            if hit:
-                schatten[y][x] = 0.3 # Umgebungslicht im Schatten
-            else:
-                schatten[y][x] = 1.0
-    return schatten
+            shadow[y][x] = 0.0 if hit else 1.0
+    return shadow
 
-def blinn_phong(normal: Vec3, licht_dir: Vec3, view_dir: Vec3, schatten_faktor: float, 
-                farbe: Color = (200, 180, 140), 
-                ka: float = 0.2, kd: float = 0.7, ks: float = 0.3, shininess: float = 32.0) -> Color:
-    """Blinn-Phong Beleuchtungsmodell."""
-    # Normalisieren für Sicherheit
-    n = vec3_norm(normal)
-    l = vec3_norm(licht_dir)
-    v = vec3_norm(view_dir)
+def blinn_phong(normal: Vec3, licht_dir: Vec3, view_dir: Vec3, shadow: float, material: dict) -> Color:
+    """Blinn-Phong Shading mit Shadow-Faktor."""
+    # Ambient
+    ka = material.get('ka', 0.1)
+    kd = material.get('kd', 0.7)
+    ks = material.get('ks', 0.3)
+    shininess = material.get('shininess', 32.0)
+    light_color = material.get('light_color', (1.0, 1.0, 1.0))
+    object_color = material.get('object_color', (0.8, 0.8, 0.8))
     
-    # Halbvektor
-    h = vec3_norm(vec3_add(l, v))
+    n_dot_l = max(0.0, vec3_dot(normal, licht_dir))
+    diffuse = kd * n_dot_l
     
-    # Diffuse (N dot L)
-    ndl = max(0.0, vec3_dot(n, l))
-    # Spekular (N dot H)^shininess
-    ndh = max(0.0, vec3_dot(n, h))
-    spec = ndh ** shininess
+    # Half vector
+    half_vec = vec3_norm(vec3_add(licht_dir, view_dir))
+    n_dot_h = max(0.0, vec3_dot(normal, half_vec))
+    specular = ks * (n_dot_h ** shininess)
     
-    # Lichtfarbe (weiß)
-    light_col = (1.0, 1.0, 1.0)
+    intensity = ka + shadow * (diffuse + specular)
+    intensity = min(1.0, max(0.0, intensity))
     
-    r = ka * farbe[0] + schatten_faktor * (kd * ndl * farbe[0] + ks * spec * 255 * light_col[0])
-    g = ka * farbe[1] + schatten_faktor * (kd * ndl * farbe[1] + ks * spec * 255 * light_col[1])
-    b = ka * farbe[2] + schatten_faktor * (kd * ndl * farbe[2] + ks * spec * 255 * light_col[2])
-    
-    def clamp(c: float) -> int:
-        return max(0, min(255, int(c)))
-    
-    return (clamp(r), clamp(g), clamp(b))
+    r = int(object_color[0] * light_color[0] * intensity * 255)
+    g = int(object_color[1] * light_color[1] * intensity * 255)
+    b = int(object_color[2] * light_color[2] * intensity * 255)
+    return (r, g, b)
 
-def rendern(tk: Tiefenkarte, licht_dir: Vec3) -> List[List[Color]]:
-    """Haupt-Render-Funktion: Normalen, Schatten, Blinn-Phong."""
-    print(f"  Berechne Normalen...", file=sys.stderr)
-    normals = tk.normalen(z_skalierung=2.0)
-    print(f"  Berechne Schatten (Ray Marching)...", file=sys.stderr)
-    schatten = diffuse_schatten(tk, normals, licht_dir, schritte=64)
-    
-    # View Direction: Kamera schaut von vorn (0, 0, -1) auf die XY-Ebene
-    # Da unser Koordinatensystem: x rechts, y runter, z hoch -> Kamera bei z=+inf schaut in -z Richtung
-    view_dir = (0.0, 0.0, -1.0)
-    
+def rendern(tk: Tiefenkarte, normals: List[List[Vec3]], licht_dir: Vec3, view_dir: Vec3, shadow_map: List[List[float]], material: dict) -> List[List[Color]]:
+    """Erzeugt finales Bild als Liste von Zeilen mit Farben."""
+    h, b = tk.h, tk.b
     bild: List[List[Color]] = []
-    for y in range(tk.h):
+    for y in range(h):
         reihe: List[Color] = []
-        for x in range(tk.b):
-            h = tk.daten[y][x]
-            if h < 1e-4:
-                reihe.append((0, 0, 0)) # Hintergrund schwarz
+        for x in range(b):
+            if tk.daten[y][x] <= 0.0:
+                reihe.append((0, 0, 0))
             else:
-                col = blinn_phong(normals[y][x], licht_dir, view_dir, schatten[y][x])
+                col = blinn_phong(normals[y][x], licht_dir, view_dir, shadow_map[y][x], material)
                 reihe.append(col)
         bild.append(reihe)
     return bild
 
-def schreibe_ppm(bild: List[List[Color]], out_stream: sys.stdout) -> None:
-    """Schreibt PPM (P6 binary) auf stdout.buffer."""
-    if not bild or not bild[0]:
-        return
+def schreibe_ppm(bild: List[List[Color]], out_stream) -> None:
+    """Schreibt PPM P6 (binary) auf den gegebenen Stream."""
     h = len(bild)
-    b = len(bild[0])
-    header = f"P6\n{b} {h}\n255\n".encode('ascii')
-    out_stream.buffer.write(header)
+    b = len(bild[0]) if h > 0 else 0
+    out_stream.write(f"P6\n{b} {h}\n255\n".encode('ascii'))
     for reihe in bild:
         for r, g, b in reihe:
-            out_stream.buffer.write(bytes((r, g, b)))
+            out_stream.write(bytes([r, g, b]))
 
 # ---------- Hauptprogramm ----------
 
-def eingabe(prompt: str, default: str = "") -> Optional[str]:
-    """Sichere Eingabe mit EOF-Behandlung."""
+def eingabe(prompt: str, default: str) -> str:
+    """Liest eine Zeile, bei EOF gibt Default zurück."""
     try:
-        val = input(prompt)
-        return val.strip()
+        return input(prompt).strip()
     except EOFError:
-        return None
+        return default
 
 def main() -> None:
-    print("Schatten-Simulator – Teil 35: Ray-Marching-Schatten, Blinn-Phong, PPM-Ausgabe", file=sys.stderr)
-    print("Verfügbare Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech, 5=Zufällige Hügel", file=sys.stderr)
+    print("Schatten-Simulator – Träumt weiter, kleiner Dodo.", file=sys.stderr)
+    # Defaults
+    hoehe = 20
+    breite = 40
+    form = "kugel"
+    z_skalierung = 2.0
+    licht_dir = vec3_norm((0.5, -0.5, 1.0))
+    view_dir = vec3_norm((0.0, 0.0, 1.0))
+    schritte = 64
     
-    formen = {
-        '1': erzeuge_kugel,
-        '2': erzeuge_kegel,
-        '3': erzeuge_stufenpyramide,
-        '4': erzeuge_wellblech,
-        '5': erzeuge_zufaellige_huegel,
+    # Interaktive Eingabe (max 20, aber wir fragen nur ein paar)
+    try:
+        s = eingabe("Höhe [20]: ", "20")
+        if s: hoehe = int(s)
+        s = eingabe("Breite [40]: ", "40")
+        if s: breite = int(s)
+        s = eingabe("Form (kugel/kegel/pyramide/wellblech/huegel) [kugel]: ", "kugel")
+        if s: form = s
+        s = eingabe("Z-Skalierung [2.0]: ", "2.0")
+        if s: z_skalierung = float(s)
+        s = eingabe("Lichtrichtung x y z [0.5 -0.5 1.0]: ", "0.5 -0.5 1.0")
+        if s:
+            parts = list(map(float, s.split()))
+            if len(parts) == 3:
+                licht_dir = vec3_norm(tuple(parts))
+        s = eingabe("Schatten-Schritte [64]: ", "64")
+        if s: schritte = int(s)
+    except Exception:
+        pass  # Bei Fehler Defaults behalten
+    
+    # Form erzeugen
+    if form == "kugel":
+        tk = erzeuge_kugel(hoehe, breite)
+    elif form == "kegel":
+        tk = erzeuge_kegel(hoehe, breite)
+    elif form == "pyramide":
+        tk = erzeuge_stufenpyramide(hoehe, breite)
+    elif form == "wellblech":
+        tk = erzeuge_wellblech(hoehe, breite)
+    elif form == "huegel":
+        tk = erzeuge_zufaellige_huegel(hoehe, breite)
+    else:
+        tk = erzeuge_kugel(hoehe, breite)
+    
+    # Normalen
+    normals = tk.normalen(z_skalierung)
+    # Schatten
+    shadow_map = diffuse_schatten(tk, normals, licht_dir, schritte)
+    # Material
+    material = {
+        'ka': 0.1,
+        'kd': 0.7,
+        'ks': 0.3,
+        'shininess': 32.0,
+        'light_color': (1.0, 1.0, 1.0),
+        'object_color': (0.9, 0.7, 0.5)
     }
-    
-    wahl = eingabe("Form wählen [1-5] (Enter=1): ", "1")
-    if wahl is None: return
-    if wahl not in formen: wahl = '1'
-    
-    b_str = eingabe("Breite (Zeichen) [40]: ", "40")
-    if b_str is None: return
-    h_str = eingabe("Höhe (Zeilen) [20]: ", "20")
-    if h_str is None: return
-    
-    try:
-        b = max(10, min(200, int(b_str)))
-        h = max(10, min(100, int(h_str)))
-    except ValueError:
-        b, h = 40, 20
-    
-    licht_str = eingabe("Lichtrichtung x y z (z.B. 0.5 -0.5 1) [0.5 -0.5 1]: ", "0.5 -0.5 1")
-    if licht_str is None: return
-    try:
-        lx, ly, lz = map(float, licht_str.split())
-        licht_dir = vec3_norm((lx, ly, lz))
-    except ValueError:
-        licht_dir = vec3_norm((0.5, -0.5, 1.0))
-    
-    print(f"Erzeuge Form {wahl} ({b}x{h})...", file=sys.stderr)
-    tk = formen[wahl](h, b)
-    
-    print(f"Rendere Bild...", file=sys.stderr)
-    bild = rendern(tk, licht_dir)
-    
-    print(f"Schreibe PPM auf stdout...", file=sys.stderr)
-    schreibe_ppm(bild, sys.stdout)
-    print(f"Fertig.", file=sys.stderr)
+    # Rendern
+    bild = rendern(tk, normals, licht_dir, view_dir, shadow_map, material)
+    # Ausgabe
+    schreibe_ppm(bild, sys.stdout.buffer)
+    print("Fertig. Träum was Schönes.", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
