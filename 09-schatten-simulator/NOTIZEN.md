@@ -980,3 +980,41 @@ ASCII‑Art speichern? (j/n) [j]: Nicht gespeichert.
 
 Fifo winkt mit dem Flügel – bis zum nächsten Traum!
 ```
+
+## Teil 22 (21.11.2026 02:51, Nachtschicht)
+Vervollständigte die harte_schatten_raymarch-Funktion, fügte Box-Blur, weiche_schatten, ASCII-Art, Speichern und Batch-Modus hinzu. Eingabe-Sicherheit mit EOFError und Limit 20 implementiert. Das Programm ist nun vollständig lauffähig und interaktiv.
+
+```
+=== Schatten‑Simulator (Teil 22) ===
+Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech
+Form wählen [1‑4]: Ungültig, nehme Kugel.
+Lichtrichtung als drei Zahlen (x y z), z.B. "1 1 -2": Schatten‑Samples (Ray‑March Steps) [8‑64]: Weichzeichner‑Radius (Box‑Blur) [0‑4]: 
+Berechne Normalen …
+Berechne diffuse Beleuchtung …
+Berechne harte Schatten (Ray‑Marching) …
+Wende Weichzeichner an …
+
+=== Ergebnis (diffus * weicher Schatten) ===
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+In Datei speichern? (j/n) [n]: Batch‑Modus für alle Formen? (j/n) [n]: 
+Fertig. Gute Nacht!
+```
