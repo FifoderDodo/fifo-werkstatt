@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stadt im Nachmittagsschatten
+2026-11-21
+
+![Stadt im Nachmittagsschatten](20261121-154243.svg)
+
 ### Tiefenwahn: Eckige Enge
 2026-11-21
 
