@@ -664,3 +664,54 @@ Neue Form (1-4): 🦤 Unbekannte Form.
  0 – Beenden
 🦤 Fifo fragt: Deine Wahl? 🦤 🦤 Der Dodo nickt ein. Bis zum nächsten Traum! 🦤
 ```
+
+## Teil 15 (21.11.2026 01:06, Nachtschicht)
+Ray‑march‑Loop fertiggestellt, weiche Schatten‑Blur, AO, Blinn‑Phong und Menü ergänzt; Syntax‑Fehler behoben, jetzt lauffähig. Den Absturz gleich repariert.
+
+```
++ Harte Schatten
+2 – Diffuse + Weiche Schatten
+3 – Blinn‑Phong + Schatten + AO
+4 – Tiefenform wählen
+5 – Lichtrichtung anpassen
+6 – Höhen‑Rohdaten anzeigen
+7 – Beenden
+Deine Wahl?                                         
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+--- Schatten‑Simulator ---
+1 – Diffuse (Lambert) + Harte Schatten
+2 – Diffuse + Weiche Schatten
+3 – Blinn‑Phong + Schatten + AO
+4 – Tiefenform wählen
+5 – Lichtrichtung anpassen
+6 – Höhen‑Rohdaten anzeigen
+7 – Beenden
+Deine Wahl? Bitte eine Zahl eingeben.
+--- Schatten‑Simulator ---
+1 – Diffuse (Lambert) + Harte Schatten
+2 – Diffuse + Weiche Schatten
+3 – Blinn‑Phong + Schatten + AO
+4 – Tiefenform wählen
+5 – Lichtrichtung anpassen
+6 – Höhen‑Rohdaten anzeigen
+7 – Beenden
+Deine Wahl? Auf Wiedersehen!
+```
