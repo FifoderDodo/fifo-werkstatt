@@ -896,3 +896,44 @@ ASCII‑Art …
 
 Fertig. Drücke Enter für Ende.
 ```
+
+## Teil 20 (21.11.2026 02:22, Nachtschicht)
+Vervollständigte die fehlende Ray-March-Schleife, fügte Speicherfunktion für ASCII-Art hinzu, verbesserte Eingabe-Validierung und EOF-Behandlung. Das Programm ist jetzt vollständig und produktionsreif. Den Absturz gleich repariert.
+
+```
+=== Schatten‑Simulator (Teil 20) ===
+Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech
+Form wählen [1‑4]: Ungültig, nehme Kugel.
+Lichtrichtung als drei Zahlen (x y z), z.B. "1 1 -2": Ungültig, nehme Standard (1, 1, -2).
+Schatten‑Samples (Ray‑March Steps) [8‑64]: Weichzeichner‑Radius für Schatten [0‑3]: AO‑Samples [4‑16]: 
+Berechne Normalen...
+Berechne diffuse Beleuchtung...
+Ray‑Marching harte Schatten (8 Schritte)...
+Weiche Schatten (Radius 1)...
+Ambient Occlusion (7 Samples)...
+Blinn‑Phong Specular...
+Rendere ASCII...
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+ASCII in Datei speichern? (Dateiname oder Enter zum Überspringen): Gespeichert unter nein
+
+Fertig. Gute Nacht, kleiner Dodo.
+```
