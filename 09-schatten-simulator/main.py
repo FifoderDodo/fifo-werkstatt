@@ -159,185 +159,138 @@ def erzeuge_zufaellige_huegel(h: int = 20, b: int = 40, anzahl: int = 5, seed: i
 
 # ---------- Beleuchtungs- und Schatten-Funktionen ----------
 
-def diffuse_schatten(normals: List[List[Vec3]], licht_dir: Vec3) -> List[List[float]]:
+def diffuse_schatten(tk: Tiefenkarte, normals: List[List[Vec3]], licht_dir: Vec3, schritte: int = 64) -> List[List[float]]:
+    """Ray-Marching-Schatten: für jeden Pixel entlang der Lichtrichtung marschieren und Prüfen, ob die Höhenkarte getroffen wird."""
     lx, ly, lz = vec3_norm(licht_dir)
+    # Licht von oben -> lz negativ? Wir definieren Lichtrichtung als Vektor ZUR Lichtquelle.
+    # Wenn Licht von oben kommt, ist lz > 0. Wir marschieren ENTLANG der Lichtrichtung (also vom Pixel zur Lichtquelle).
+    # Der Höhenwert ist in [0,1]. Wir skalieren z auf 0..1.
     result: List[List[float]] = []
-    for reihe in normals:
+    for y in range(tk.h):
         rreihe: List[float] = []
-        for nx, ny, nz in reihe:
-            dot = nx * lx + ny * ly + nz * lz
-            rreihe.append(max(0.0, dot))
-        result.append(rreihe)
-    return result
-
-def harte_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
-                            schritte: int = 32, bias: float = 0.005) -> List[List[float]]:
-    """Einfacher harte Schatten per Ray-Marching entlang Licht-Richtung."""
-    lx, ly, lz = vec3_norm(licht_dir)
-    h, b = karte.h, karte.b
-    if lz <= 1e-6:
-        return [[1.0] * b for _ in range(h)]
-
-    max_d = math.sqrt(h * h + b * b)
-    step_xy = max_d / schritte
-    l_xy = math.sqrt(lx * lx + ly * ly)
-    
-    result: List[List[float]] = []
-    for y in range(h):
-        reihe: List[float] = []
-        for x in range(b):
-            h_hier = karte.daten[y][x]
-            if h_hier <= 0.0:
-                reihe.append(1.0)
+        for x in range(tk.b):
+            h = tk.daten[y][x]
+            if h <= 0.0:
+                rreihe.append(1.0)
                 continue
-            # Startpunkt leicht über Oberfläche
-            cx = x + lx * bias
-            cy = y + ly * bias
-            cz = h_hier + lz * bias
+            # Startpunkt leicht über der Oberfläche
+            px = x + 0.5
+            py = y + 0.5
+            pz = h * 1.0  # Skalierung: Höhe 1.0 entspricht 1.0 in Weltkoordinaten
+            # Schrittgröße in Weltkoordinaten
+            step = 1.0 / schritte
             in_shadow = False
-            for i in range(schritte):
-                cx += lx * step_xy
-                cy += ly * step_xy
-                cz += lz * step_xy
-                if cz <= 0.0:
+            for i in range(1, schritte + 1):
+                px += lx * step
+                py += ly * step
+                pz += lz * step
+                if pz < 0.0:
                     break
-                h_da = karte.get_bilinear(cy, cx)
-                if cz < h_da:
+                # Bilineare Interpolation der Höhenkarte
+                hy = tk.get_bilinear(py - 0.5, px - 0.5)
+                if hy * 1.0 >= pz - 1e-4:
                     in_shadow = True
                     break
-            reihe.append(0.0 if in_shadow else 1.0)
-        result.append(reihe)
-    return result
-
-# ---------- Farb-Mapping ----------
-
-def hoehe_zu_farbe(h: float) -> Color:
-    """Mappt Höhe 0..1 auf eine schöne Farbpalette (Ozean -> Land -> Schnee)."""
-    if h < 0.3:
-        # Wasser: dunkelblau -> türkis
-        t = h / 0.3
-        r = int(0 * (1 - t) + 0 * t)
-        g = int(50 * (1 - t) + 180 * t)
-        b = int(120 * (1 - t) + 255 * t)
-    elif h < 0.6:
-        # Strand / Gras
-        t = (h - 0.3) / 0.3
-        r = int(200 * (1 - t) + 50 * t)
-        g = int(200 * (1 - t) + 180 * t)
-        b = int(50 * (1 - t) + 50 * t)
-    elif h < 0.9:
-        # Fels / Berg
-        t = (h - 0.6) / 0.3
-        r = int(100 * (1 - t) + 150 * t)
-        g = int(100 * (1 - t) + 150 * t)
-        b = int(100 * (1 - t) + 150 * t)
-    else:
-        # Schnee
-        t = (h - 0.9) / 0.1
-        r = int(200 * (1 - t) + 255 * t)
-        g = int(200 * (1 - t) + 255 * t)
-        b = int(200 * (1 - t) + 255 * t)
-    return (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
-
-def wende_licht_farbe(basis_farbe: Color, diffuse: float, shadow: float,
-                      spekular: float = 0.0, ambient: float = 0.1) -> Color:
-    """Kombiniert Basisfarbe mit Licht (diffus, schatten, spekular, ambient)."""
-    r, g, b = basis_farbe
-    # Ambient + Diffuse * Shadow + Specular
-    faktor = ambient + diffuse * shadow + spekular
-    faktor = max(0.0, min(1.0, faktor))
-    return (int(r * faktor), int(g * faktor), int(b * faktor))
-
-# ---------- Spekular-Berechnung (Blinn-Phong) ----------
-
-def spekular_beitrag(normals: List[List[Vec3]], licht_dir: Vec3, view_dir: Vec3,
-                     shininess: float = 32.0) -> List[List[float]]:
-    """Berechnet Spekular-Anteil für jede Normalen."""
-    l = vec3_norm(licht_dir)
-    v = vec3_norm(view_dir)
-    # Half-Vektor
-    h = vec3_norm(vec3_add(l, v))
-    result: List[List[float]] = []
-    for reihe in normals:
-        rreihe: List[float] = []
-        for n in reihe:
-            nh = max(0.0, vec3_dot(n, h))
-            spec = nh ** shininess
-            rreihe.append(spec)
+                if px < 0.5 or px >= tk.b - 0.5 or py < 0.5 or py >= tk.h - 0.5:
+                    break
+            rreihe.append(0.0 if in_shadow else 1.0)
         result.append(rreihe)
     return result
+
+def blinn_phong(normals: List[List[Vec3]], licht_dir: Vec3, view_dir: Vec3, shadow: List[List[float]],
+                kd: float = 0.8, ks: float = 0.3, shininess: float = 32.0, ambient: float = 0.2) -> List[List[Color]]:
+    """Berechnet Farbe pro Pixel mit Blinn-Phong."""
+    l = vec3_norm(licht_dir)
+    v = vec3_norm(view_dir)
+    h_vec = vec3_norm(vec3_add(l, v))
+    img: List[List[Color]] = []
+    for y, reihe in enumerate(normals):
+        rreihe: List[Color] = []
+        for x, n in enumerate(reihe):
+            ndotl = max(0.0, vec3_dot(n, l))
+            ndoth = max(0.0, vec3_dot(n, h_vec))
+            spec = (ndoth ** shininess) * ks
+            diff = ndotl * kd
+            shade = shadow[y][x]
+            intensity = ambient + shade * (diff + spec)
+            intensity = max(0.0, min(1.0, intensity))
+            # Einfache Materialfarbe: weiß
+            col = (int(intensity * 255), int(intensity * 255), int(intensity * 255))
+            rreihe.append(col)
+        img.append(rreihe)
+    return img
 
 # ---------- Hauptprogramm ----------
 
 def main() -> None:
-    print("=== Schatten-Simulator (Teil 33) ===")
-    print("Träume von Tiefe... Form wählen:")
-    print("1: Kugel")
-    print("2: Kegel")
-    print("3: Stufenpyramide")
-    print("4: Wellblech")
-    print("5: Zufällige Hügel (Perlin-ish)")
-    
-    form = 1
+    print("Schatten-Simulator – Teil 34: Ray-Marching-Schatten repariert, Blinn-Phong, PPM-Ausgabe")
+    print("Verfügbare Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech, 5=Zufällige Hügel")
     try:
-        inp = input("> ").strip()
-        if inp:
-            form = int(inp)
-    except (ValueError, EOFError):
-        pass
+        eingabe = input("Form wählen [1-5] (Enter=1): ").strip()
+    except EOFError:
+        print("Keine Eingabe, Standard wird verwendet.")
+        eingabe = "1"
+    form = int(eingabe) if eingabe.isdigit() and 1 <= int(eingabe) <= 5 else 1
     
-    if form == 1:
-        karte = erzeuge_kugel()
-    elif form == 2:
-        karte = erzeuge_kegel()
-    elif form == 3:
-        karte = erzeuge_stufenpyramide()
-    elif form == 4:
-        karte = erzeuge_wellblech()
-    elif form == 5:
-        karte = erzeuge_zufaellige_huegel()
+    try:
+        eingabe = input("Breite (Zeichen) [40]: ").strip()
+    except EOFError:
+        eingabe = "40"
+    b = int(eingabe) if eingabe.isdigit() and int(eingabe) > 0 else 40
+    
+    try:
+        eingabe = input("Höhe (Zeilen) [20]: ").strip()
+    except EOFError:
+        eingabe = "20"
+    h = int(eingabe) if eingabe.isdigit() and int(eingabe) > 0 else 20
+    
+    try:
+        eingabe = input("Lichtrichtung x y z (z.B. 0.5 -0.5 1) [0.5 -0.5 1]: ").strip()
+    except EOFError:
+        eingabe = "0.5 -0.5 1"
+    parts = eingabe.split()
+    if len(parts) == 3:
+        try:
+            licht = (float(parts[0]), float(parts[1]), float(parts[2]))
+        except ValueError:
+            licht = (0.5, -0.5, 1.0)
     else:
-        karte = erzeuge_kugel()
+        licht = (0.5, -0.5, 1.0)
     
-    print("Lichtrichtung (x y z), z>0 heißt von oben. Enter = (0.5, -0.3, 1.0)")
-    licht = (0.5, -0.3, 1.0)
-    try:
-        inp = input("> ").strip()
-        if inp:
-            parts = inp.split()
-            if len(parts) == 3:
-                licht = (float(parts[0]), float(parts[1]), float(parts[2]))
-    except (ValueError, EOFError):
-        pass
+    # Form erzeugen
+    if form == 1:
+        tk = erzeuge_kugel(h, b)
+    elif form == 2:
+        tk = erzeuge_kegel(h, b)
+    elif form == 3:
+        tk = erzeuge_stufenpyramide(h, b)
+    elif form == 4:
+        tk = erzeuge_wellblech(h, b)
+    else:
+        tk = erzeuge_zufaellige_huegel(h, b)
     
-    print("Berechne Normalen...")
-    normals = karte.normalen(z_skalierung=2.0)
+    print(f"Erzeugt: {tk.h}x{tk.b}, Statistik: {tk.statistik()}")
     
-    print("Berechne diffuse Beleuchtung...")
-    diffuse = diffuse_schatten(normals, licht)
+    # Normalen
+    normals = tk.normalen(z_skalierung=2.0)
     
-    print("Berechne harte Schatten (Ray-Marching)...")
-    shadow = harte_schatten_raymarch(karte, licht, schritte=64, bias=0.005)
+    # Schatten mit Ray-Marching
+    print("Berechne Schatten (Ray-Marching, 64 Schritte)...")
+    shadow = diffuse_schatten(tk, normals, licht, schritte=64)
     
-    print("Berechne Spekular-Highlights (Blinn-Phong)...")
-    view = (0.0, 0.0, 1.0)  # Kamera schaut von oben
-    spekular = spekular_beitrag(normals, licht, view, shininess=32.0)
+    # Beleuchtung
+    view = (0.0, 0.0, 1.0)  # feste View-Direction
+    print("Berechne Beleuchtung (Blinn-Phong)...")
+    img = blinn_phong(normals, licht, view, shadow)
     
-    print("Rendere Farbbild (PPM P6)...")
-    h, b = karte.h, karte.b
-    # PPM Header
-    sys.stdout.buffer.write(f"P6\n{b} {h}\n255\n".encode())
-    for y in range(h):
-        row_bytes = bytearray()
-        for x in range(b):
-            basis = hoehe_zu_farbe(karte.daten[y][x])
-            d = diffuse[y][x]
-            s = shadow[y][x]
-            sp = spekular[y][x]
-            col = wende_licht_farbe(basis, d, s, spekular=sp, ambient=0.15)
-            row_bytes.extend(col)
-        sys.stdout.buffer.write(row_bytes)
-    print("\nFertig! Bild auf stdout als PPM.", file=sys.stderr)
+    # PPM P6 auf stdout schreiben
+    out = sys.stdout.buffer
+    out.write(f"P6\n{tk.b} {tk.h}\n255\n".encode('ascii'))
+    for reihe in img:
+        for r, g, b in reihe:
+            out.write(bytes([r, g, b]))
+    out.flush()
+    print("\nFertig. PPM auf stdout.", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
