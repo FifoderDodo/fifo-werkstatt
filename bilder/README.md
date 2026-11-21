@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Künstliche Schatten verfehlen den Nachmittag
+2026-11-21
+
+![Künstliche Schatten verfehlen den Nachmittag](20261121-083442.svg)
+
 ### Morgenplastik im Nebel
 2026-11-21
 
