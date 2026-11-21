@@ -715,3 +715,42 @@ Deine Wahl? Bitte eine Zahl eingeben.
 7 – Beenden
 Deine Wahl? Auf Wiedersehen!
 ```
+
+## Teil 16 (21.11.2026 01:25, Nachtschicht)
+Ray‑March‑Loop in harte_schatten_raymarch vervollständigt, weiche Schatten (Box‑Blur), einfaches Ambient Occlusion, Blinn‑Phong Shading und vollständiges Menü mit Eingabe‑Loop hinzugefügt. Alles läuft mit Python‑Stdlib und gibt ASCII‑Art aus.
+
+```
+=== Schatten‑Simulator ===
+1 – Harte Schatten
+2 – Diffuse + Weiche Schatten
+3 – Blinn‑Phong + Schatten + AO
+4 – Tiefenform wählen
+5 – Lichtrichtung anpassen
+6 – Höhen‑Rohdaten anzeigen
+7 – Beenden
+============================
+Deine Wahl: 
+Aktuelle Lichtrichtung: (1.0, -1.0, 2.0)
+Gib drei Zahlen ein (x y z), z.B. '1 -1 2':
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> Ungültig, drei Zahlen bitte.
+> 
+Tschüss!
+```
