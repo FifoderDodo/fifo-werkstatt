@@ -2259,3 +2259,20 @@ Raymarch-Schatten-Funktion vervollständigt, Phong-Shading mit Weichschatten imp
 
 Fertig! Drücke Enter zum Beenden...
 ```
+
+## Teil 53 (21.11.2026 12:37)
+Raymarch-Schatten-Funktion vervollständigt, Phong-Shading mit Weichschatten (3 Samples pro Licht) implementiert, ANSI-Renderer mit bilinearer Normalen-Interpolation und 256-Farben-Ausgabe hinzugefügt. Hauptprogramm mit robuster Eingabe, prozeduraler Landschaftsgenerierung (Multi-Layer-Noise) und Helligkeits-Testpunkten. Alles läuft fehlerfrei in Sekunden.
+
+```
+[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;235m.[0m[38;5;235m [0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;239m.[0m[38;5;239m.[0m[38;5;239m.[0m[38;5;239m.[0m[38;5;239m.[0m[38;5;239m.[0m[38;5;238m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;237m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;238m.[0m[38;5;237m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m[38;5;236m.[0m
+
+Helligkeits-Test an 5 zufälligen Stellen:
+  (83.0,13.9) h=2.77 col=(0.34,0.34,0.34) lum=0.34
+  (30.4,10.6) h=1.85 col=(0.20,0.20,0.20) lum=0.20
+  (46.3,27.4) h=1.73 col=(0.31,0.31,0.31) lum=0.31
+  (3.0,4.5) h=0.00 col=(0.18,0.18,0.18) lum=0.18
+  (77.6,18.5) h=2.03 col=(0.41,0.41,0.41) lum=0.41
+
+Fertig. Drücke Enter für Ende oder Strg+C zum Abbruch.
+Tschüss!
+```
