@@ -60,7 +60,6 @@ class Tiefenkarte:
     def normalen(self, z_faktor: float = 2.5) -> List[List[Vec3]]:
         """Berechnet Normalen per Sobel-Filter (3x3) für mathematisch glattere Kanten."""
         normals: List[List[Vec3]] = []
-        # Sobel-Kernel Gewichte
         for y in range(self.h):
             reihe: List[Vec3] = []
             for x in range(self.b):
@@ -75,7 +74,6 @@ class Tiefenkarte:
                     -self.get(y-1, x-1) - 2.0 * self.get(y-1, x) - self.get(y-1, x+1)
                     +self.get(y+1, x-1) + 2.0 * self.get(y+1, x) + self.get(y+1, x+1)
                 ) * 0.125 * z_faktor
-                # Normalenvektor zeigt aus der Bildfläche nach oben-außen
                 reihe.append(vec3_norm((-gx, -gy, 1.0)))
             normals.append(reihe)
         return normals
@@ -116,7 +114,6 @@ class Lichtquelle:
 
 def raymarch_schatten(tk: Tiefenkarte, start: Vec3, l_dir: Vec3, max_dist: float, z_skalierung: float, schritte: int = 24) -> float:
     """Prüft entlang des Lichtvektors in Weltkoordinaten, ob die Tiefenkarte die Sichtlinie schneidet."""
-    # Leicht anheben gegen Selbsteinkerbung (in Welt-Einheiten)
     offset = 0.4 * z_skalierung
     curr_x = start[0] + l_dir[0] * offset
     curr_y = start[1] + l_dir[1] * offset
@@ -164,121 +161,160 @@ def berechne_tiefen_schattierung(
             
             for licht in lichter:
                 l_dir, dist = licht.vektor_und_distanz(p)
-                diffus = max(0.0, vec3_dot(n, l_dir))
+                energie = licht.energie_an(dist)
                 
-                if diffus > 0.001:
-                    # Raymarch in Weltkoordinaten, Startpunkt auf Oberfläche (Welt-Z)
-                    schatten = raymarch_schatten(tk, p, l_dir, min(dist, 40.0), z_tiefe)
-                    energie = licht.energie_an(dist) * schatten
-                    
-                    # Diffuser Anteil (Lambert)
-                    gesamt_helligkeit += diffus * energie
-                    
-                    # Spekularer Anteil (Blinn-Phong)
-                    h_vec = vec3_norm(vec3_add(l_dir, sicht_vektor))
-                    spek = max(0.0, vec3_dot(n, h_vec))
-                    spek = spek ** glanz_haerte
-                    gesamt_helligkeit += spek * glanz_staerke * energie
+                # Diffuse Komponente (Lambert)
+                ndotl = max(0.0, vec3_dot(n, l_dir))
+                
+                # Schatten per Raymarching
+                schatten = raymarch_schatten(tk, p, l_dir, dist, z_tiefe)
+                
+                # Spekular (Blinn-Phong)
+                halb = vec3_norm(vec3_add(l_dir, sicht_vektor))
+                ndoth = max(0.0, vec3_dot(n, halb))
+                spekular = (ndoth ** glanz_haerte) * glanz_staerke
+                
+                gesamt_helligkeit += energie * schatten * (ndotl + spekular)
             
-            reihe.append(min(1.0, gesamt_helligkeit))
+            reihe.append(min(1.0, max(0.0, gesamt_helligkeit)))
         ausgabe.append(reihe)
     return ausgabe
 
-# ---------- Szenenbau & Ausgabe ----------
+# ---------- ASCII-Rendering ----------
+ASCII_RAMP = ' .\`^,:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@B@$'
 
-def szene_bauen(breite: int = 80, hoehe: int = 40) -> Tiefenkarte:
-    """Erzeugt eine prozedurale Testszene mit Hügeln, Kugel und Rillen."""
+def helligkeit_zu_ascii(wert: float, gamma: float = 1.0) -> str:
+    if wert <= 0.0:
+        return ASCII_RAMP[0]
+    if wert >= 1.0:
+        return ASCII_RAMP[-1]
+    korrigiert = wert ** (1.0 / gamma)
+    idx = int(korrigiert * (len(ASCII_RAMP) - 1))
+    return ASCII_RAMP[idx]
+
+def rendere_ascii(helligkeiten: List[List[float]], gamma: float = 1.0) -> str:
+    zeilen = []
+    for reihe in helligkeiten:
+        zeilen.append(''.join(helligkeit_zu_ascii(w, gamma) for w in reihe))
+    return '\n'.join(zeilen)
+
+# ---------- Prozedurale Tiefenerzeugung ----------
+def erzeuge_tiefenkarte(breite: int, hoehe: int, seed: Optional[int] = None) -> Tiefenkarte:
+    if seed is not None:
+        random.seed(seed)
     daten = [[0.0 for _ in range(breite)] for _ in range(hoehe)]
-    cx, cy = breite * 0.5, hoehe * 0.5
+    # Mehrere Hügel addieren
+    anzahl_huegel = random.randint(3, 6)
+    for _ in range(anzahl_huegel):
+        cx = random.uniform(0, breite)
+        cy = random.uniform(0, hoehe)
+        radius = random.uniform(min(breite, hoehe) * 0.15, min(breite, hoehe) * 0.35)
+        hoehe_h = random.uniform(0.4, 1.0)
+        for y in range(hoehe):
+            dy = y - cy
+            for x in range(breite):
+                dx = x - cx
+                dist = math.sqrt(dx*dx + dy*dy)
+                if dist < radius:
+                    # Weiche Kante per cosinus
+                    faktor = 0.5 * (1.0 + math.cos(math.pi * dist / radius))
+                    daten[y][x] += hoehe_h * faktor
+    # Normalisieren auf 0..1
+    flach = [w for reihe in daten for w in reihe]
+    mx = max(flach) if flach else 1.0
+    if mx > 0:
+        for y in range(hoehe):
+            for x in range(breite):
+                daten[y][x] /= mx
+    # Etwas Rauschen für Details
     for y in range(hoehe):
         for x in range(breite):
-            dx = (x - cx) / breite
-            dy = (y - cy) / hoehe
-            # Großer Hügel
-            dist = math.sqrt(dx*dx + dy*dy)
-            h = 0.6 * (1.0 - min(1.0, dist * 2.5))
-            # Kleine Kugel links oben
-            kx, ky = (x - breite*0.25) / breite, (y - hoehe*0.25) / hoehe
-            kdist = math.sqrt(kx*kx + ky*ky)
-            h += 0.4 * max(0.0, 1.0 - kdist * 8.0)
-            # Rillen (Sinusrillen)
-            h += 0.08 * math.sin(x * 0.4) * math.cos(y * 0.3)
-            # Rauschen
-            h += 0.02 * (random.random() - 0.5)
-            daten[y][x] = max(0.0, min(1.0, h))
+            daten[y][x] = min(1.0, daten[y][x] + random.uniform(-0.02, 0.02))
     return Tiefenkarte(daten)
 
-def licht_waehlen(tk: Tiefenkarte) -> List[Lichtquelle]:
-    """Plaziert ein Hauptlicht und zwei Fülllichter."""
-    lichter = [
-        Lichtquelle('gerichtet', vec3_norm((0.5, -0.3, 1.0)), 1.2),
-        Lichtquelle('punkt', (tk.b * 0.8, tk.h * 0.2, 15.0), 0.6, 0.001),
-        Lichtquelle('punkt', (tk.b * 0.1, tk.h * 0.8, 10.0), 0.4, 0.002),
-    ]
-    return lichter
-
-ASCII_RAMPE = " .'`^\",;:Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$€"[:70]  # 70 Stufen
-def als_ascii_ausgeben(helligkeiten: List[List[float]], gamma: float = 1.8) -> None:
-    """Wandelt Helligkeitsmatrix in ASCII-Art mit Gamma-Korrektur um."""
-    rampe_len = len(ASCII_RAMPE) - 1
-    for reihe in helligkeiten:
-        zeile = ''
-        for h in reihe:
-            h = max(0.0, min(1.0, h))
-            h = h ** (1.0 / gamma)
-            idx = int(h * rampe_len + 0.5)
-            zeile += ASCII_RAMPE[idx]
-        print(zeile)
-
+# ---------- Hauptprogramm ----------
 def main() -> None:
-    print("☠ Schatten-Simulator v45 — Tiefenglättung & Koordinatenfix ☠")
-    print("Erzeuge Szenerie (80x40)...")
-    tk = szene_bauen(80, 40)
-    mn, mx, sp = tk.statistik()
-    print(f"Tiefe: min={mn:.3f} max={mx:.3f} span={sp:.3f}")
+    print("☀️  Schatten-Simulator – Teil 46")
+    print("==============================++")
     
-    print("Platziere Lichter...")
-    lichter = licht_waehlen(tk)
+    # Standardparameter
+    breite, hoehe = 80, 40
+    z_tiefe = 6.0
+    gamma = 1.2
+    ambient = 0.15
+    glanz_staerke = 0.4
+    glanz_haerte = 16.0
+    seed = random.randint(0, 10000)
     
-    print("Berechne 3D-Schattierung (Raymarch + Blinn-Phong)...")
-    hell = berechne_tiefen_schattierung(tk, lichter, z_tiefe=6.0)
+    # Lichtsetup: eine gerichtete Sonne + ein paar Punktlichter
+    def erstelle_lichter() -> List[Lichtquelle]:
+        return [
+            Lichtquelle('gerichtet', vec3_norm((0.5, -0.3, -1.0)), intensitaet=1.2),
+            Lichtquelle('punkt', (breite*0.2, hoehe*0.2, z_tiefe*2.0), intensitaet=0.8, abfall=0.001),
+            Lichtquelle('punkt', (breite*0.8, hoehe*0.8, z_tiefe*1.5), intensitaet=0.6, abfall=0.0015),
+        ]
     
-    print("\n--- Render-Ausgabe ---")
-    als_ascii_ausgeben(hell, gamma=1.8)
-    print("--- Ende ---")
+    eingabe_zaehler = 0
+    max_eingaben = 20
     
-    # Interaktiver Loop (optional, für Browser-Tests)
-    while True:
+    while eingabe_zaehler < max_eingaben:
         try:
-            cmd = input("\n[enter=neu, q=quit, z=neue tiefe, g=neues gamma]: ").strip().lower()
-            if cmd == 'q' or cmd == 'quit':
+            tk = erzeuge_tiefenkarte(breite, hoehe, seed)
+            lichter = erstelle_lichter()
+            helligkeiten = berechne_tiefen_schattierung(
+                tk, lichter,
+                z_tiefe=z_tiefe,
+                ambient=ambient,
+                glanz_staerke=glanz_staerke,
+                glanz_haerte=glanz_haerte
+            )
+            bild = rendere_ascii(helligkeiten, gamma)
+            print(bild)
+            print(f"\nSeed: {seed} | Tiefe: {z_tiefe:.1f} | Gamma: {gamma:.2f} | Ambient: {ambient:.2f}")
+            print("Befehle: [n]euer Seed, [t]iefe, [g]amma, [a]mbient, [s]pektrum, [q]uit")
+            cmd = input("> ").strip().lower()
+            eingabe_zaehler += 1
+            
+            if cmd == 'q':
                 break
-            elif cmd == 'z':
+            elif cmd == 'n':
+                seed = random.randint(0, 10000)
+            elif cmd == 't':
+                val = input("  Neue Z-Tiefe (1-20): ").strip()
                 try:
-                    z = float(input("Z-Tiefe (1-20): "))
-                    hell = berechne_tiefen_schattierung(tk, lichter, z_tiefe=z)
-                    als_ascii_ausgeben(hell, gamma=1.8)
-                except (ValueError, EOFError):
+                    z_tiefe = max(1.0, min(20.0, float(val)))
+                except ValueError:
                     pass
             elif cmd == 'g':
+                val = input("  Neues Gamma (0.5-3.0): ").strip()
                 try:
-                    g = float(input("Gamma (0.5-3.0): "))
-                    als_ascii_ausgeben(hell, gamma=g)
-                except (ValueError, EOFError):
+                    gamma = max(0.5, min(3.0, float(val)))
+                except ValueError:
+                    pass
+            elif cmd == 'a':
+                val = input("  Neuer Ambient (0.0-0.5): ").strip()
+                try:
+                    ambient = max(0.0, min(0.5, float(val)))
+                except ValueError:
+                    pass
+            elif cmd == 's':
+                val = input("  Glanzstärke (0.0-1.0): ").strip()
+                try:
+                    glanz_staerke = max(0.0, min(1.0, float(val)))
+                except ValueError:
+                    pass
+                val = input("  Glan'härte (1-64): ").strip()
+                try:
+                    glanz_haerte = max(1.0, min(64.0, float(val)))
+                except ValueError:
                     pass
             else:
-                # Neuer Seed, neue Szenerie
-                random.seed()
-                tk = szene_bauen(80, 40)
-                lichter = licht_waehlen(tk)
-                hell = berechne_tiefen_schattierung(tk, lichter, z_tiefe=6.0)
-                als_ascii_ausgeben(hell, gamma=1.8)
+                print("Unbekanntes Kommando.")
         except EOFError:
-            print("\nTschüss! 👋")
             break
         except KeyboardInterrupt:
-            print("\nAbgebrochen.")
             break
+    print("\n👋  Schatten-Simulator beendet. Bis zum nächsten Render!")
 
 if __name__ == "__main__":
     main()
