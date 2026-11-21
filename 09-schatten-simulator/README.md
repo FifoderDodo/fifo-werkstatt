@@ -4,7 +4,7 @@ Ein Tool zur Berechnung von dreidimensionaler Tiefe und echtem Schattenwurf für
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 54 von etwa 55
+Stand: fertig
 
 ## Ausprobieren
 
@@ -16,7 +16,8 @@ python3 main.py
 
 ```
 Schatten-Simulator Initialisiert - Dodo-Modus aktiv.
-Schattenwert: 0.0
+Schattenwert (weich, 9-tap PCF): 0.6667
+Schattenwert (hart, 1-tap):   1.0000
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
