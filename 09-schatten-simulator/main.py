@@ -176,131 +176,151 @@ def harte_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
                 cz += step_z
                 if cx < 0 or cx >= b or cy < 0 or cy >= h:
                     break
-                h_here = karte.get_bilinear(cy, cx)
-                if h_here > cz:
+                h_hier = karte.get_bilinear(cy, cx)
+                if cz <= h_hier:
                     blocked = True
                     break
             shadow[y][x] = 0.0 if blocked else 1.0
     return shadow
 
-def box_blur(src: List[List[float]], radius: int) -> List[List[float]]:
-    """Einfacher Box‑Blur (separable) für Weichzeichnung."""
-    if radius <= 0:
-        return src
-    h = len(src)
-    b = len(src[0]) if h > 0 else 0
-    # horizontal
-    tmp = [[0.0] * b for _ in range(h)]
-    for y in range(h):
-        row = src[y]
-        acc = 0.0
-        for x in range(b):
-            acc += row[x]
-            if x - radius - 1 >= 0:
-                acc -= row[x - radius - 1]
-            tmp[y][x] = acc / min(b, x + radius + 1) - (0 if x - radius - 1 < 0 else 0)
-    # vertical
-    dst = [[0.0] * b for _ in range(h)]
-    for x in range(b):
-        acc = 0.0
-        for y in range(h):
-            acc += tmp[y][x]
-            if y - radius - 1 >= 0:
-                acc -= tmp[y - radius - 1][x]
-            dst[y][x] = acc / min(h, y + radius + 1) - (0 if y - radius - 1 < 0 else 0)
-    return dst
+# ---------- Weichzeichner (Box‑Blur) ----------
 
-def ascii_art(shadow: List[List[float]], ramp: str = " .:-=+*#%@") -> str:
-    """Wandelt Schattenkarte in ASCII‑Art um."""
+def box_blur(bild: List[List[float]], radius: int) -> List[List[float]]:
+    if radius <= 0:
+        return bild
+    h = len(bild)
+    b = len(bild[0]) if h > 0 else 0
+    # horizontal
+    temp = [[0.0] * b for _ in range(h)]
+    for y in range(h):
+        row = bild[y]
+        sum_val = 0.0
+        for x in range(b):
+            sum_val += row[x]
+            if x - radius - 1 >= 0:
+                sum_val -= row[x - radius - 1]
+            if x + radius < b:
+                sum_val += row[x + radius]
+            count = min(b, x + radius + 1) - max(0, x - radius)
+            temp[y][x] = sum_val / count
+    # vertical
+    result = [[0.0] * b for _ in range(h)]
+    for x in range(b):
+        sum_val = 0.0
+        for y in range(h):
+            sum_val += temp[y][x]
+            if y - radius - 1 >= 0:
+                sum_val -= temp[y - radius - 1][x]
+            if y + radius < h:
+                sum_val += temp[y + radius][x]
+            count = min(h, y + radius + 1) - max(0, y - radius)
+            result[y][x] = sum_val / count
+    return result
+
+# ---------- ASCII‑Export ----------
+
+def ascii_export(bild: List[List[float]], palette: str = " .:-=+*#%@") -> str:
+    h = len(bild)
+    b = len(bild[0]) if h > 0 else 0
+    if h == 0 or b == 0:
+        return ""
     lines = []
-    for row in shadow:
-        line = ''.join(ramp[min(len(ramp)-1, int(v * (len(ramp)-1)))] for v in row)
-        lines.append(line)
+    for y in range(h):
+        line = []
+        for x in range(b):
+            val = max(0.0, min(1.0, bild[y][x]))
+            idx = int(val * (len(palette) - 1))
+            line.append(palette[idx])
+        lines.append(''.join(line))
     return '\n'.join(lines)
 
-def speichere_ppm(shadow: List[List[float]], dateiname: str) -> None:
-    """Speichert Schattenkarte als P6 PPM (binär)."""
-    h = len(shadow)
-    b = len(shadow[0]) if h > 0 else 0
-    with open(dateiname, 'wb') as f:
-        f.write(f'P6\n{b} {h}\n255\n'.encode())
-        for row in shadow:
-            for v in row:
-                val = int(max(0.0, min(1.0, v)) * 255)
-                f.write(bytes([val, val, val]))
+# ---------- PPM‑Speichern ----------
 
-def erstelle_form(name: str, h: int, b: int) -> Tiefenkarte:
-    name = name.lower()
-    if name == 'kugel':
-        return erzeuge_kugel(h, b)
-    elif name == 'kegel':
-        return erzeuge_kegel(h, b)
-    elif name == 'pyramide':
-        return erzeuge_stufenpyramide(h, b)
-    elif name == 'wellblech':
-        return erzeuge_wellblech(h, b)
-    else:
-        print(f'Unbekannte Form: {name}, nehme Kugel.')
-        return erzeuge_kugel(h, b)
+def save_ppm(bild: List[List[float]], dateiname: str) -> None:
+    h = len(bild)
+    b = len(bild[0]) if h > 0 else 0
+    with open(dateiname, 'w') as f:
+        f.write(f'P3\n{b} {h}\n255\n')
+        for y in range(h):
+            row = []
+            for x in range(b):
+                val = max(0.0, min(1.0, bild[y][x]))
+                c = int(val * 255)
+                row.append(f'{c} {c} {c}')
+            f.write(' '.join(row) + '\n')
 
-def parse_licht(s: str) -> Vec3:
-    try:
-        parts = s.strip().split()
-        if len(parts) != 3:
-            raise ValueError
-        return (float(parts[0]), float(parts[1]), float(parts[2]))
-    except Exception:
-        print('Ungültig, nutze Standard (1, -1, 1).')
-        return (1.0, -1.0, 1.0)
+# ---------- Haupt‑Loop ----------
 
 def main() -> None:
-    print('Schatten‑Simulator – Interaktiver Modus')
-    print('Verfügbare Formen: kugel, kegel, pyramide, wellblech')
-    
-    try:
-        form_name = input('Form wählen: ').strip()
-    except EOFError:
-        print('Keine Eingabe, tschüss!')
-        return
-    
-    karte = erstelle_form(form_name, 20, 40)
-    
-    try:
-        licht_str = input('Lichtrichtung als drei Zahlen (x y z), z.B. 1 -1 1: ').strip()
-    except EOFError:
-        print('Keine Eingabe, tschüss!')
-        return
-    licht_dir = parse_licht(licht_str)
-    
-    try:
-        blur_str = input('Weichzeichner‑Radius (0 für aus): ').strip()
-    except EOFError:
-        print('Keine Eingabe, tschüss!')
-        return
-    try:
-        blur_radius = int(blur_str)
-    except ValueError:
+    print("Schatten‑Simulator – Interaktiver Modus")
+    print("Verfügbare Formen: kugel, kegel, pyramide, wellblech")
+    formen = {
+        'kugel': erzeuge_kugel,
+        'kegel': erzeuge_kegel,
+        'pyramide': erzeuge_stufenpyramide,
+        'wellblech': erzeuge_wellblech
+    }
+    eingaben = 0
+    max_eingaben = 20
+    while eingaben < max_eingaben:
+        try:
+            form_name = input("Form wählen: ").strip().lower()
+        except EOFError:
+            print("\nKeine Eingabe mehr – Tschüss!")
+            break
+        eingaben += 1
+        if form_name not in formen:
+            print(f"Unbekannte Form: {form_name}, nehme Kugel.")
+            form_name = 'kugel'
+        karte = formen[form_name]()
+        try:
+            licht_eingabe = input("Lichtrichtung als drei Zahlen (x y z), z.B. 1 -1 1: ").strip()
+        except EOFError:
+            print("\nKeine Eingabe mehr – Tschüss!")
+            break
+        eingaben += 1
+        licht_dir = (1.0, -1.0, 1.0)
+        if licht_eingabe:
+            parts = licht_eingabe.split()
+            if len(parts) == 3:
+                try:
+                    licht_dir = (float(parts[0]), float(parts[1]), float(parts[2]))
+                except ValueError:
+                    print("Ungültig, nutze Standard (1, -1, 1).")
+            else:
+                print("Ungültig, nutze Standard (1, -1, 1).")
+        try:
+            blur_eingabe = input("Weichzeichner‑Radius (0 für aus): ").strip()
+        except EOFError:
+            print("\nKeine Eingabe mehr – Tschüss!")
+            break
+        eingaben += 1
         blur_radius = 0
-    
-    print('Berechne harte Schatten …')
-    shadow = harte_schatten_raymarch(karte, licht_dir)
-    
-    if blur_radius > 0:
-        print(f'Wende Box‑Blur (Radius {blur_radius}) an …')
-        shadow = box_blur(shadow, blur_radius)
-    
-    print('\nASCII‑Vorschau:')
-    print(ascii_art(shadow))
-    
-    try:
-        speichern = input('Als PPM speichern? (dateiname.ppm oder leer für nein): ').strip()
-    except EOFError:
-        speichern = ''
-    if speichern:
-        speichere_ppm(shadow, speichern)
-        print(f'Gespeichert unter {speichern}')
-    else:
-        print('Nicht gespeichert.')
+        if blur_eingabe:
+            try:
+                blur_radius = int(blur_eingabe)
+                if blur_radius < 0:
+                    blur_radius = 0
+            except ValueError:
+                print("Ungültig, kein Weichzeichner.")
+        print("Berechne harte Schatten …")
+        shadow = harte_schatten_raymarch(karte, licht_dir)
+        if blur_radius > 0:
+            print(f"Wende Box‑Blur mit Radius {blur_radius} an …")
+            shadow = box_blur(shadow, blur_radius)
+        print("Ergebnis (ASCII):")
+        print(ascii_export(shadow))
+        try:
+            speichern = input("Als PPM speichern? (Dateiname oder Enter zum Überspringen): ").strip()
+        except EOFError:
+            print("\nKeine Eingabe mehr – Tschüss!")
+            break
+        eingaben += 1
+        if speichern:
+            save_ppm(shadow, speichern)
+            print(f"Gespeichert unter {speichern}")
+        print("---")
+    print("Maximale Anzahl an Interaktionen erreicht oder Abbruch. Auf Wiedersehen!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
