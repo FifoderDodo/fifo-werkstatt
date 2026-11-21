@@ -47,6 +47,8 @@ class Tiefenkarte:
         return default
 
     def get_bilinear(self, y: float, x: float) -> float:
+        if self.h == 0 or self.b == 0:
+            return 0.0
         y0 = max(0, min(self.h - 1, int(math.floor(y))))
         x0 = max(0, min(self.b - 1, int(math.floor(x))))
         y1 = max(0, min(self.h - 1, y0 + 1))
@@ -161,136 +163,180 @@ def erzeuge_zufaellige_huegel(h: int = 20, b: int = 40, anzahl: int = 5, seed: i
 
 def diffuse_schatten(tk: Tiefenkarte, normals: List[List[Vec3]], licht_dir: Vec3, schritte: int = 64) -> List[List[float]]:
     """Ray-Marching-Schatten: für jeden Pixel entlang der Lichtrichtung marschieren und Prüfen, ob die Höhenkarte getroffen wird."""
-    lx, ly, lz = vec3_norm(licht_dir)
-    # Licht von oben -> lz negativ? Wir definieren Lichtrichtung als Vektor ZUR Lichtquelle.
-    # Wenn Licht von oben kommt, ist lz > 0. Wir marschieren ENTLANG der Lichtrichtung (also vom Pixel zur Lichtquelle).
-    # Der Höhenwert ist in [0,1]. Wir skalieren z auf 0..1.
-    result: List[List[float]] = []
-    for y in range(tk.h):
-        rreihe: List[float] = []
-        for x in range(tk.b):
-            h = tk.daten[y][x]
-            if h <= 0.0:
-                rreihe.append(1.0)
-                continue
-            # Startpunkt leicht über der Oberfläche
-            px = x + 0.5
-            py = y + 0.5
-            pz = h * 1.0  # Skalierung: Höhe 1.0 entspricht 1.0 in Weltkoordinaten
-            # Schrittgröße in Weltkoordinaten
-            step = 1.0 / schritte
-            in_shadow = False
-            for i in range(1, schritte + 1):
-                px += lx * step
-                py += ly * step
-                pz += lz * step
-                if pz < 0.0:
-                    break
-                # Bilineare Interpolation der Höhenkarte
-                hy = tk.get_bilinear(py - 0.5, px - 0.5)
-                if hy * 1.0 >= pz - 1e-4:
-                    in_shadow = True
-                    break
-                if px < 0.5 or px >= tk.b - 0.5 or py < 0.5 or py >= tk.h - 0.5:
-                    break
-            rreihe.append(0.0 if in_shadow else 1.0)
-        result.append(rreihe)
-    return result
+    lx, ly, lz = licht_dir
+    # Licht kommt *von* dieser Richtung. Wir marschieren entgegen der Lichtrichtung (also -lx, -ly, -lz)
+    # Startpunkt ist auf der Oberfläche (x, y, h).
+    # Wir prüfen, ob der Strahl vor Erreichen des "Lichts" die Höhe an einer anderen Stelle schneidet.
+    schatten = [[1.0 for _ in range(tk.b)] for _ in range(tk.h)]
+    if lz >= -1e-6: # Licht von der Seite oder unten -> kein Schatten durch Höhenkarte (vereinfacht)
+        return schatten
 
-def blinn_phong(normals: List[List[Vec3]], licht_dir: Vec3, view_dir: Vec3, shadow: List[List[float]],
-                kd: float = 0.8, ks: float = 0.3, shininess: float = 32.0, ambient: float = 0.2) -> List[List[Color]]:
-    """Berechnet Farbe pro Pixel mit Blinn-Phong."""
+    # Schrittweite in Weltkoordinaten (x,y sind Pixel, z ist Höhe 0..1)
+    # Wir normalisieren die Schrittlänge in XY etwas, damit wir nicht zu weit springen.
+    # Max Distanz diagonal über die Karte.
+    max_dist = math.hypot(tk.b, tk.h)
+    step_len = max_dist / schritte
+    
+    for y in range(tk.h):
+        for x in range(tk.b):
+            h_start = tk.daten[y][x]
+            if h_start <= 1e-6:
+                continue # Kein Objekt hier
+            
+            # Startposition
+            cx, cy, cz = float(x), float(y), h_start
+            # Richtung entgegen Lichtvektor (Licht zeigt *auf* Objekt, Schattenstrahl zeigt *weg* von Lichtquelle)
+            dx, dy, dz = -lx, -ly, -lz
+            
+            hit = False
+            for i in range(1, schritte + 1):
+                t = i * step_len
+                sx = cx + dx * t
+                sy = cy + dy * t
+                sz = cz + dz * t
+                
+                # Wenn wir über die Kartenhöhe hinaus sind (z > 1), brechen wir ab (kein Schatten)
+                if sz > 1.0:
+                    break
+                
+                # Prüfen ob innerhalb der Kartengrenzen
+                if 0 <= sx < tk.b - 1e-4 and 0 <= sy < tk.h - 1e-4:
+                    h_map = tk.get_bilinear(sy, sx)
+                    # Wenn die Kartenhöhe an der Strahlposition höher ist als der Strahl selbst -> Schatten
+                    # Kleines Bias gegen Self-Shadowing Akne
+                    if h_map > sz + 1e-4:
+                        hit = True
+                        break
+                else:
+                    # Strahl verlässt Karte -> kein Schatten durch Gelände
+                    break
+            
+            if hit:
+                schatten[y][x] = 0.3 # Umgebungslicht im Schatten
+            else:
+                schatten[y][x] = 1.0
+    return schatten
+
+def blinn_phong(normal: Vec3, licht_dir: Vec3, view_dir: Vec3, schatten_faktor: float, 
+                farbe: Color = (200, 180, 140), 
+                ka: float = 0.2, kd: float = 0.7, ks: float = 0.3, shininess: float = 32.0) -> Color:
+    """Blinn-Phong Beleuchtungsmodell."""
+    # Normalisieren für Sicherheit
+    n = vec3_norm(normal)
     l = vec3_norm(licht_dir)
     v = vec3_norm(view_dir)
-    h_vec = vec3_norm(vec3_add(l, v))
-    img: List[List[Color]] = []
-    for y, reihe in enumerate(normals):
-        rreihe: List[Color] = []
-        for x, n in enumerate(reihe):
-            ndotl = max(0.0, vec3_dot(n, l))
-            ndoth = max(0.0, vec3_dot(n, h_vec))
-            spec = (ndoth ** shininess) * ks
-            diff = ndotl * kd
-            shade = shadow[y][x]
-            intensity = ambient + shade * (diff + spec)
-            intensity = max(0.0, min(1.0, intensity))
-            # Einfache Materialfarbe: weiß
-            col = (int(intensity * 255), int(intensity * 255), int(intensity * 255))
-            rreihe.append(col)
-        img.append(rreihe)
-    return img
+    
+    # Halbvektor
+    h = vec3_norm(vec3_add(l, v))
+    
+    # Diffuse (N dot L)
+    ndl = max(0.0, vec3_dot(n, l))
+    # Spekular (N dot H)^shininess
+    ndh = max(0.0, vec3_dot(n, h))
+    spec = ndh ** shininess
+    
+    # Lichtfarbe (weiß)
+    light_col = (1.0, 1.0, 1.0)
+    
+    r = ka * farbe[0] + schatten_faktor * (kd * ndl * farbe[0] + ks * spec * 255 * light_col[0])
+    g = ka * farbe[1] + schatten_faktor * (kd * ndl * farbe[1] + ks * spec * 255 * light_col[1])
+    b = ka * farbe[2] + schatten_faktor * (kd * ndl * farbe[2] + ks * spec * 255 * light_col[2])
+    
+    def clamp(c: float) -> int:
+        return max(0, min(255, int(c)))
+    
+    return (clamp(r), clamp(g), clamp(b))
+
+def rendern(tk: Tiefenkarte, licht_dir: Vec3) -> List[List[Color]]:
+    """Haupt-Render-Funktion: Normalen, Schatten, Blinn-Phong."""
+    print(f"  Berechne Normalen...", file=sys.stderr)
+    normals = tk.normalen(z_skalierung=2.0)
+    print(f"  Berechne Schatten (Ray Marching)...", file=sys.stderr)
+    schatten = diffuse_schatten(tk, normals, licht_dir, schritte=64)
+    
+    # View Direction: Kamera schaut von vorn (0, 0, -1) auf die XY-Ebene
+    # Da unser Koordinatensystem: x rechts, y runter, z hoch -> Kamera bei z=+inf schaut in -z Richtung
+    view_dir = (0.0, 0.0, -1.0)
+    
+    bild: List[List[Color]] = []
+    for y in range(tk.h):
+        reihe: List[Color] = []
+        for x in range(tk.b):
+            h = tk.daten[y][x]
+            if h < 1e-4:
+                reihe.append((0, 0, 0)) # Hintergrund schwarz
+            else:
+                col = blinn_phong(normals[y][x], licht_dir, view_dir, schatten[y][x])
+                reihe.append(col)
+        bild.append(reihe)
+    return bild
+
+def schreibe_ppm(bild: List[List[Color]], out_stream: sys.stdout) -> None:
+    """Schreibt PPM (P6 binary) auf stdout.buffer."""
+    if not bild or not bild[0]:
+        return
+    h = len(bild)
+    b = len(bild[0])
+    header = f"P6\n{b} {h}\n255\n".encode('ascii')
+    out_stream.buffer.write(header)
+    for reihe in bild:
+        for r, g, b in reihe:
+            out_stream.buffer.write(bytes((r, g, b)))
 
 # ---------- Hauptprogramm ----------
 
+def eingabe(prompt: str, default: str = "") -> Optional[str]:
+    """Sichere Eingabe mit EOF-Behandlung."""
+    try:
+        val = input(prompt)
+        return val.strip()
+    except EOFError:
+        return None
+
 def main() -> None:
-    print("Schatten-Simulator – Teil 34: Ray-Marching-Schatten repariert, Blinn-Phong, PPM-Ausgabe")
-    print("Verfügbare Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech, 5=Zufällige Hügel")
-    try:
-        eingabe = input("Form wählen [1-5] (Enter=1): ").strip()
-    except EOFError:
-        print("Keine Eingabe, Standard wird verwendet.")
-        eingabe = "1"
-    form = int(eingabe) if eingabe.isdigit() and 1 <= int(eingabe) <= 5 else 1
+    print("Schatten-Simulator – Teil 35: Ray-Marching-Schatten, Blinn-Phong, PPM-Ausgabe", file=sys.stderr)
+    print("Verfügbare Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech, 5=Zufällige Hügel", file=sys.stderr)
+    
+    formen = {
+        '1': erzeuge_kugel,
+        '2': erzeuge_kegel,
+        '3': erzeuge_stufenpyramide,
+        '4': erzeuge_wellblech,
+        '5': erzeuge_zufaellige_huegel,
+    }
+    
+    wahl = eingabe("Form wählen [1-5] (Enter=1): ", "1")
+    if wahl is None: return
+    if wahl not in formen: wahl = '1'
+    
+    b_str = eingabe("Breite (Zeichen) [40]: ", "40")
+    if b_str is None: return
+    h_str = eingabe("Höhe (Zeilen) [20]: ", "20")
+    if h_str is None: return
     
     try:
-        eingabe = input("Breite (Zeichen) [40]: ").strip()
-    except EOFError:
-        eingabe = "40"
-    b = int(eingabe) if eingabe.isdigit() and int(eingabe) > 0 else 40
+        b = max(10, min(200, int(b_str)))
+        h = max(10, min(100, int(h_str)))
+    except ValueError:
+        b, h = 40, 20
     
+    licht_str = eingabe("Lichtrichtung x y z (z.B. 0.5 -0.5 1) [0.5 -0.5 1]: ", "0.5 -0.5 1")
+    if licht_str is None: return
     try:
-        eingabe = input("Höhe (Zeilen) [20]: ").strip()
-    except EOFError:
-        eingabe = "20"
-    h = int(eingabe) if eingabe.isdigit() and int(eingabe) > 0 else 20
+        lx, ly, lz = map(float, licht_str.split())
+        licht_dir = vec3_norm((lx, ly, lz))
+    except ValueError:
+        licht_dir = vec3_norm((0.5, -0.5, 1.0))
     
-    try:
-        eingabe = input("Lichtrichtung x y z (z.B. 0.5 -0.5 1) [0.5 -0.5 1]: ").strip()
-    except EOFError:
-        eingabe = "0.5 -0.5 1"
-    parts = eingabe.split()
-    if len(parts) == 3:
-        try:
-            licht = (float(parts[0]), float(parts[1]), float(parts[2]))
-        except ValueError:
-            licht = (0.5, -0.5, 1.0)
-    else:
-        licht = (0.5, -0.5, 1.0)
+    print(f"Erzeuge Form {wahl} ({b}x{h})...", file=sys.stderr)
+    tk = formen[wahl](h, b)
     
-    # Form erzeugen
-    if form == 1:
-        tk = erzeuge_kugel(h, b)
-    elif form == 2:
-        tk = erzeuge_kegel(h, b)
-    elif form == 3:
-        tk = erzeuge_stufenpyramide(h, b)
-    elif form == 4:
-        tk = erzeuge_wellblech(h, b)
-    else:
-        tk = erzeuge_zufaellige_huegel(h, b)
+    print(f"Rendere Bild...", file=sys.stderr)
+    bild = rendern(tk, licht_dir)
     
-    print(f"Erzeugt: {tk.h}x{tk.b}, Statistik: {tk.statistik()}")
-    
-    # Normalen
-    normals = tk.normalen(z_skalierung=2.0)
-    
-    # Schatten mit Ray-Marching
-    print("Berechne Schatten (Ray-Marching, 64 Schritte)...")
-    shadow = diffuse_schatten(tk, normals, licht, schritte=64)
-    
-    # Beleuchtung
-    view = (0.0, 0.0, 1.0)  # feste View-Direction
-    print("Berechne Beleuchtung (Blinn-Phong)...")
-    img = blinn_phong(normals, licht, view, shadow)
-    
-    # PPM P6 auf stdout schreiben
-    out = sys.stdout.buffer
-    out.write(f"P6\n{tk.b} {tk.h}\n255\n".encode('ascii'))
-    for reihe in img:
-        for r, g, b in reihe:
-            out.write(bytes([r, g, b]))
-    out.flush()
-    print("\nFertig. PPM auf stdout.", file=sys.stderr)
+    print(f"Schreibe PPM auf stdout...", file=sys.stderr)
+    schreibe_ppm(bild, sys.stdout)
+    print(f"Fertig.", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
