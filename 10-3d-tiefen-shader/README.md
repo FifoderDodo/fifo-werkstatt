@@ -4,7 +4,7 @@ Ein kleiner Shader für räumliche Tiefe und weiche Farbverläufe
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 4 von etwa 12
+Stand: in Arbeit, Teil 5 von etwa 12
 
 ## Ausprobieren
 
@@ -15,7 +15,7 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-                                                       
+     
                                                             
                                                             
                                                             
@@ -32,14 +32,16 @@ python3 main.py
                                                             
                                                             
                                                             
-............................................................
-:::::::::::::::::::::::::.::::::::::::::::::::::::::::::::::
-::::::::::::::**###############%%%%%%%%#::::::::::::::::::::
-:::::''''***###########%%%%%%%%%%%%%%%%%%%%%%#''''::::''''''
-''''' +***##########%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'''''''''
-'--++****#########%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----
+                                                            
+                                                            
+""""""""""""""""::"""""""""""""""""""""""""""":"""""""""""""
+::::::::::::::::::::::::::::::;::::::::;::::::::::::::::::::
+;;;;;;;;;;;;;;{}[[[]]]](((((((((()))))((;;;;;;;;;;;;;;;;;;::
+~;;;;~~~~<{}}[[]]](((((((()))))))))))))))))))(~~~~;;;;~~~~~~
+~;~~! ><{}}[[]]]((((()))))))))))))))))\\\\\)\)))))(~~;;~~!!!
+~!!!><<{}[[[]]((((()))))))))))))))\\\///\\//\\\\\))))))(!!!!
 
-Fertig. Teil 4 erledigt: Depth-Buffer genutzt, Schattenstrahlen mit Normalen-Bias für saubere Kanten.
+Fertig. Drück Enter für Exit.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
