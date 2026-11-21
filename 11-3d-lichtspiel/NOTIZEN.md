@@ -51,3 +51,24 @@ Fifo malt 5 Lichtkegel in den 40x20 Park (Blur=1)...
 Fifo zählt 187 beleuchtete Pixel – der Nebel glüht volumetric. 🌫️
 Teil 2 fertig. Nächster Schritt: Schattenwürfe durch Baumkronen... 🦤
 ```
+
+## Teil 3 (21.11.2026 19:23)
+Eingabe-Helfer `frage_wahl` für Tageszeit hinzugefügt (validiert gegen Optionen, case-insensitiv, Default). `frage_int` und `frage_wahl` fangen EOFError ab. Typo `breit` -> `breite` korrigiert. `main` vervollständigt: Quellengenerierung, Aufruf `zeichne_lichtkegel` mit Ambient-Parameter, Ausgabe. Tageszeit steuert jetzt Ambient-Helligkeit und Quellstärke.
+
+```
+dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]:   Fifo kennt nur: dämmerung, nacht, herbsttag. Nochmal! 🦤
+Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: 
+Eingabeende – Fifo watschelt nach Hause. 🦤
+```
