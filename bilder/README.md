@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tanzende Schatten auf Waldboden
+2026-11-21
+
+![Tanzende Schatten auf Waldboden](20261121-132627.svg)
+
 ### Pelzbiene wartet auf den Nachmittag
 2026-11-21
 
