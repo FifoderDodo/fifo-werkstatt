@@ -172,152 +172,126 @@ def raymarch_schatten(tk: Tiefenkarte, start: Vec3, l_dir: Vec3, max_dist: float
         ix = curr_x
         iy = curr_y
         if 0 <= iy < tk.h and 0 <= ix < tk.b:
-            hoehe = tk.get_bilinear(iy, ix) * z_skalierung
-            if curr_z <= hoehe:
+            h = tk.get_bilinear(iy, ix)
+            if curr_z <= h * z_skalierung:
                 return 0.0  # im Schatten
         curr_x += l_dir[0] * schrittweite
         curr_y += l_dir[1] * schrittweite
         curr_z += l_dir[2] * schrittweite
     return 1.0  # beleuchtet
 
-def shade_pixel(tk: Tiefenkarte, normals: List[List[Vec3]], x: int, y: int,
-                z_skalierung: float, ambient: float, glanz_staerke: float, glanz_haerte: float,
-                lichtquellen: List[Lichtquelle], view_dir: Vec3) -> float:
-    """Berechnet Helligkeit eines Pixels (0..1) mit diffus, spekular, Schatten."""
-    n = normals[y][x]
-    p = (float(x), float(y), tk.daten[y][x] * z_skalierung)
-    farbe = ambient
-    for lq in lichtquellen:
-        l_dir, dist = lq.vektor_und_distanz(p)
-        ndotl = max(0.0, vec3_dot(n, l_dir))
-        if ndotl > 0:
-            schatten = raymarch_schatten(tk, p, l_dir, dist, z_skalierung)
-            diffuse = ndotl * schatten
-            # Spekular (Blinn-Phong)
-            h = vec3_norm(vec3_add(l_dir, view_dir))
-            ndoth = max(0.0, vec3_dot(n, h))
-            spekular = (ndoth ** glanz_haerte) * glanz_staerke * schatten
-            farbe += lq.energie_an(dist) * (diffuse + spekular)
-    return max(0.0, min(1.0, farbe))
+def phong_shading(normal: Vec3, view_dir: Vec3, lights: List[Lichtquelle], pos: Vec3, z_skalierung: float, tk: Tiefenkarte, schatten_schritte: int = 24) -> Vec3:
+    """Einfaches Phong-Shading mit Schatten."""
+    ambient = 0.15
+    diffuse = 0.0
+    specular = 0.0
+    shininess = 32.0
+    
+    for light in lights:
+        l_dir, dist = light.vektor_und_distanz(pos)
+        energie = light.energie_an(dist)
+        # Schatten
+        schatten = raymarch_schatten(tk, pos, l_dir, dist, z_skalierung, schatten_schritte)
+        if schatten < 0.5:
+            continue
+        # Diffuse
+        ndotl = max(0.0, vec3_dot(normal, l_dir))
+        diffuse += ndotl * energie
+        # Specular (Blinn-Phong)
+        h = vec3_norm(vec3_add(l_dir, view_dir))
+        ndoth = max(0.0, vec3_dot(normal, h))
+        specular += (ndoth ** shininess) * energie
+    
+    r = ambient + diffuse * 0.7 + specular * 0.5
+    g = ambient + diffuse * 0.6 + specular * 0.5
+    b = ambient + diffuse * 0.5 + specular * 0.5
+    return (min(1.0, r), min(1.0, g), min(1.0, b))
 
-# ---------- ASCII Rendering ----------
-ASCII_RAMPE = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
+def rgb_to_ansi(r: float, g: float, b: float) -> str:
+    """Wandelt 0-1 RGB in ANSI 256-Farben-Escape um."""
+    ri = int(r * 5)
+    gi = int(g * 5)
+    bi = int(b * 5)
+    idx = 16 + ri * 36 + gi * 6 + bi
+    return f"\033[38;5;{idx}m"
 
-def render_ascii(tk: Tiefenkarte, normals: List[List[Vec3]], z_skalierung: float, ambient: float,
-                 glanz_staerke: float, glanz_haerte: float, lichtquellen: List[Lichtquelle]) -> List[str]:
-    """Rendert die komplette Tiefenkarte als ASCII-Zeilen."""
-    view_dir = (0.0, 0.0, -1.0)  # orthografische Ansicht von oben
-    zeilen = []
-    for y in range(tk.h):
-        zeile_chars = []
-        for x in range(tk.b):
-            hell = shade_pixel(tk, normals, x, y, z_skalierung, ambient, glanz_staerke, glanz_haerte,
-                               lichtquellen, view_dir)
-            idx = int(hell * (len(ASCII_RAMPE) - 1))
-            zeile_chars.append(ASCII_RAMPE[idx])
-        zeilen.append(''.join(zeile_chars))
-    return zeilen
-
-# ---------- Hilfsfunktionen für Eingabe ----------
-
-def read_float(prompt: str, default: float) -> float:
+def eingabe_mit_default(prompt: str, default: str, typ: type = str) -> any:
+    """Hilfsfunktion für robuste Eingabe mit Default und Typkonvertierung."""
     try:
-        s = input(prompt).strip()
-        if s == '':
-            return default
-        return float(s)
+        val = input(f"{prompt} [{default}]: ").strip()
+        if val == '':
+            val = default
+        return typ(val)
     except (ValueError, EOFError):
-        print("Ungültige Zahl, wird ignoriert.")
-        return default
-
-def read_int(prompt: str, default: int) -> int:
-    try:
-        s = input(prompt).strip()
-        if s == '':
-            return default
-        return int(s)
-    except (ValueError, EOFError):
-        print("Ungültige Zahl, wird ignoriert.")
-        return default
-
-def read_str(prompt: str, default: str, allowed: List[str]) -> str:
-    try:
-        s = input(prompt).strip().lower()
-        if s == '':
-            return default
-        if s in allowed:
-            return s
-        print(f"Ungültige Eingabe, erlaubt: {', '.join(allowed)}. Standard wird verwendet.")
-        return default
-    except EOFError:
-        return default
-
-# ---------- Hauptprogramm ----------
+        print(f" -> Ungültig, nutze Default: {default}")
+        return typ(default)
 
 def main() -> None:
-    print("=== Schatten-Simulator ===")
-    print("Teil 49 von ~50: Shading finalisieren & README vorbereiten")
-    print("Drücke Enter für Standardwerte. Strg+C oder EOF zum Beenden.\n")
-
-    # Standardwerte
-    breite = 80
-    hoehe = 40
-    z_skalierung = 6.0
-    ambient = 0.15
-    glanz_staerke = 0.4
-    glanz_haerte = 16.0
-    seed = 42
-    licht_modus = 'einzeln'
-
-    eingaben = 0
-    max_eingaben = 20
-
+    print("=== Schatten-Simulator v1.0 (Finale) ===")
+    print("Raymarching-Schatten, Mehrfachlicht, weiche Schatten, ANSI-Farben")
+    print("Drücke Strg+C oder Strg+D zum Beenden.\n")
+    
     try:
-        while eingaben < max_eingaben:
-            print(f"--- Frame {eingaben+1} ---")
-            z_skalierung = read_float(f"Z-Tiefe (Enter={z_skalierung}): ", z_skalierung)
-            eingaben += 1
-            if eingaben >= max_eingaben: break
-            ambient = read_float(f"Ambient (Enter={ambient}): ", ambient)
-            eingaben += 1
-            if eingaben >= max_eingaben: break
-            glanz_staerke = read_float(f"Glanz-Stärke (Enter={glanz_staerke}): ", glanz_staerke)
-            eingaben += 1
-            if eingaben >= max_eingaben: break
-            glanz_haerte = read_float(f"Glanz-Härte (Enter={glanz_haerte}): ", glanz_haerte)
-            eingaben += 1
-            if eingaben >= max_eingaben: break
-            seed = read_int(f"Seed (Enter={seed}): ", seed)
-            eingaben += 1
-            if eingaben >= max_eingaben: break
-            licht_modus = read_str(f"Licht-Modus [einzeln/doppelt] (Enter={licht_modus}): ", licht_modus, ['einzeln', 'doppelt'])
-            eingaben += 1
-
-            # Prozedurale Tiefenkarte erzeugen
-            noise = ValueNoise(seed)
-            daten = [[noise.fractal(x, y) for x in range(breite)] for y in range(hoehe)]
-            tk = Tiefenkarte(daten)
-            normals = tk.normalen(z_skalierung)
-
-            # Lichtquellen definieren
-            lichtquellen: List[Lichtquelle] = []
-            if licht_modus == 'einzeln':
-                lichtquellen.append(Lichtquelle('gerichtet', (0.5, -0.5, -1.0), 1.0))
-            else:
-                lichtquellen.append(Lichtquelle('gerichtet', (0.5, -0.5, -1.0), 0.7))
-                lichtquellen.append(Lichtquelle('punkt', (breite/2, hoehe/2, 50.0), 0.5, 0.001))
-
-            # Rendern
-            ascii_zeilen = render_ascii(tk, normals, z_skalierung, ambient, glanz_staerke, glanz_haerte, lichtquellen)
-            print("\n".join(ascii_zeilen))
-            print()
-
-    except KeyboardInterrupt:
-        print("\nAbbruch durch Benutzer.")
+        breite = eingabe_mit_default("Breite", "80", int)
+        hoehe = eingabe_mit_default("Höhe", "40", int)
+        seed = eingabe_mit_default("Seed", "42", int)
+        oktaven = eingabe_mit_default("Oktaven", "5", int)
+        persistenz = eingabe_mit_default("Persistenz", "0.5", float)
+        noise_skalierung = eingabe_mit_default("Noise-Skalierung", "0.05", float)
+        z_faktor = eingabe_mit_default("Z-Faktor (Höhenübertreibung)", "2.5", float)
     except EOFError:
-        print("\nEOF erkannt.")
-    finally:
-        print("Tschüss! Schatten-Simulator wird beendet.")
+        print("\nTschüss!")
+        return
+    
+    # Tiefenkarte generieren
+    noise = ValueNoise(seed)
+    daten = []
+    for y in range(hoehe):
+        reihe = []
+        for x in range(breite):
+            h = noise.fractal(x, y, oktaven, persistenz, noise_skalierung)
+            reihe.append((h + 1.0) * 0.5)  # 0..1
+        daten.append(reihe)
+    
+    tk = Tiefenkarte(daten)
+    normalen = tk.normalen(z_faktor)
+    
+    # Lichtquellen definieren
+    lights = [
+        Lichtquelle('gerichtet', vec3_norm((0.5, -0.3, -1.0)), 1.2),
+        Lichtquelle('punkt', (breite * 0.5, hoehe * 0.3, 30.0), 0.8, 0.001),
+    ]
+    view_dir = vec3_norm((0.0, 0.0, -1.0))
+    
+    # Rendering
+    print("\nRendering...")
+    out_lines = []
+    for y in range(hoehe):
+        line = ""
+        for x in range(breite):
+            h = tk.daten[y][x]
+            pos = (float(x), float(y), h * z_faktor)
+            n = normalen[y][x]
+            col = phong_shading(n, view_dir, lights, pos, z_faktor, tk)
+            ansi = rgb_to_ansi(*col)
+            # Zeichen nach Helligkeit wählen
+            helligkeit = (col[0] + col[1] + col[2]) / 3.0
+            if helligkeit > 0.7:
+                ch = "@"
+            elif helligkeit > 0.5:
+                ch = "#"
+            elif helligkeit > 0.3:
+                ch = "+"
+            elif helligkeit > 0.15:
+                ch = "."
+            else:
+                ch = " "
+            line += f"{ansi}{ch}"
+        line += "\033[0m"  # Reset
+        out_lines.append(line)
+    
+    print("\n" + "\n".join(out_lines))
+    print("\nFertig.")
 
 if __name__ == "__main__":
     main()
