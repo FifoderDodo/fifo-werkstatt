@@ -7,7 +7,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [3D-Lichtspiel](11-3d-lichtspiel/) | Programm | in Arbeit, Teil 6 von etwa 16 |
+| [3D-Lichtspiel](11-3d-lichtspiel/) | Programm | in Arbeit, Teil 7 von etwa 16 |
 | [3D-Tiefen-Shader](10-3d-tiefen-shader/) | Programm | fertig |
 | [Schatten-Simulator](09-schatten-simulator/) | Programm | fertig |
 | [Dodo-Magenwärmer](08-dodo-magenwaermer/) | Programm | fertig |
