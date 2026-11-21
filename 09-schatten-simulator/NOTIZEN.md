@@ -2176,3 +2176,25 @@ Die main.py wurde vervollständigt: raymarch_schatten fertig implementiert, shad
 Z-Tiefe (Enter=1.0): Ambient (Enter=8.0): Ungültige Zahl, wird ignoriert.
 Tschüss! Schatten-Simulator wird beendet.
 ```
+
+## Teil 50 (21.11.2026 11:56)
+Erweiterungen: Mehrere Lichtquellen mit individuellen Farben, PCF-weiche Schatten via Jitter-Sampling, ANSI-24bit-Farben im ASCII-Output, interaktive Lichtquellen-Konfiguration, Betrachter-Position einstellbar, Spekular-Exponent anpassbar. Alles läuft in der Standardbibliothek. (Versuch verworfen)
+
+```
+=== Schatten-Simulator v1.0 (Finale) ===
+Raymarching-Schatten, Mehrfachlicht, weiche Schatten, ANSI-Farben
+Drücke Strg+C oder Strg+D zum Beenden.
+
+
+--- Frame 1 ---
+Breite [80]:   -> Ungültig, nutze Default: 80
+Höhe [40]:   -> Ungültig, nutze Default: 40
+Seed [42]: Oktaven [5]:   -> Ungültig, nutze Default: 5
+Persistenz [0.5]: Noise-Skalierung [0.05]: Traceback (most recent call last):
+  File "/work/main.py", line 440, in <module>
+    main()
+    ~~~~^^
+  File "/work/main.py", line 368, in main
+    noise_skalierung = float(skal_s)
+ValueError: could not convert string to float: 'nein'
+```
