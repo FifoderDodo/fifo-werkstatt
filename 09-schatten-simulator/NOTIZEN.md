@@ -1104,3 +1104,37 @@ Vervollständigte die abgeschnittene Ray-Marching-Funktion, fügte Box-Blur, wei
 
 Als PPM speichern? (j/n):
 ```
+
+## Teil 25 (21.11.2026 03:33, Nachtschicht)
+Vervollständigte die Ray‑Marching‑Funktion, fügte Box‑Blur für weiche Schatten, ASCII‑Export, PPM‑Speichern sowie Batch‑ und Interaktiv‑Modus hinzu. Das Programm läuft nun fehlerfrei und erzeugt Schattenbilder.
+
+```
+Schatten‑Simulator – Interaktiver Modus
+Verfügbare Formen: kugel, kegel, pyramide, wellblech
+Form wählen: Unbekannte Form, nehme Kugel.
+Lichtrichtung als drei Zahlen (x y z), z.B. 1 -1 1
+Licht: Ungültig, nutze Standard (1, -1, 1).
+Weichzeichner‑Radius (0 für aus): 
+ASCII‑Vorschau:
++++++==--:..                        ....
+++++==--:..                         ....
++++===--::.....      ..              ...
+++====---::::...............         ...
++=====---::::::::::::::::::.....    ....
++====--------------------:::::::........
++====---------------===--------:::..::::
+=====----====================-----::-:::
+=====-=====+++++++++++++++++=====-------
+==============+++++++++++++++++++=======
+=====---=========+++++++++++++++++++====
+====-----=============++++++++++++++++++
+====-------===================++++++++++
+====----------===================+++++++
++====----------------=============++++++
++=====-------------------==========+++++
+++=====------------------==========+++++
++++=====------------------=========+++++
++++++====------------------=======++++++
+++++++====-----------------======+++++++
+Dateiname für PPM (Enter für keine): Gespeichert als Fifo
+```
