@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Klaren Himmel ertrag ich morgen
+2026-11-21
+
+![Klaren Himmel ertrag ich morgen](20261121-094640.svg)
+
 ### Lindenversuch: Nachmittagsschwerpunkt
 2026-11-21
 
