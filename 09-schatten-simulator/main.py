@@ -27,6 +27,12 @@ def vec3_sub(a: Vec3, b: Vec3) -> Vec3:
 def vec3_scale(v: Vec3, s: float) -> Vec3:
     return (v[0] * s, v[1] * s, v[2] * s)
 
+def vec3_reflect(v: Vec3, n: Vec3) -> Vec3:
+    # v: einfallender Vektor (von Licht zur Oberfläche), n: Normalenvektor
+    # R = v - 2*(v·n)*n
+    dot = vec3_dot(v, n)
+    return vec3_sub(v, vec3_scale(n, 2.0 * dot))
+
 # ---------- Tiefenkarte ----------
 
 class Tiefenkarte:
@@ -163,158 +169,187 @@ def berechne_tiefen_schattierung(
                 l_dir, dist = licht.vektor_und_distanz(p)
                 energie = licht.energie_an(dist)
                 
-                # Diffuse Komponente (Lambert)
+                # Diffuse (Lambert)
                 ndotl = max(0.0, vec3_dot(n, l_dir))
+                diffus = ndotl * energie
+                
+                # Spekular (Blinn-Phong Approximation via Reflection)
+                # Reflektiere Lichtvektor an Normalen, dann dot mit Sichtvektor
+                r = vec3_reflect(vec3_scale(l_dir, -1.0), n)  # Licht kommt von Lichtquelle, also -l_dir
+                rdv = max(0.0, vec3_dot(r, sicht_vektor))
+                spekular = (rdv ** glanz_haerte) * glanz_staerke * energie
                 
                 # Schatten per Raymarching
-                schatten = raymarch_schatten(tk, p, l_dir, dist, z_tiefe)
+                max_dist = dist if licht.typ == 'punkt' else 1e4
+                schatten = raymarch_schatten(tk, p, l_dir, max_dist, z_tiefe)
                 
-                # Spekular (Blinn-Phong)
-                halb = vec3_norm(vec3_add(l_dir, sicht_vektor))
-                ndoth = max(0.0, vec3_dot(n, halb))
-                spekular = (ndoth ** glanz_haerte) * glanz_staerke
-                
-                gesamt_helligkeit += energie * schatten * (ndotl + spekular)
+                gesamt_helligkeit += (diffus + spekular) * schatten
             
-            reihe.append(min(1.0, max(0.0, gesamt_helligkeit)))
+            # Clampen auf [0, 1] aber Highlights dürfen leicht darüber
+            if gesamt_helligkeit > 1.0:
+                gesamt_helligkeit = 1.0 + (gesamt_helligkeit - 1.0) * 0.5
+            reihe.append(max(0.0, gesamt_helligkeit))
         ausgabe.append(reihe)
     return ausgabe
 
-# ---------- ASCII-Rendering ----------
-ASCII_RAMP = ' .\`^,:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@B@$'
+# ---------- ASCII Rendering ----------
 
-def helligkeit_zu_ascii(wert: float, gamma: float = 1.0) -> str:
-    if wert <= 0.0:
-        return ASCII_RAMP[0]
-    if wert >= 1.0:
-        return ASCII_RAMP[-1]
-    korrigiert = wert ** (1.0 / gamma)
-    idx = int(korrigiert * (len(ASCII_RAMP) - 1))
-    return ASCII_RAMP[idx]
+def helligkeit_zu_ascii(wert: float) -> str:
+    """Mappt Helligkeit 0..1+ auf ASCII-Rampen."""
+    rampen = " .'`^\"\,;:Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+    idx = int(min(max(wert, 0.0), 1.0) * (len(rampen) - 1))
+    return rampen[idx]
 
-def rendere_ascii(helligkeiten: List[List[float]], gamma: float = 1.0) -> str:
+def rendere_ascii(schattierung: List[List[float]]) -> str:
     zeilen = []
-    for reihe in helligkeiten:
-        zeilen.append(''.join(helligkeit_zu_ascii(w, gamma) for w in reihe))
+    for reihe in schattierung:
+        zeilen.append(''.join(helligkeit_zu_ascii(w) for w in reihe))
     return '\n'.join(zeilen)
 
-# ---------- Prozedurale Tiefenerzeugung ----------
-def erzeuge_tiefenkarte(breite: int, hoehe: int, seed: Optional[int] = None) -> Tiefenkarte:
-    if seed is not None:
-        random.seed(seed)
-    daten = [[0.0 for _ in range(breite)] for _ in range(hoehe)]
-    # Mehrere Hügel addieren
-    anzahl_huegel = random.randint(3, 6)
-    for _ in range(anzahl_huegel):
-        cx = random.uniform(0, breite)
-        cy = random.uniform(0, hoehe)
-        radius = random.uniform(min(breite, hoehe) * 0.15, min(breite, hoehe) * 0.35)
-        hoehe_h = random.uniform(0.4, 1.0)
+# ---------- Prozedurale Tiefenkarte ----------
+
+def generiere_tiefenkarte(breite: int, hoehe: int, seed: int = 42) -> Tiefenkarte:
+    """Erzeugt eine prozedurale Tiefenkarte mit mehreren Oktaven (Value Noise)."""
+    random.seed(seed)
+    # Basis-Rauschen
+    basis = [[random.random() for _ in range(breite)] for __ in range(hoehe)]
+    
+    def glatte_interpolation(a: float, b: float, t: float) -> float:
+        ft = t * t * (3.0 - 2.0 * t)
+        return a + (b - a) * ft
+    
+    def sample_octave(oct_daten: List[List[float]], x: float, y: float) -> float:
+        h = len(oct_daten)
+        b = len(oct_daten[0]) if h > 0 else 0
+        if h == 0 or b == 0:
+            return 0.0
+        x0 = int(math.floor(x)) % b
+        y0 = int(math.floor(y)) % h
+        x1 = (x0 + 1) % b
+        y1 = (y0 + 1) % h
+        tx = x - math.floor(x)
+        ty = y - math.floor(y)
+        v0 = glatte_interpolation(oct_daten[y0][x0], oct_daten[y0][x1], tx)
+        v1 = glatte_interpolation(oct_daten[y1][x0], oct_daten[y1][x1], tx)
+        return glatte_interpolation(v0, v1, ty)
+    
+    # Mehrere Oktaven zusammenfassen
+    ergebnis = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
+    amplitude = 1.0
+    frequenz = 1.0
+    max_wert = 0.0
+    for _ in range(5):  # 5 Oktaven
         for y in range(hoehe):
-            dy = y - cy
             for x in range(breite):
-                dx = x - cx
-                dist = math.sqrt(dx*dx + dy*dy)
-                if dist < radius:
-                    # Weiche Kante per cosinus
-                    faktor = 0.5 * (1.0 + math.cos(math.pi * dist / radius))
-                    daten[y][x] += hoehe_h * faktor
+                ergebnis[y][x] += sample_octave(basis, x * frequenz / breite, y * frequenz / hoehe) * amplitude
+        max_wert += amplitude
+        amplitude *= 0.5
+        frequenz *= 2.0
+    
     # Normalisieren auf 0..1
-    flach = [w for reihe in daten for w in reihe]
-    mx = max(flach) if flach else 1.0
-    if mx > 0:
-        for y in range(hoehe):
-            for x in range(breite):
-                daten[y][x] /= mx
-    # Etwas Rauschen für Details
     for y in range(hoehe):
         for x in range(breite):
-            daten[y][x] = min(1.0, daten[y][x] + random.uniform(-0.02, 0.02))
-    return Tiefenkarte(daten)
+            ergebnis[y][x] /= max_wert
+    
+    # Leichtes Plateau in der Mitte für interessantere Formen
+    for y in range(hoehe):
+        for x in range(breite):
+            dx = (x - breite/2) / (breite/2)
+            dy = (y - hoehe/2) / (hoehe/2)
+            dist = math.sqrt(dx*dx + dy*dy)
+            ergebnis[y][x] = ergebnis[y][x] * (1.0 - 0.3 * dist)
+    
+    return Tiefenkarte(ergebnis)
 
 # ---------- Hauptprogramm ----------
+
 def main() -> None:
-    print("☀️  Schatten-Simulator – Teil 46")
-    print("==============================++")
+    print("Schatten-Simulator – Teil 47/50")
+    print("Drücke Enter für Standardwerte oder gib Zahlen ein.")
+    print("Strg+C / EOF zum Beenden.")
     
     # Standardparameter
     breite, hoehe = 80, 40
     z_tiefe = 6.0
-    gamma = 1.2
     ambient = 0.15
     glanz_staerke = 0.4
     glanz_haerte = 16.0
-    seed = random.randint(0, 10000)
+    seed = 42
+    licht_typ = 'gemischt'  # 'gerichtet', 'punkt', 'gemischt'
     
-    # Lichtsetup: eine gerichtete Sonne + ein paar Punktlichter
-    def erstelle_lichter() -> List[Lichtquelle]:
-        return [
-            Lichtquelle('gerichtet', vec3_norm((0.5, -0.3, -1.0)), intensitaet=1.2),
-            Lichtquelle('punkt', (breite*0.2, hoehe*0.2, z_tiefe*2.0), intensitaet=0.8, abfall=0.001),
-            Lichtquelle('punkt', (breite*0.8, hoehe*0.8, z_tiefe*1.5), intensitaet=0.6, abfall=0.0015),
-        ]
-    
-    eingabe_zaehler = 0
+    eingaben = 0
     max_eingaben = 20
     
-    while eingabe_zaehler < max_eingaben:
+    while eingaben < max_eingaben:
         try:
-            tk = erzeuge_tiefenkarte(breite, hoehe, seed)
-            lichter = erstelle_lichter()
-            helligkeiten = berechne_tiefen_schattierung(
+            print(f"\n--- Frame {eingaben+1} ---")
+            print(f"Aktuell: breite={breite} hoehe={hoehe} z_tiefe={z_tiefe} ambient={ambient} glanz={glanz_staerke}/{glanz_haerte} seed={seed} licht={licht_typ}")
+            
+            # Eingaben abfragen (einfach nacheinander)
+            inp = input("Breite (Enter=unverändert): ").strip()
+            if inp:
+                breite = max(10, min(200, int(inp)))
+            inp = input("Höhe (Enter=unverändert): ").strip()
+            if inp:
+                hoehe = max(10, min(100, int(inp)))
+            inp = input("Z-Tiefe (Enter=unverändert): ").strip()
+            if inp:
+                z_tiefe = max(0.5, min(20.0, float(inp)))
+            inp = input("Ambient (Enter=unverändert): ").strip()
+            if inp:
+                ambient = max(0.0, min(1.0, float(inp)))
+            inp = input("Glanz-Stärke (Enter=unverändert): ").strip()
+            if inp:
+                glanz_staerke = max(0.0, min(2.0, float(inp)))
+            inp = input("Glanz-Härte (Enter=unverändert): ").strip()
+            if inp:
+                glanz_haerte = max(1.0, min(128.0, float(inp)))
+            inp = input("Seed (Enter=unverändert): ").strip()
+            if inp:
+                seed = int(inp)
+            inp = input("Licht-Typ [gerichtet/punkt/gemischt] (Enter=unverändert): ").strip().lower()
+            if inp in ('gerichtet', 'punkt', 'gemischt'):
+                licht_typ = inp
+            
+            # Tiefenkarte erzeugen
+            tk = generiere_tiefenkarte(breite, hoehe, seed)
+            
+            # Lichtquellen definieren
+            lichter: List[Lichtquelle] = []
+            if licht_typ in ('gerichtet', 'gemischt'):
+                lichter.append(Lichtquelle('gerichtet', vec3_norm((-0.5, -0.3, -1.0)), intensitaet=1.0))
+            if licht_typ in ('punkt', 'gemischt'):
+                lichter.append(Lichtquelle('punkt', (breite*0.5, hoehe*0.3, z_tiefe*2.5), intensitaet=1.5, abfall=0.0015))
+            
+            # Schattierung berechnen
+            schattierung = berechne_tiefen_schattierung(
                 tk, lichter,
                 z_tiefe=z_tiefe,
                 ambient=ambient,
                 glanz_staerke=glanz_staerke,
                 glanz_haerte=glanz_haerte
             )
-            bild = rendere_ascii(helligkeiten, gamma)
-            print(bild)
-            print(f"\nSeed: {seed} | Tiefe: {z_tiefe:.1f} | Gamma: {gamma:.2f} | Ambient: {ambient:.2f}")
-            print("Befehle: [n]euer Seed, [t]iefe, [g]amma, [a]mbient, [s]pektrum, [q]uit")
-            cmd = input("> ").strip().lower()
-            eingabe_zaehler += 1
             
-            if cmd == 'q':
-                break
-            elif cmd == 'n':
-                seed = random.randint(0, 10000)
-            elif cmd == 't':
-                val = input("  Neue Z-Tiefe (1-20): ").strip()
-                try:
-                    z_tiefe = max(1.0, min(20.0, float(val)))
-                except ValueError:
-                    pass
-            elif cmd == 'g':
-                val = input("  Neues Gamma (0.5-3.0): ").strip()
-                try:
-                    gamma = max(0.5, min(3.0, float(val)))
-                except ValueError:
-                    pass
-            elif cmd == 'a':
-                val = input("  Neuer Ambient (0.0-0.5): ").strip()
-                try:
-                    ambient = max(0.0, min(0.5, float(val)))
-                except ValueError:
-                    pass
-            elif cmd == 's':
-                val = input("  Glanzstärke (0.0-1.0): ").strip()
-                try:
-                    glanz_staerke = max(0.0, min(1.0, float(val)))
-                except ValueError:
-                    pass
-                val = input("  Glan'härte (1-64): ").strip()
-                try:
-                    glanz_haerte = max(1.0, min(64.0, float(val)))
-                except ValueError:
-                    pass
-            else:
-                print("Unbekanntes Kommando.")
+            # ASCII rendern und ausgeben
+            ascii_art = rendere_ascii(schattierung)
+            print(ascii_art)
+            
+            eingaben += 1
+            
         except EOFError:
+            print("\nEOF – Tschüss!")
             break
         except KeyboardInterrupt:
+            print("\nAbbruch – Tschüss!")
             break
-    print("\n👋  Schatten-Simulator beendet. Bis zum nächsten Render!")
+        except ValueError:
+            print("Ungültige Zahl, wird ignoriert.")
+            continue
+        except Exception as e:
+            print(f"Fehler: {e}")
+            continue
+    
+    print("Maximale Anzahl an Iterationen erreicht oder beendet. Danke fürs Testen!")
 
 if __name__ == "__main__":
     main()
