@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachtlaune: Spinne wartet auf Morgen
+2026-11-21
+
+![Nachtlaune: Spinne wartet auf Morgen](20261121-195859.svg)
+
 ### Herbstpark: Lichtkegel und tiefe Schatten
 2026-11-21
 
