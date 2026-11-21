@@ -1426,3 +1426,19 @@ Berechne harte Schatten (Ray-Marching)...
 Berechne Spekular-Highlights (Blinn-Phong)...
 Rendere Farbbild (PPM P6)...
 ```
+
+## Teil 34 (21.11.2026 05:42, Nachtschicht)
+Fehler im diffuse_schatten behoben (unvollständige Funktion), Ray-Marching-Schatten korrekt implementiert mit bilinearer Interpolation und 64 Schritten. Blinn-Phong-Beleuchtung hinzugefügt, PPM-Ausgabe auf stdout.buffer. Eingabe-Abfragen mit EOFError-Handling.
+
+```
+Schatten-Simulator – Teil 34: Ray-Marching-Schatten repariert, Blinn-Phong, PPM-Ausgabe
+Verfügbare Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech, 5=Zufällige Hügel
+Form wählen [1-5] (Enter=1): Breite (Zeichen) [40]: Höhe (Zeilen) [20]: Lichtrichtung x y z (z.B. 0.5 -0.5 1) [0.5 -0.5 1]: P6
+40 3
+255
+��������������������������������鸸���������������������������������������������������������������������������������������������������������鄄������������Ʀ����������������������⿿���������������������������������������������������������������������������������鄄������������������������������������⿿�������������������������������������������������������
+Fertig. PPM auf stdout.
+Erzeugt: 3x40, Statistik: (0.0, 0.7664585593299986, 0.7664585593299986)
+Berechne Schatten (Ray-Marching, 64 Schritte)...
+Berechne Beleuchtung (Blinn-Phong)...
+```
