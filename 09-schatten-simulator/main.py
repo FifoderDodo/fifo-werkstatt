@@ -1,6 +1,5 @@
-# main.py – Schatten-Simulator, Teil 14
-# Fifo, der Dodo, träumt weiter: Datei vervollständigt, EOF-Sicherheit, Render-Pipeline glattgezogen.
-# Blinn-Phong, AO, weiche Schatten – alles fein verwoben. Neue Form 'Wellblech' drin.
+# main.py – Schatten‑Simulator, Teil 15
+# Fifo, der Dodo, träumt weiter: Fehler behoben, Ray‑March‑Loop fertig, weiche Schatten, AO, Blinn‑Phong, Rendering und Menü.
 
 from __future__ import annotations
 import math
@@ -10,6 +9,7 @@ from typing import List, Tuple, Optional
 
 Vec3 = Tuple[float, float, float]
 
+# ---------- Vektor‑Hilfsfunktionen ----------
 
 def vec3_norm(v: Vec3) -> Vec3:
     x, y, z = v
@@ -18,25 +18,22 @@ def vec3_norm(v: Vec3) -> Vec3:
         return (0.0, 0.0, 1.0)
     return (x / l, y / l, z / l)
 
-
 def vec3_dot(a: Vec3, b: Vec3) -> float:
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
-
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
 def vec3_add(a: Vec3, b: Vec3) -> Vec3:
-    return (a[0]+b[0], a[1]+b[1], a[2]+b[2])
-
+    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
 
 def vec3_scale(v: Vec3, s: float) -> Vec3:
-    return (v[0]*s, v[1]*s, v[2]*s)
-
+    return (v[0] * s, v[1] * s, v[2] * s)
 
 def vec3_sub(a: Vec3, b: Vec3) -> Vec3:
-    return (a[0]-b[0], a[1]-b[1], a[2]-b[2])
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
+# ---------- Tiefenkarte und Normalen ----------
 
 class Tiefenkarte:
-    """Hält ein 2D-Höhenfeld und berechnet Oberflächenableitungen (Normalen)."""
+    """Hält ein 2D‑Höhenfeld und liefert Normalen, Statistik usw."""
 
     def __init__(self, daten: List[List[float]]):
         self.daten = [reihe[:] for reihe in daten]
@@ -70,9 +67,9 @@ class Tiefenkarte:
         return False
 
     def normalen(self, z_skalierung: float = 2.0) -> List[List[Vec3]]:
-        normals = []
+        normals: List[List[Vec3]] = []
         for y in range(self.h):
-            reihe = []
+            reihe: List[Vec3] = []
             for x in range(self.b):
                 hx = (self.get(y, x + 1) - self.get(y, x - 1)) * 0.5 * z_skalierung
                 hy = (self.get(y + 1, x) - self.get(y - 1, x)) * 0.5 * z_skalierung
@@ -87,6 +84,7 @@ class Tiefenkarte:
         mn, mx = min(flach), max(flach)
         return mn, mx, mx - mn
 
+# ---------- Formen erzeugen ----------
 
 def erzeuge_kugel(h: int = 20, b: int = 40, r_rel: float = 0.42) -> Tiefenkarte:
     karte = [[0.0 for _ in range(b)] for _ in range(h)]
@@ -94,13 +92,12 @@ def erzeuge_kugel(h: int = 20, b: int = 40, r_rel: float = 0.42) -> Tiefenkarte:
     radius = min(h, b) * r_rel
     for y in range(h):
         for x in range(b):
-            dy = (y - cy)
+            dy = y - cy
             dx = (x - cx) * 0.5
             dist_sq = dx * dx + dy * dy
             if dist_sq <= radius * radius:
                 karte[y][x] = math.sqrt(radius * radius - dist_sq) / radius
     return Tiefenkarte(karte)
-
 
 def erzeuge_kegel(h: int = 20, b: int = 40, r_rel: float = 0.45) -> Tiefenkarte:
     karte = [[0.0 for _ in range(b)] for _ in range(h)]
@@ -108,13 +105,12 @@ def erzeuge_kegel(h: int = 20, b: int = 40, r_rel: float = 0.45) -> Tiefenkarte:
     radius = min(h, b) * r_rel
     for y in range(h):
         for x in range(b):
-            dy = (y - cy)
+            dy = y - cy
             dx = (x - cx) * 0.5
             dist = math.sqrt(dx * dx + dy * dy)
             if dist <= radius:
                 karte[y][x] = 1.0 - (dist / radius)
     return Tiefenkarte(karte)
-
 
 def erzeuge_stufenpyramide(h: int = 20, b: int = 40) -> Tiefenkarte:
     karte = [[0.0 for _ in range(b)] for _ in range(h)]
@@ -128,9 +124,8 @@ def erzeuge_stufenpyramide(h: int = 20, b: int = 40) -> Tiefenkarte:
                 karte[y][x] = math.floor((1.0 - dist) * 4.0) / 4.0
     return Tiefenkarte(karte)
 
-
 def erzeuge_wellblech(h: int = 20, b: int = 40, wellen: int = 8) -> Tiefenkarte:
-    """Erzeugt ein wellenförmiges Höhenfeld (wie Wellblech)."""
+    """Wellförmiges Höhenfeld (ähnlich Wellblech)."""
     karte = [[0.0 for _ in range(b)] for _ in range(h)]
     for y in range(h):
         for x in range(b):
@@ -138,21 +133,22 @@ def erzeuge_wellblech(h: int = 20, b: int = 40, wellen: int = 8) -> Tiefenkarte:
             karte[y][x] = val
     return Tiefenkarte(karte)
 
+# ---------- Beleuchtungs‑ und Schatten‑Funktionen ----------
 
 def diffuse_schatten(normals: List[List[Vec3]], licht_dir: Vec3) -> List[List[float]]:
     lx, ly, lz = vec3_norm(licht_dir)
-    hell = []
+    result: List[List[float]] = []
     for reihe in normals:
-        h_reihe = []
+        rreihe: List[float] = []
         for nx, ny, nz in reihe:
             dot = nx * lx + ny * ly + nz * lz
-            h_reihe.append(max(0.0, dot))
-        hell.append(h_reihe)
-    return hell
-
+            rreihe.append(max(0.0, dot))
+        result.append(rreihe)
+    return result
 
 def harte_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
-                             schritte: int = 32, bias: float = 0.005) -> List[List[float]]:
+                            schritte: int = 32, bias: float = 0.005) -> List[List[float]]:
+    """Einfacher harte Schatten per Ray‑Marching entlang Licht‑richtung."""
     lx, ly, lz = vec3_norm(licht_dir)
     h, b = karte.h, karte.b
     l_xy = math.sqrt(lx * lx + ly * ly)
@@ -166,9 +162,9 @@ def harte_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
     dir_y = -ly * inv_xy * step_xy
     step_z = lz * inv_xy * step_xy * 0.1
 
-    schatten = []
+    schatten: List[List[float]] = []
     for y in range(h):
-        reihe = []
+        reihe: List[float] = []
         for x in range(b):
             cur_h = karte.get(y, x) + bias
             cx, cy = float(x), float(y)
@@ -179,209 +175,165 @@ def harte_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
                 cur_h += step_z
                 if not (0 <= cx < b - 1 and 0 <= cy < h - 1):
                     break
-                if karte.get_bilinear(cy, cx) > cur_h:
+                sample = karte.get_bilinear(cy, cx)
+                if sample > cur_h:
                     im_schatten = True
                     break
             reihe.append(0.0 if im_schatten else 1.0)
         schatten.append(reihe)
     return schatten
 
+def weiche_schatten_gauss(schatten_hart: List[List[float]], radius: int = 2) -> List[List[float]]:
+    """Einfacher Box‑Blur als weiche Schatten‑Approximation."""
+    h = len(schatten_hart)
+    b = len(schatten_hart[0]) if h else 0
+    res: List[List[float]] = [[0.0 for _ in range(b)] for _ in range(h)]
+    for y in range(h):
+        for x in range(b):
+            acc = 0.0
+            cnt = 0
+            for dy in range(-radius, radius + 1):
+                for dx in range(-radius, radius + 1):
+                    ny, nx = y + dy, x + dx
+                    if 0 <= ny < h and 0 <= nx < b:
+                        acc += schatten_hart[ny][nx]
+                        cnt += 1
+            res[y][x] = acc / cnt if cnt else 1.0
+    return res
 
-def weiche_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
-                              schritte: int = 32, samples: int = 4, bias: float = 0.005) -> List[List[float]]:
-    """Weiche Schatten via Jittered Raymarching."""
+def ambient_occlusion(karte: Tiefenkarte, radius: int = 2) -> List[List[float]]:
+    """Sehr einfacher AO: je höher die Umgebung, desto dunkler."""
     h, b = karte.h, karte.b
-    ergebnis = [[0.0] * b for _ in range(h)]
-    for s in range(samples):
-        # Jitter Lichtrichtung leicht
-        jitter = 0.01
-        lx = licht_dir[0] + random.uniform(-jitter, jitter)
-        ly = licht_dir[1] + random.uniform(-jitter, jitter)
-        lz = licht_dir[2]
-        l_norm = vec3_norm((lx, ly, lz))
-        harte = harte_schatten_raymarch(karte, l_norm, schritte, bias)
-        for y in range(h):
-            for x in range(b):
-                ergebnis[y][x] += harte[y][x]
+    res: List[List[float]] = [[0.0 for _ in range(b)] for _ in range(h)]
     for y in range(h):
         for x in range(b):
-            ergebnis[y][x] /= samples
-    return ergebnis
+            cur = karte.get(y, x)
+            cnt = 0
+            occ = 0.0
+            for dy in range(-radius, radius + 1):
+                for dx in range(-radius, radius + 1):
+                    ny, nx = y + dy, x + dx
+                    if 0 <= ny < h and 0 <= nx < b:
+                        cnt += 1
+                        occ += max(0.0, karte.get(ny, nx) - cur)
+            res[y][x] = 1.0 - (occ / cnt) if cnt else 1.0
+    return res
 
-
-def ambient_occlusion(karte: Tiefenkarte, normals: List[List[Vec3]],
-                       samples: int = 8, radius: float = 5.0) -> List[List[float]]:
-    """Screen-Space Ambient Occlusion (vereinfacht)."""
+def blinn_phong(karte: Tiefenkarte, licht_dir: Vec3,
+                view_dir: Vec3 = (0.0, 0.0, 1.0),
+                shininess: float = 32.0,
+                ambient: float = 0.1) -> List[List[float]]:
+    normals = karte.normalen()
+    diff = diffuse_schatten(normals, licht_dir)
     h, b = karte.h, karte.b
-    ao = [[1.0] * b for _ in range(h)]
+    result: List[List[float]] = [[0.0 for _ in range(b)] for _ in range(h)]
+    lx, ly, lz = vec3_norm(licht_dir)
+    vx, vy, vz = vec3_norm(view_dir)
     for y in range(h):
         for x in range(b):
-            n = normals[y][x]
-            if n[2] < 0.1: continue
-            okklusion = 0
-            for _ in range(samples):
-                # Zufallsrichtung im Hemisphere
-                ang = random.random() * 2 * math.pi
-                dist = random.random() * radius
-                sx = x + math.cos(ang) * dist
-                sy = y + math.sin(ang) * dist
-                if 0 <= sx < b - 1 and 0 <= sy < h - 1:
-                    h_sample = karte.get_bilinear(sy, sx)
-                    h_center = karte.get(y, x)
-                    if h_sample > h_center + 0.02:
-                        okklusion += 1
-            ao[y][x] = 1.0 - (okklusion / samples) * 0.5
-    return ao
+            nx, ny, nz = normals[y][x]
+            # Halbvektor
+            hx, hy, hz = vec3_norm((lx + vx, ly + vy, lz + vz))
+            spec = max(0.0, vec3_dot((nx, ny, nz), (hx, hy, hz))) ** shininess
+            result[y][x] = ambient + diff[y][x] * (1.0 - ambient) + spec * (1.0 - ambient)
+    return result
 
+# ---------- ASCII‑Renderer ----------
 
-def blinn_phong(normals: List[List[Vec3]], licht_dir: Vec3, view_dir: Vec3,
-                 shadow: List[List[float]], ao: List[List[float]],
-                 spec_exp: float = 32.0) -> List[List[float]]:
-    """Blinn-Phong Shading mit Schatten und AO."""
-    l = vec3_norm(licht_dir)
-    v = vec3_norm(view_dir)
-    # Half Vector
-    h_vec = vec3_norm(vec3_add(l, v))
-    h, b = len(normals), len(normals[0])
-    bild = [[0.0] * b for _ in range(h)]
+def render_ascii(intensitaet: List[List[float]]) -> str:
+    chars = " .:-=+*#%@"
+    h = len(intensitaet)
+    b = len(intensitaet[0]) if h else 0
+    lines: List[str] = []
     for y in range(h):
+        line = []
         for x in range(b):
-            n = normals[y][x]
-            ndotl = max(0.0, vec3_dot(n, l))
-            ndoth = max(0.0, vec3_dot(n, h_vec))
-            spec = (ndoth ** spec_exp) * shadow[y][x]
-            diffuse = ndotl * shadow[y][x] * ao[y][x]
-            ambient = 0.15 * ao[y][x]
-            bild[y][x] = min(1.0, ambient + diffuse + spec)
-    return bild
+            v = intensitaet[y][x]
+            idx = int(v * (len(chars) - 1))
+            line.append(chars[idx])
+        lines.append(''.join(line))
+    return "\n".join(lines)
 
+# ---------- Menü und Main‑Loop ----------
 
-def render_ascii(bild: List[List[float]]) -> str:
-    """Wandelt 0..1 Floatwerte in ASCII-Kunst um."""
-    ramp = " .'`^\":;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@$B"
-    zeilen = []
-    for reihe in bild:
-        zeile = ""
-        for val in reihe:
-            idx = int(val * (len(ramp) - 1))
-            zeile += ramp[idx]
-        zeilen.append(zeile)
-    return "\n".join(zeilen)
-
-
-def menue() -> None:
-    print("\n🦤 Schatten-Simulator – Menü:")
-    print(" 1 – Harte Schatten (Raymarch)")
-    print(" 2 – Weiche Schatten (Jittered Raymarch)")
-    print(" 3 – Nur Ambient Occlusion")
-    print(" 4 – Diffuse (Lambert) + Schatten")
-    print(" 5 – Vollbild (Blinn-Phong + Schatten + AO)")
-    print(" 6 – Tiefenform wählen (Kugel, Kegel, Pyramide, Wellblech)")
-    print(" 7 – Lichtrichtung anpassen")
-    print(" 8 – Höhen-Rohdaten anzeigen")
-    print(" 0 – Beenden")
-
-
-def parse_vec3(s: str) -> Optional[Vec3]:
-    try:
-        teile = [float(x.strip()) for x in s.split(",")]
-        if len(teile) == 3:
-            return tuple(teile)
-    except ValueError:
-        pass
-    return None
-
+def auswahl_liste(prompt: str, optionen: List[str]) -> int:
+    while True:
+        print(prompt)
+        for i, opt in enumerate(optionen, 1):
+            print(f"{i} – {opt}")
+        try:
+            choice = input("Deine Wahl? ").strip()
+        except EOFError:
+            print("\nEOF erreicht – Programm wird beendet.")
+            sys.exit(0)
+        if not choice.isdigit():
+            print("Bitte eine Zahl eingeben.")
+            continue
+        idx = int(choice) - 1
+        if 0 <= idx < len(optionen):
+            return idx
+        print("Ungültige Option.")
 
 def main() -> None:
-    random.seed(42)
-    karten_fabrik = {
-        "1": ("Kugel", erzeuge_kugel),
-        "2": ("Kegel", erzeuge_kegel),
-        "3": ("Pyramide", erzeuge_stufenpyramide),
-        "4": ("Wellblech", erzeuge_wellblech),
-    }
-    aktuelle_form = "1"
-    karte = karten_fabrik[aktuelle_form][1]()
-    licht_dir = (-0.5, -0.5, -1.0)
-    view_dir = (0.0, 0.0, -1.0)
-
+    # Startparameter
+    tiefenkarte = erzeuge_kugel()
+    licht_dir: Vec3 = (1.0, 1.0, -1.0)
     while True:
-        menue()
-        try:
-            wahl = input("🦤 Fifo fragt: Deine Wahl? 🦤 ").strip()
-        except EOFError:
-            print("\n🦤 Eingabeende. Der Dodo schläft weiter. Gute Nacht! 🦤")
-            break
-
-        if wahl == "0":
-            print("🦤 Der Dodo nickt ein. Bis zum nächsten Traum! 🦤")
-            break
-        elif wahl == "1":
-            normals = karte.normalen()
-            shadow = harte_schatten_raymarch(karte, licht_dir)
-            diffuse = diffuse_schatten(normals, licht_dir)
-            combined = [[diffuse[y][x] * shadow[y][x] for x in range(karte.b)] for y in range(karte.h)]
-            print(render_ascii(combined))
-        elif wahl == "2":
-            normals = karte.normalen()
-            shadow = weiche_schatten_raymarch(karte, licht_dir)
-            diffuse = diffuse_schatten(normals, licht_dir)
-            combined = [[diffuse[y][x] * shadow[y][x] for x in range(karte.b)] for y in range(karte.h)]
-            print(render_ascii(combined))
-        elif wahl == "3":
-            normals = karte.normalen()
-            ao = ambient_occlusion(karte, normals)
-            print(render_ascii(ao))
-        elif wahl == "4":
-            normals = karte.normalen()
-            shadow = harte_schatten_raymarch(karte, licht_dir)
-            diffuse = diffuse_schatten(normals, licht_dir)
-            combined = [[diffuse[y][x] * shadow[y][x] for x in range(karte.b)] for y in range(karte.h)]
-            print(render_ascii(combined))
-        elif wahl == "5":
-            normals = karte.normalen()
-            shadow = weiche_schatten_raymarch(karte, licht_dir)
-            ao = ambient_occlusion(karte, normals)
-            shaded = blinn_phong(normals, licht_dir, view_dir, shadow, ao)
-            print(render_ascii(shaded))
-        elif wahl == "6":
-            print("Formen: 1=Kugel, 2=Kegel, 3=Pyramide, 4=Wellblech")
+        opt = auswahl_liste("--- Schatten‑Simulator ---", [
+            "Diffuse (Lambert) + Harte Schatten",
+            "Diffuse + Weiche Schatten",
+            "Blinn‑Phong + Schatten + AO",
+            "Tiefenform wählen",
+            "Lichtrichtung anpassen",
+            "Höhen‑Rohdaten anzeigen",
+            "Beenden"
+        ])
+        if opt == 0:
+            diff = diffuse_schatten(tiefenkarte.normalen(), licht_dir)
+            hart = harte_schatten_raymarch(tiefenkarte, licht_dir)
+            kombi = [[diff[y][x] * hart[y][x] for x in range(tiefenkarte.b)] for y in range(tiefenkarte.h)]
+            print(render_ascii(kombi))
+        elif opt == 1:
+            diff = diffuse_schatten(tiefenkarte.normalen(), licht_dir)
+            hart = harte_schatten_raymarch(tiefenkarte, licht_dir)
+            weich = weiche_schatten_gauss(hart)
+            kombi = [[diff[y][x] * weich[y][x] for x in range(tiefenkarte.b)] for y in range(tiefenkarte.h)]
+            print(render_ascii(kombi))
+        elif opt == 2:
+            bp = blinn_phong(tiefenkarte, licht_dir)
+            ao = ambient_occlusion(tiefenkarte)
+            kombi = [[bp[y][x] * ao[y][x] for x in range(tiefenkarte.b)] for y in range(tiefenkarte.h)]
+            print(render_ascii(kombi))
+        elif opt == 3:
+            shape_idx = auswahl_liste("Wähle eine Form:", ["Kugel", "Kegel", "Stufenpyramide", "Wellblech"])
+            if shape_idx == 0:
+                tiefenkarte = erzeuge_kugel()
+            elif shape_idx == 1:
+                tiefenkarte = erzeuge_kegel()
+            elif shape_idx == 2:
+                tiefenkarte = erzeuge_stufenpyramide()
+            else:
+                tiefenkarte = erzeuge_wellblech()
+        elif opt == 4:
             try:
-                f = input("Neue Form (1-4): ").strip()
-                if f in karten_fabrik:
-                    aktuelle_form = f
-                    karte = karten_fabrik[f][1]()
-                    print(f"🦤 Form '{karten_fabrik[f][0]}' geladen.")
-                else:
-                    print("🦤 Unbekannte Form.")
+                lx = float(input("Licht‑X (z.B. 1.0): "))
+                ly = float(input("Licht‑Y (z.B. 1.0): "))
+                lz = float(input("Licht‑Z (z.B. -1.0): "))
+                licht_dir = (lx, ly, lz)
             except EOFError:
-                break
-        elif wahl == "7":
-            print("Lichtrichtung als x,y,z (z.B. -0.5,-0.5,-1.0)")
-            try:
-                s = input("Neue Lichtrichtung: ").strip()
-                v = parse_vec3(s)
-                if v:
-                    licht_dir = v
-                    print(f"🦤 Licht gesetzt auf {v}.")
-                else:
-                    print("🦤 Ungültiges Format.")
-            except EOFError:
-                break
-        elif wahl == "8":
-            mn, mx, rng = karte.statistik()
-            print(f"Höhe: min={mn:.3f}, max={mx:.3f}, range={rng:.3f}")
-            # Mini-Heatmap
-            ramp = " .:;+*#@"
-            for y in range(karte.h):
-                zeile = ""
-                for x in range(karte.b):
-                    v = karte.get(y, x)
-                    idx = int(v * (len(ramp) - 1))
-                    zeile += ramp[idx]
-                print(zeile)
+                print("EOF – Rückkehr zum Menü.")
+            except ValueError:
+                print("Ungültige Zahl – Rückkehr zum Menü.")
+        elif opt == 5:
+            print("Roh‑Höhenwerte (0‑1):")
+            for reihe in tiefenkarte.daten:
+                print(' '.join(f"{v:.2f}" for v in reihe))
         else:
-            print("🦤 Unbekannte Option.")
+            print("Auf Wiedersehen!")
+            break
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nAbgebrochen.")
