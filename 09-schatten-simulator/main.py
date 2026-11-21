@@ -166,171 +166,114 @@ def berechne_tiefen_schattierung(
                     # Diffuser Anteil
                     gesamt_helligkeit += diffus * energie
                     
-                    # Blinn-Phong Glanzlicht (erzeugt greifbare 3D-Rundung)
-                    halb_vektor = vec3_norm(vec3_add(l_dir, sicht_vektor))
-                    n_dot_h = max(0.0, vec3_dot(n, halb_vektor))
-                    if n_dot_h > 0.0 and schatten > 0.5:
-                        spekular = math.pow(n_dot_h, glanz_haerte) * glanz_staerke * energie
-                        gesamt_helligkeit += spekular
+                    # Spekular (Blinn-Phong)
+                    halb = vec3_norm(vec3_add(l_dir, sicht_vektor))
+                    spek = max(0.0, vec3_dot(n, halb)) ** glanz_haerte
+                    gesamt_helligkeit += spek * glanz_staerke * energie
             
-            # Begrenzung auf [0.0, 1.0]
-            reihe.append(max(0.0, min(1.0, gesamt_helligkeit)))
+            reihe.append(min(1.0, max(0.0, gesamt_helligkeit)))
         ausgabe.append(reihe)
     return ausgabe
 
-# ---------- Form-Generatoren ----------
+# ---------- Hilfsfunktionen ----------
 
-def erzeuge_kugel(h: int = 22, b: int = 44, r_rel: float = 0.42) -> Tiefenkarte:
-    karte = [[0.0 for _ in range(b)] for _ in range(h)]
-    cy, cx = (h - 1) / 2.0, (b - 1) / 2.0
-    radius = min(h, b) * r_rel
-    for y in range(h):
-        for x in range(b):
-            dy = y - cy
-            dx = (x - cx) * 0.5
-            dist_sq = dx * dx + dy * dy
-            if dist_sq <= radius * radius:
-                karte[y][x] = math.sqrt(radius * radius - dist_sq) / radius
-    return Tiefenkarte(karte)
-
-def erzeuge_kegel(h: int = 22, b: int = 44, r_rel: float = 0.45) -> Tiefenkarte:
-    karte = [[0.0 for _ in range(b)] for _ in range(h)]
-    cy, cx = (h - 1) / 2.0, (b - 1) / 2.0
-    radius = min(h, b) * r_rel
-    for y in range(h):
-        for x in range(b):
-            dy = y - cy
-            dx = (x - cx) * 0.5
+def generiere_beispieltiefe(breite: int = 80, hoehe: int = 40) -> List[List[float]]:
+    """Erzeugt eine prozedurale Tiefenkarte: Hügel, Kugel, Rauschen."""
+    daten = [[0.0 for _ in range(breite)] for _ in range(hoehe)]
+    cx, cy = breite * 0.5, hoehe * 0.5
+    for y in range(hoehe):
+        for x in range(breite):
+            dx = (x - cx) / (breite * 0.4)
+            dy = (y - cy) / (hoehe * 0.4)
             dist = math.sqrt(dx * dx + dy * dy)
-            if dist <= radius:
-                karte[y][x] = 1.0 - (dist / radius)
-    return Tiefenkarte(karte)
+            # Großer weicher Hügel
+            h = max(0.0, 1.0 - dist * 1.2)
+            # Kleine Kugel oben drauf
+            dx2 = (x - cx * 0.7) / (breite * 0.15)
+            dy2 = (y - cy * 0.7) / (hoehe * 0.15)
+            dist2 = math.sqrt(dx2 * dx2 + dy2 * dy2)
+            h += max(0.0, 0.8 - dist2 * 1.5)
+            # Etwas Rauschen für Textur
+            h += (random.random() - 0.5) * 0.05
+            daten[y][x] = max(0.0, min(1.0, h))
+    return daten
 
-def erzeuge_pyramide(h: int = 22, b: int = 44) -> Tiefenkarte:
-    karte = [[0.0 for _ in range(b)] for _ in range(h)]
-    cy, cx = (h - 1) / 2.0, (b - 1) / 2.0
-    for y in range(h):
-        for x in range(b):
-            dy = abs(y - cy) / (h * 0.42)
-            dx = abs(x - cx) / (b * 0.42)
-            dist = max(dx, dy)
-            if dist < 1.0:
-                karte[y][x] = 1.0 - dist
-    return Tiefenkarte(karte)
+def helligkeit_zu_ascii(wert: float) -> str:
+    """Mappt 0.0-1.0 auf ASCII-Rampe."""
+    rampe = " .'`^\":;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@$B@$"
+    idx = int(wert * (len(rampe) - 1))
+    return rampe[idx]
 
-def erzeuge_huegelkette(h: int = 22, b: int = 44, seed: int = 17) -> Tiefenkarte:
-    random.seed(seed)
-    karte = [[0.0 for _ in range(b)] for _ in range(h)]
-    zentren = [
-        (h * 0.45, b * 0.35, min(h, b) * 0.35, 1.0),
-        (h * 0.55, b * 0.65, min(h, b) * 0.30, 0.85),
-        (h * 0.25, b * 0.70, min(h, b) * 0.22, 0.60)
-    ]
-    for y in range(h):
-        for x in range(b):
-            v = 0.0
-            for cy, cx, rad, amp in zentren:
-                dist = math.hypot((x - cx) * 0.5, y - cy)
-                if dist < rad:
-                    v += amp * math.cos((dist / rad) * (math.pi / 2.0))
-            karte[y][x] = min(1.0, v)
-    return Tiefenkarte(karte)
+def drucke_ergebnis(schattierung: List[List[float]]):
+    """Gibt das gerenderte Bild als ASCII aus."""
+    for reihe in schattierung:
+        zeile = ''.join(helligkeit_zu_ascii(w) for w in reihe)
+        print(zeile)
 
-# ---------- Renderer ----------
-
-PALETTE = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
-
-def render_ascii(helligkeit: List[List[float]]) -> str:
-    h = len(helligkeit)
-    b = len(helligkeit[0]) if h > 0 else 0
-    p_len = len(PALETTE) - 1
-    zeilen = []
-    for y in range(h):
-        z = []
-        for x in range(b):
-            val = helligkeit[y][x]
-            idx = int(round(val * p_len))
-            idx = max(0, min(p_len, idx))
-            z.append(PALETTE[idx])
-        zeilen.append("".join(z))
-    return "\n".join(zeilen)
-
-def sichere_eingabe(prompt: str, standard: str = "") -> str:
+def waehle_licht_setup(tk: Tiefenkarte) -> List[Lichtquelle]:
+    """Interaktive Auswahl der Lichtkonfiguration."""
+    print("\nLicht-Setups:")
+    print("1) Schräge Sonne von links-oben (starker Schlagschatten)")
+    print("2) Nahes Punktlicht direkt über dem Objekt (Radiallicht mit Glanzpunkt)")
+    print("3) Dual-Licht (Hauptsonne + kühleres Gegenlicht für Plastizität)")
+    
     try:
-        sys.stdout.write(prompt)
-        sys.stdout.flush()
-        val = input().strip()
-        return val if val else standard
+        eingabe = input("Wähle [1-3, Standard: 1]: ").strip()
     except EOFError:
-        return standard
+        print("\nKeine Eingabe möglich, nutze Standard.")
+        eingabe = "1"
+    
+    wahl = eingabe if eingabe in ("1", "2", "3") else "1"
+    cx, cy = tk.b * 0.5, tk.h * 0.5
+    
+    if wahl == "1":
+        # Gerichtete Sonne von links-oben (Richtung Vektor zeigt ZUR Quelle)
+        return [Lichtquelle('gerichtet', vec3_norm((0.6, -0.4, 1.0)), intensitaet=1.2)]
+    elif wahl == "2":
+        # Punktlicht mittig über der Szene
+        return [Lichtquelle('punkt', (cx, cy, max(tk.b, tk.h) * 0.8), intensitaet=3.0, abfall=0.0015)]
+    else:
+        # Dual: Hauptlicht warm, Fill-Licht kühl von rechts
+        return [
+            Lichtquelle('gerichtet', vec3_norm((0.5, -0.3, 1.0)), intensitaet=1.0),
+            Lichtquelle('gerichtet', vec3_norm((-0.4, 0.2, 0.8)), intensitaet=0.4)
+        ]
 
 # ---------- Hauptprogramm ----------
 
 def main():
-    print("=== Fifos Schatten-Simulator: 3D-Tiefen-Erzwinger (Teil 42) ===")
-    print("Mathematische Berechnung von Lichtquellen und Vektoren aktiv.\n")
+    random.seed(42)  # Reproduzierbar
+    print("=== Schatten-Simulator Teil 43: Lichtquellen & Raymarch ===")
+    
+    # 1. Tiefenkarte erzeugen
+    tk = Tiefenkarte(generiere_beispieltiefe(100, 50))
+    mn, mx, sp = tk.statistik()
+    print(f"Tiefenkarte: {tk.b}x{tk.h}, Range: {mn:.3f}-{mx:.3f} (Spanne {sp:.3f})")
+    
+    # 2. Licht-Setup wählen
+    lichter = waehle_licht_setup(tk)
+    print(f"Aktive Lichtquellen: {len(lichter)}")
+    for i, l in enumerate(lichter):
+        print(f"  {i+1}. Typ={l.typ}, Vec={l.vec}, Int={l.intensitaet}")
+    
+    # 3. Berechnung
+    print("\n[Berechne Vektor-Raymarching & Blinn-Phong Shading...]")
+    schattierung = berechne_tiefen_schattierung(
+        tk, lichter,
+        z_tiefe=8.0,
+        ambient=0.12,
+        glanz_staerke=0.5,
+        glanz_haerte=32.0
+    )
+    
+    # 4. Ausgabe
+    print("\nErgebnis (ASCII-Tiefe mit Schatten & Glanz):")
+    drucke_ergebnis(schattierung)
+    print("\nFertig. Drücke Enter zum Beenden...")
+    try:
+        input()
+    except EOFError:
+        pass
 
-    # Menü Formauswahl
-    print("Waehle 3D-Geometrie:")
-    print("  1) Glatte Kugel")
-    print("  2) Kegelberg")
-    print("  3) Scharfe Pyramide")
-    print("  4) Huegelkette (Dodo-Landschaft)")
-    wahl_form = sichere_eingabe("Auswahl [1-4, Standard: 1]: ", "1")
-
-    hoehe, breite = 20, 44
-    if wahl_form == "2":
-        tk = erzeuge_kegel(hoehe, breite)
-        form_name = "Kegelberg"
-    elif wahl_form == "3":
-        tk = erzeuge_pyramide(hoehe, breite)
-        form_name = "Pyramide"
-    elif wahl_form == "4":
-        tk = erzeuge_huegelkette(hoehe, breite)
-        form_name = "Huegelkette"
-    else:
-        tk = erzeuge_kugel(hoehe, breite)
-        form_name = "Glatte Kugel"
-
-    # Menü Lichtquellen-Setup
-    print("\nWaehle Licht-Setup:")
-    print("  1) Schraege Sonne von links-oben (starker Schlagschatten)")
-    print("  2) Nahes Punktlicht direkt ueber dem Objekt (Radiallicht mit Glanzpunkt)")
-    print("  3) Dual-Licht (Hauptsonne + kuehleres Gegenlicht fuer Plastizitaet)")
-    wahl_licht = sichere_eingabe("Licht-Setup [1-3, Standard: 1]: ", "1")
-
-    lichter: List[Lichtquelle] = []
-    if wahl_licht == "2":
-        # Punktlicht schwebend ueber dem Zentrum
-        licht_pos: Vec3 = (breite * 0.4, hoehe * 0.35, 12.0)
-        lichter.append(Lichtquelle('punkt', licht_pos, intensitaet=1.3, abfall=0.003))
-        licht_info = "Punktlicht bei X=17 Y=7 Z=12"
-    elif wahl_licht == "3":
-        # Hauptsonne links-oben + Füllsonne rechts-unten
-        lichter.append(Lichtquelle('gerichtet', (-1.0, -0.9, 0.9), intensitaet=0.85))
-        lichter.append(Lichtquelle('gerichtet', (1.0, 0.7, 0.5), intensitaet=0.35))
-        licht_info = "Dual-Licht: Hauptlicht (-1, -0.9, 0.9) + Fuelllicht (1, 0.7, 0.5)"
-    else:
-        # Schräge Sonne
-        lichter.append(Lichtquelle('gerichtet', (-1.2, -1.0, 0.8), intensitaet=1.0))
-        licht_info = "Gerichtete Sonne Vektor (-1.2, -1.0, 0.8)"
-
-    print(f"\n[Berechne Vektoren fuer '{form_name}' mit {licht_info}]...")
-    bild = berechne_tiefen_schattierung(tk, lichter, z_tiefe=8.0, ambient=0.12)
-
-    # Statistiken auswerten
-    alle_helligkeiten = [val for reihe in bild for val in reihe]
-    min_h = min(alle_helligkeiten)
-    max_h = max(alle_helligkeiten)
-    schatten_anteil = sum(1 for val in alle_helligkeiten if val < 0.22) / len(alle_helligkeiten) * 100.0
-    highlights = sum(1 for val in alle_helligkeiten if val > 0.85) / len(alle_helligkeiten) * 100.0
-
-    print("\n--- RENDER-ERGEBNIS ---")
-    print(render_ascii(bild))
-    print("-" * breite)
-    print(f"Tiefenanalyse: Min-Helligkeit={min_h:.2f}, Max-Helligkeit={max_h:.2f}")
-    print(f"Schattenabdeckung: {schatten_anteil:.1f}% | Glanzlichter: {highlights:.1f}%")
-    print("Mathematische Tiefenerzwingung erfolgreich abgeschlossen!")
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
