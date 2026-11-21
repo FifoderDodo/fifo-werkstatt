@@ -1,5 +1,5 @@
-# 3D-Lichtspiel – Teil 6: Shader-Parameter exponiert, Live-Tweaking im Menü
-# Fifo der Dodo schraubt an den Reglern – Penumbra, Falloff, Blur, alles flüssig einstellbar
+# 3D-Lichtspiel – Teil 7: Volumetrische Tiefe – Scattering, Mist, Farbtemperatur, Jitter
+# Fifo der Dodo fügt atmosphärische Streuung und herbstlichen Nebel hinzu – Lichtkegel atmen jetzt
 
 import math
 import sys
@@ -17,6 +17,14 @@ class ShaderParams:
         self.ambient = 0.02              # Grundhelligkeit (0.0 - 0.2)
         self.volumetric_gain = 1.2       # Verstärkung der Lichtkegel-Sichtbarkeit (0.5 - 3.0)
         self.gamma = 0.6                 # Gamma-Korrektur für ASCII-Mapping (0.3 - 1.0)
+        # NEU: Volumetrische Tiefe & Herbst-Atmosphäre
+        self.scattering_coeff = 0.35     # Mie-Streuungskoeffizient für Lichtkegel (0.1 - 1.0)
+        self.absorption_coeff = 0.12     # Absorption im Medium / Nebel (0.0 - 0.3)
+        self.mist_density = 0.18         # Nebeldichte für Tiefenwirkung (0.0 - 0.4)
+        self.mist_height_falloff = 0.8   # Nebel nimmt nach oben ab (0.5 - 1.5)
+        self.color_temp = 3200.0         # Farbtemperatur Kelvin – warmherbstlich (2500-5500)
+        self.jitter_strength = 0.15      # Feines Rauschen für organische Kegelränder (0.0 - 0.3)
+        self.phase_g = 0.6               # Henyey-Greenstein Asymmetrie (0.0-0.9, vorwärts)
     
     def klonen(self):
         klon = ShaderParams()
@@ -64,6 +72,33 @@ def box_blur_1d(puffer: list, gewichte: list, horizontal: bool = True) -> list:
                         acc += puffer[yi][x] * gew
                 ergebnis[y][x] = acc
     return ergebnis
+
+
+def henyey_greenstein(cos_theta: float, g: float) -> float:
+    """Phasenfunktion für Volumetrisches Streulicht (vorwärts-gerichtet)."""
+    g2 = g * g
+    denom = (1.0 + g2 - 2.0 * g * cos_theta) ** 1.5
+    return (1.0 - g2) / (4.0 * math.pi * denom) if denom > 1e-6 else 1.0
+
+
+def kelvin_to_rgb_factor(temp_k: float) -> tuple:
+    """Näherung: Farbtemperatur -> RGB-Multiplikatoren (normalisiert auf Grün=1.0)."""
+    t = temp_k / 100.0
+    if t <= 66:
+        r = 1.0
+        g = 0.39008158 * math.log(t) - 0.63184144
+    else:
+        r = 1.29293619 * (t - 60.0) ** -0.13320476
+        g = 1.12989086 * (t - 60.0) ** -0.07551485
+    if t >= 66:
+        b = 1.0
+    elif t <= 19:
+        b = 0.0
+    else:
+        b = 0.54320679 * math.log(t - 10.0) - 1.19625409
+    # Normalisieren so dass Grün ~1.0 für Helligkeitserhalt
+    g = max(0.01, g)
+    return (r / g, 1.0, b / g)
 
 
 def intensitaet_zu_ascii(wert: float, gamma: float = 0.6) -> str:
@@ -153,6 +188,9 @@ def zeichne_lichtkegel(breite: int, hoehe: int, quellen: list, bäume: list, par
     """Erzeugt 2D-Gitter mit volumetric Licht & Schatten: Float-Puffer -> Blur -> ASCII."""
     float_buf = [[params.ambient for _ in range(breite)] for __ in range(hoehe)]
     
+    # Farbtemperatur-Faktoren für herbstliche Stimmung
+    r_mult, g_mult, b_mult = kelvin_to_rgb_factor(params.color_temp)
+    
     for qx, qy, radius, richtung_x, richtung_y in quellen:
         r2 = radius * radius
         x0 = max(0, int(qx - radius))
@@ -182,187 +220,262 @@ def zeichne_lichtkegel(breite: int, hoehe: int, quellen: list, bäume: list, par
                 else:
                     kegel = 1.0
                 
-                # Schatten berechnen
-                schatten = schattenfaktor_für_punkt(x, y, qx, qy, radius, bäume, params)
+                # Schatten
+                shadow = schattenfaktor_für_punkt(x, y, qx, qy, radius, bäume, params)
                 
-                # Volumetric Gain anwenden
-                wert = falloff * kegel * schatten * params.volumetric_gain
+                # Volumetrisches Streulicht (Mie) – Henyey-Greenstein
+                # cos_theta ≈ Ausrichtung zur Blickrichtung (hier vereinfacht: Kegelrichtung)
+                cos_theta = kegel
+                phase = henyey_greenstein(cos_theta, params.phase_g)
                 
-                # Akkumulieren (additiv für mehrere Quellen)
-                row[x] += wert
+                # Nebel/Absorption mit Höhenabhängigkeit (y nach oben = kleiner y-Index)
+                # Normalisierte Höhe: 0.0 unten, 1.0 oben
+                norm_h = 1.0 - (y / max(1, hoehe - 1))
+                mist_factor = math.exp(-params.absorption_coeff * dist * (1.0 + params.mist_density * norm_h * params.mist_height_falloff))
+                
+                # Jitter für organische Kanten
+                jitter = 1.0
+                if params.jitter_strength > 0.0:
+                    # Deterministisches Rauschen basierend auf Position
+                    seed_val = (x * 73.14 + y * 19.41 + qx * 11.73 + qy * 31.09) % 1.0
+                    jitter = 1.0 + params.jitter_strength * (seed_val - 0.5) * 2.0
+                
+                # Kombinierte Intensität
+                intensität = (falloff * kegel * shadow * phase 
+                              * params.volumetric_gain * params.scattering_coeff 
+                              * mist_factor * jitter)
+                
+                # Additiv auf Buffer (mehrere Quellen addieren)
+                row[x] += intensität
     
-    # Baumstämme als harte Silhouetten (nach Licht, vor Blur)
-    for bx, by, bradius in bäume:
-        ix, iy = int(bx), int(by)
-        if 0 <= ix < breite and 0 <= iy < hoehe:
-            float_buf[iy][ix] = 0.0
-            # Etwas Rinde andeuten
-            for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
-                nx, ny = ix+dx, iy+dy
-                if 0 <= nx < breite and 0 <= ny < hoehe:
-                    float_buf[ny][nx] = min(float_buf[ny][nx], params.ambient * 0.5)
+    # Blur-Pass für weiche Kegelränder
+    if params.blur_radius > 0:
+        gewichte = gauß_gewichte(params.blur_radius)
+        float_buf = box_blur_1d(float_buf, gewichte, True)
+        float_buf = box_blur_1d(float_buf, gewichte, False)
     
-    # Separable Blur
-    gewichte = gauß_gewichte(params.blur_radius)
-    float_buf = box_blur_1d(float_buf, gewichte, True)
-    float_buf = box_blur_1d(float_buf, gewichte, False)
-    
-    # ASCII Konvertierung mit Gamma
-    ascii_art = []
+    # ASCII-Mapping
+    ascii_buf = []
     for y in range(hoehe):
         zeile = ''.join(intensitaet_zu_ascii(float_buf[y][x], params.gamma) for x in range(breite))
-        ascii_art.append(zeile)
+        ascii_buf.append(zeile)
     
-    return ascii_art
+    return ascii_buf
 
 
-def generiere_szene(tageszeit: str, breite: int, hoehe: int):
-    """Erzeugt Bäume und Laternen passend zur Tageszeit."""
-    random.seed(hash(tageszeit) % (2**32))
+def erzeuge_szene(params: ShaderParams) -> tuple:
+    """Erzeugt Bäume und Lichtquellen für den Herbstpark."""
+    breite, hoehe = 80, 40
+    random.seed(42)  # Reproduzierbar
+    
+    # Bäume: (x, y, radius)
     bäume = []
-    anzahl_bäume = max(3, (breite * hoehe) // 1200)
-    for _ in range(anzahl_bäume):
-        bx = random.uniform(2, breite - 3)
-        by = random.uniform(2, hoehe - 3)
-        bradius = random.uniform(1.5, 3.5)
-        bäume.append((bx, by, bradius))
+    for _ in range(25):
+        bx = random.uniform(5, breite - 5)
+        by = random.uniform(5, hoehe - 5)
+        br = random.uniform(1.5, 3.5)
+        bäume.append((bx, by, br))
     
-    quellen = []
-    if tageszeit == 'nacht':
-        anzahl = max(2, (breite * hoehe) // 2000)
-        for _ in range(anzahl):
-            qx = random.uniform(3, breite - 4)
-            qy = random.uniform(3, hoehe - 4)
-            radius = random.uniform(8, 14)
-            winkel = random.uniform(0, 2 * math.pi)
-            richtung_x = math.cos(winkel)
-            richtung_y = math.sin(winkel) * 0.5  # Etwas abgeflacht
-            quellen.append((qx, qy, radius, richtung_x, richtung_y))
-    elif tageszeit == 'dämmerung':
-        anzahl = max(1, (breite * hoehe) // 3000)
-        for _ in range(anzahl):
-            qx = random.uniform(3, breite - 4)
-            qy = random.uniform(3, hoehe - 4)
-            radius = random.uniform(10, 18)
-            winkel = random.uniform(-0.5, 0.5)  # Mehr horizontal
-            richtung_x = math.cos(winkel)
-            richtung_y = math.sin(winkel) * 0.3
-            quellen.append((qx, qy, radius, richtung_x, richtung_y))
-    else:  # herbsttag
-        # Keine künstlichen Quellen, nur Ambient (wird in Parametern geregelt)
-        pass
+    # Lichtquellen: (x, y, radius, dir_x, dir_y)
+    quellen = [
+        (10.0, 10.0, 18.0, 0.8, 0.6),   # Sonne tief rechts-unten
+        (70.0, 30.0, 15.0, -0.7, -0.3), # Laterne links oben
+        (40.0, 20.0, 22.0, 0.0, -1.0),  # Mondlicht von oben
+    ]
     
-    return bäume, quellen
+    return breite, hoehe, quellen, bäume
 
 
-def menü_shader_params(params: ShaderParams) -> ShaderParams:
-    """Interaktives Untermenü zum Tweaken der Shader-Parameter."""
+def menü_shader_parameter(params: ShaderParams) -> ShaderParams:
+    """Interaktives Menü zum Live-Tweaken der Shader-Parameter."""
+    felder = [
+        ('penumbra_breite', 'Penumbra-Breite', 0.01, 0.5),
+        ('umbra_dunkelheit', 'Umbra-Dunkelheit', 0.0, 0.5),
+        ('falloff_exponent', 'Falloff-Exponent', 1.0, 4.0),
+        ('blur_radius', 'Blur-Radius (int)', 1, 8),
+        ('ambient', 'Ambient-Grundhelligkeit', 0.0, 0.2),
+        ('volumetric_gain', 'Volumetric Gain', 0.5, 3.0),
+        ('gamma', 'Gamma-Korrektur', 0.3, 1.0),
+        ('scattering_coeff', 'Streuungskoeffizient', 0.1, 1.0),
+        ('absorption_coeff', 'Absorptionskoeffizient', 0.0, 0.3),
+        ('mist_density', 'Nebeldichte', 0.0, 0.4),
+        ('mist_height_falloff', 'Nebel-Höhenabfall', 0.5, 1.5),
+        ('color_temp', 'Farbtemperatur (K)', 2500.0, 5500.0),
+        ('jitter_strength', 'Jitter-Stärke', 0.0, 0.3),
+        ('phase_g', 'Phasen-Asymmetrie (g)', 0.0, 0.9),
+    ]
+    
     while True:
-        print("\n=== Shader-Parameter ===")
-        print(f"1. Penumbra-Breite     : {params.penumbra_breite:.2f}  (0.01 - 0.5)")
-        print(f"2. Umbra-Dunkelheit    : {params.umbra_dunkelheit:.2f}  (0.0 - 0.5)")
-        print(f"3. Falloff-Exponent    : {params.falloff_exponent:.1f}  (1.0 - 4.0)")
-        print(f"4. Blur-Radius         : {params.blur_radius}      (1 - 8)")
-        print(f"5. Ambient-Helligkeit  : {params.ambient:.3f}  (0.0 - 0.2)")
-        print(f"6. Volumetric Gain     : {params.volumetric_gain:.1f}  (0.5 - 3.0)")
-        print(f"7. Gamma               : {params.gamma:.2f}  (0.3 - 1.0)")
-        print("8. Zurück zum Hauptmenü")
+        print('\n=== Shader-Parameter anpassen ===')
+        for i, (attr, name, mn, mx) in enumerate(felder, 1):
+            val = getattr(params, attr)
+            print(f'  {i:2d}. {name}: {val:.3f}  [{mn} – {mx}]')
+        print('  0. Zurück zum Hauptmenü')
+        
         try:
-            wahl = input("Wähle Parameter (1-8): ").strip()
+            wahl = input('Parameter wählen (0-{}): '.format(len(felder))).strip()
         except EOFError:
-            return params
+            print('\n🦤 Tschüss!')
+            sys.exit(0)
         
-        if wahl == '8':
-            return params
+        if not wahl:
+            continue
+        if wahl == '0':
+            break
         
         try:
-            if wahl == '1':
-                v = float(input(f"Neuer Wert [{params.penumbra_breite:.2f}]: ") or params.penumbra_breite)
-                params.penumbra_breite = max(0.01, min(0.5, v))
-            elif wahl == '2':
-                v = float(input(f"Neuer Wert [{params.umbra_dunkelheit:.2f}]: ") or params.umbra_dunkelheit)
-                params.umbra_dunkelheit = max(0.0, min(0.5, v))
-            elif wahl == '3':
-                v = float(input(f"Neuer Wert [{params.falloff_exponent:.1f}]: ") or params.falloff_exponent)
-                params.falloff_exponent = max(1.0, min(4.0, v))
-            elif wahl == '4':
-                v = int(input(f"Neuer Wert [{params.blur_radius}]: ") or params.blur_radius)
-                params.blur_radius = max(1, min(8, v))
-            elif wahl == '5':
-                v = float(input(f"Neuer Wert [{params.ambient:.3f}]: ") or params.ambient)
-                params.ambient = max(0.0, min(0.2, v))
-            elif wahl == '6':
-                v = float(input(f"Neuer Wert [{params.volumetric_gain:.1f}]: ") or params.volumetric_gain)
-                params.volumetric_gain = max(0.5, min(3.0, v))
-            elif wahl == '7':
-                v = float(input(f"Neuer Wert [{params.gamma:.2f}]: ") or params.gamma)
-                params.gamma = max(0.3, min(1.0, v))
+            idx = int(wahl) - 1
+            if 0 <= idx < len(felder):
+                attr, name, mn, mx = felder[idx]
+                try:
+                    neu = float(input(f'Neuer Wert für {name} [{mn}–{mx}]: ').strip())
+                    neu = max(mn, min(mx, neu))
+                    if attr == 'blur_radius':
+                        neu = int(neu)
+                    setattr(params, attr, neu)
+                    print(f'  → {name} = {neu}')
+                except ValueError:
+                    print('  Ungültige Zahl.')
             else:
-                print("Ungültige Auswahl.")
+                print('  Ungültige Auswahl.')
         except ValueError:
-            print("Ungültige Zahl.")
-        except EOFError:
-            return params
+            print('  Bitte Zahl eingeben.')
+    
+    return params
 
 
-def main() -> None:
-    breite, hoehe = 100, 40
+def tageszeit_vorlage(params: ShaderParams, vorlage: str) -> ShaderParams:
+    """Setzt Parameter-Vorlagen für verschiedene Tageszeiten."""
+    v = _norm(vorlage)
+    if v in ('morgens', 'morgen', 'dawn', '1'):
+        params.penumbra_breite = 0.12
+        params.umbra_dunkelheit = 0.08
+        params.falloff_exponent = 2.2
+        params.blur_radius = 4
+        params.ambient = 0.04
+        params.volumetric_gain = 1.5
+        params.gamma = 0.55
+        params.scattering_coeff = 0.45
+        params.absorption_coeff = 0.15
+        params.mist_density = 0.28
+        params.mist_height_falloff = 0.7
+        params.color_temp = 3500.0
+        params.jitter_strength = 0.18
+        params.phase_g = 0.65
+        print('🌅 Morgendämmerung – kühler Nebel, weiche Schatten')
+    elif v in ('mittag', 'noon', '2'):
+        params.penumbra_breite = 0.08
+        params.umbra_dunkelheit = 0.02
+        params.falloff_exponent = 1.8
+        params.blur_radius = 2
+        params.ambient = 0.08
+        params.volumetric_gain = 0.8
+        params.gamma = 0.7
+        params.scattering_coeff = 0.2
+        params.absorption_coeff = 0.05
+        params.mist_density = 0.05
+        params.mist_height_falloff = 1.0
+        params.color_temp = 5500.0
+        params.jitter_strength = 0.08
+        params.phase_g = 0.5
+        print('☀️ Mittag – harte Schatten, wenig Volumetrik')
+    elif v in ('abends', 'abend', 'dusk', '3'):
+        params.penumbra_breite = 0.18
+        params.umbra_dunkelheit = 0.04
+        params.falloff_exponent = 2.5
+        params.blur_radius = 5
+        params.ambient = 0.03
+        params.volumetric_gain = 1.8
+        params.gamma = 0.5
+        params.scattering_coeff = 0.55
+        params.absorption_coeff = 0.18
+        params.mist_density = 0.22
+        params.mist_height_falloff = 0.85
+        params.color_temp = 2800.0
+        params.jitter_strength = 0.22
+        params.phase_g = 0.7
+        print('🌇 Abenddämmerung – goldene Stunde, tiefe Kegel')
+    elif v in ('nacht', 'night', '4'):
+        params.penumbra_breite = 0.22
+        params.umbra_dunkelheit = 0.01
+        params.falloff_exponent = 3.0
+        params.blur_radius = 6
+        params.ambient = 0.01
+        params.volumetric_gain = 2.2
+        params.gamma = 0.45
+        params.scattering_coeff = 0.6
+        params.absorption_coeff = 0.1
+        params.mist_density = 0.15
+        params.mist_height_falloff = 1.2
+        params.color_temp = 4200.0  # Mondlicht
+        params.jitter_strength = 0.12
+        params.phase_g = 0.6
+        print('🌙 Nacht – Mondlicht, starker Kontrast, feiner Nebel')
+    elif v in ('herbst', 'autumn', '5'):
+        params.penumbra_breite = 0.16
+        params.umbra_dunkelheit = 0.05
+        params.falloff_exponent = 2.3
+        params.blur_radius = 4
+        params.ambient = 0.025
+        params.volumetric_gain = 1.6
+        params.gamma = 0.55
+        params.scattering_coeff = 0.5
+        params.absorption_coeff = 0.14
+        params.mist_density = 0.25
+        params.mist_height_falloff = 0.8
+        params.color_temp = 3000.0
+        params.jitter_strength = 0.2
+        params.phase_g = 0.68
+        print('🍂 Herbst-Spezial – warmer Nebel, tiefe Lichtkegel')
+    else:
+        print('Unbekannte Vorlage. Verfügbar: morgens, mittag, abends, nacht, herbst')
+    return params
+
+
+def main():
+    print('🦤 3D-Lichtspiel – Volumetrisches Licht & Schatten im Herbstpark')
+    print('=' * 60)
+    
     params = ShaderParams()
     
-    print("🦤 3D-Lichtspiel – Volumetrisches Licht & Schatten im Herbstpark")
-    print("==============================================================")
-    
     while True:
-        print("\n=== Hauptmenü ===")
-        print("1. Szene rendern")
-        print("2. Shader-Parameter anpassen")
-        print("3. Beenden")
-        try:
-            wahl = input("Deine Wahl (1-3): ").strip()
-        except EOFError:
-            print("\nTschüss! 🦤")
-            break
-        
-        if wahl == '3':
-            print("Tschüss! 🦤")
-            break
-        
-        if wahl == '2':
-            params = menü_shader_params(params)
-            continue
-        
-        if wahl != '1':
-            continue
+        print('\n=== Hauptmenü ===')
+        print('  1. Szene rendern')
+        print('  2. Shader-Parameter anpassen')
+        print('  3. Tageszeit-Vorlage laden')
+        print('  4. Beenden')
         
         try:
-            tageszeit = input("Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: ").strip() or "dämmerung"
-            tageszeit = _norm(tageszeit)
-            if tageszeit not in ("dämmerung", "nacht", "herbsttag"):
-                print("Fifo kennt nur: dämmerung, nacht, herbsttag.")
-                continue
+            wahl = input('Deine Wahl (1-4): ').strip()
         except EOFError:
+            print('\n🦤 Tschüss!')
             break
         
-        bäume, quellen = generiere_szene(tageszeit, breite, hoehe)
+        if wahl == '1':
+            breite, hoehe, quellen, bäume = erzeuge_szene(params)
+            ascii_art = zeichne_lichtkegel(breite, hoehe, quellen, bäume, params)
+            print(f'\n--- Render: {breite}x{hoehe} ---')
+            for zeile in ascii_art:
+                print(zeile)
+            print('--- Ende ---')
         
-        # Tag-spezifische Defaults überschreiben
-        if tageszeit == 'herbsttag':
-            params.ambient = 0.15
-            params.volumetric_gain = 0.8
-        elif tageszeit == 'dämmerung':
-            params.ambient = 0.03
-            params.volumetric_gain = 1.2
-        else:  # nacht
-            params.ambient = 0.01
-            params.volumetric_gain = 1.5
+        elif wahl == '2':
+            params = menü_shader_parameter(params)
         
-        print(f"\nRendere {tageszeit}... ({len(bäume)} Bäume, {len(quellen)} Laternen)")
-        bild = zeichne_lichtkegel(breite, hoehe, quellen, bäume, params)
-        print("\n" + "=" * breite)
-        for zeile in bild:
-            print(zeile)
-        print("=" * breite)
-        print(f"Parameter: Penumbra={params.penumbra_breite:.2f} Falloff={params.falloff_exponent:.1f} Blur={params.blur_radius} Gamma={params.gamma:.2f}")
+        elif wahl == '3':
+            try:
+                v = input('Vorlage (morgens/mittag/abends/nacht/herbst): ').strip()
+                params = tageszeit_vorlage(params, v)
+            except EOFError:
+                print('\n🦤 Tschüss!')
+                break
+        
+        elif wahl == '4':
+            print('🦤 Bis bald im Park!')
+            break
+        
+        else:
+            print('Unbekannte Option.')
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
