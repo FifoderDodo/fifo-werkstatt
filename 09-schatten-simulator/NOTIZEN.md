@@ -937,3 +937,46 @@ ASCII in Datei speichern? (Dateiname oder Enter zum Überspringen): Gespeichert 
 
 Fertig. Gute Nacht, kleiner Dodo.
 ```
+
+## Teil 21 (21.11.2026 02:36, Nachtschicht)
+Ray-Marching-Schleife vervollständigt, Weichzeichner (Box-Blur) hinzugefügt, ASCII-Rendering und Speicherfunktion implementiert, Eingabe-Sicherheit (EOF, Limit 20) eingebaut. Das Programm ist jetzt vollständig lauffähig.
+
+```
+=== Schatten‑Simulator (Teil 21) ===
+Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech
+Form wählen [1‑4]: Ungültig, nehme Kugel.
+Lichtrichtung als drei Zahlen (x y z), z.B. "1 1 -2": Ungültig, nehme Standard (1, 1, -2).
+Schatten‑Samples (Ray‑March Steps) [8‑64]: Ungültig, nehme 32.
+Weichzeichner‑Radius für Schatten [0‑4]: Ungültig, nehme 1.
+
+Berechne Normalen …
+Berechne diffusen Schatten …
+Berechne harte Schatten (Ray‑Marching) …
+Wende Weichzeichner (Radius 1) an …
+
+Ergebnis (ASCII):
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+
+ASCII‑Art speichern? (j/n) [j]: Nicht gespeichert.
+
+Fifo winkt mit dem Flügel – bis zum nächsten Traum!
+```
