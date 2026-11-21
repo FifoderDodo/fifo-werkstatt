@@ -63,3 +63,35 @@ Kamera angehoben, Bodenplane auf y=-1 korrigiert, Normalenberechnung via SDF-Gra
 
 Fertig. Teil 2 erledigt: Normals, Lambert-Shading und Nebel hinzugefügt.
 ```
+
+## Teil 3 (21.11.2026 14:04)
+Noise-Funktion (Value Noise) hinzugefügt und in SDF für Kugel (Bumps) und Boden (Heightmap) eingebaut. Raymarch-Schritte erhöht, Epsilon angepasst. Normals berechnen sich automatisch über das gestörte SDF – das simuliert Parallax-/Bump-Mapping ohne zusätzliche Textur-Abfragen.
+
+```
+              
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+............................................................
+:::::::::::::::::::::::::.::::::::::::::::::::::::::::::::::
+::::::::::::::**###############%%%%%%%%#::::::::::::::::::::
+:::::''''***###########%%%%%%%%%%%%%%%%%%%%%%#''''::::''''''
+''''' +***##########%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'''''''''
+'--++****#########%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----
+
+Fertig. Teil 3 erledigt: Heightmap/Parallax-Struktur via Noise im SDF integriert.
+```
