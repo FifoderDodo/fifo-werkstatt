@@ -4,7 +4,7 @@ Ein kleiner Shader für räumliche Tiefe und weiche Farbverläufe
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 5 von etwa 12
+Stand: in Arbeit, Teil 6 von etwa 12
 
 ## Ausprobieren
 
@@ -15,7 +15,7 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-     
+                
                                                             
                                                             
                                                             
@@ -33,15 +33,14 @@ python3 main.py
                                                             
                                                             
                                                             
-                                                            
-""""""""""""""""::"""""""""""""""""""""""""""":"""""""""""""
-::::::::::::::::::::::::::::::;::::::::;::::::::::::::::::::
-;;;;;;;;;;;;;;{}[[[]]]](((((((((()))))((;;;;;;;;;;;;;;;;;;::
-~;;;;~~~~<{}}[[]]](((((((()))))))))))))))))))(~~~~;;;;~~~~~~
-~;~~! ><{}}[[]]]((((()))))))))))))))))\\\\\)\)))))(~~;;~~!!!
-~!!!><<{}[[[]]((((()))))))))))))))\\\///\\//\\\\\))))))(!!!!
+rxxrjnunrnnxxnr1nnnxnnjxuuxxnnxnx(|xxxxnrnunt\nxrxr|(/xnxnxx
+nnnxt\vvunuuxxvcurnuunuur(fnnuuunuvvr|jvunuuj\\jnnnuununj/\j
+nujvzzvnvvuuvvcXYUJJCCLLLQQQQQ00OOOOOOO0vvuvvuuczcnjjvvnvvr|
+ccvttvccuxvzXYUJCCLQQQ0000OOOOOZZmmmmmmmmmmZZ0cvczvt/juccvvc
+u/rcz fxvzXYUJCCLQQQ000OOOOOOZZZmmwwwwwwwwwwwwwmmZOcnt/tnczc
+ncz|trnvzXYUJCLLQQ000OOOOZZZZZZmmwwwqqqqqqqqqqqqqqwwwmmZzXYX
 
-Fertig. Drück Enter für Exit.
+Fifo watschelt zufrieden davon. Nächster Schritt: Reflections? AO? Volumetrics?
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
