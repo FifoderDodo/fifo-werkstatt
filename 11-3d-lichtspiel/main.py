@@ -171,71 +171,98 @@ def noise_3d(x, y, z, seed):
 
 def render(params: ShaderParams, bäume, licht_pos, width=80, height=24):
     img = [[0.0 for _ in range(width)] for _ in range(height)]
+    lx, ly, lz = licht_pos
+    max_dist = 10.0
+    step_size = max_dist / params.march_steps
     for y in range(height):
         for x in range(width):
             nx = (x / (width - 1)) * 2 - 1
             ny = (y / (height - 1)) * 2 - 1
-            pos = (nx, ny, 0)
+            # Kamera bei (0,0,-2), Blickrichtung auf Ebene z=0
+            ray_origin = (0.0, 0.0, -2.0)
+            ray_dir = (nx, ny, 2.0)
+            ray_len = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
+            ray_dir = (ray_dir[0]/ray_len, ray_dir[1]/ray_len, ray_dir[2]/ray_len)
             intensity = params.ambient
-            # Abstand zum Licht
-            lx, ly, lz = licht_pos
-            dx, dy, dz = lx - pos[0], ly - pos[1], lz - pos[2]
-            dist = math.sqrt(dx * dx + dy * dy + dz * dz)
-            # einfache Falloff
-            falloff = max(0.0, 1.0 - (dist - params.falloff_start) / (params.falloff_start))
-            falloff **= params.falloff_exponent
-            # volumetrische Streuung (rudimentär)
-            scatter = params.scattering_coeff * math.exp(-params.absorption_coeff * dist)
-            intensity += params.volumetric_gain * scatter * falloff
-            # Schatten vom nächsten Baum prüfen
-            shadow = 1.0
-            for baum in bäume:
-                sx = schattenfaktor_für_punkt(pos[0], pos[1], lx, ly, 2.0, bäume, params)
-                shadow = min(shadow, sx)
-            intensity *= shadow
+            # Volumetric marching
+            for step in range(params.march_steps):
+                t = (step + 0.5) * step_size
+                px = ray_origin[0] + ray_dir[0] * t
+                py = ray_origin[1] + ray_dir[1] * t
+                pz = ray_origin[2] + ray_dir[2] * t
+                if pz > 0:
+                    break
+                density = params.mist_density * math.exp(-pz * params.mist_height_falloff)
+                ldx = lx - px
+                ldy = ly - py
+                ldz = lz - pz
+                light_dist = math.sqrt(ldx*ldx + ldy*ldy + ldz*ldz)
+                if light_dist < 0.01:
+                    continue
+                ldx /= light_dist
+                ldy /= light_dist
+                ldz /= light_dist
+                shadow = schattenfaktor_für_punkt(px, py, lx, ly, light_dist, bäume, params)
+                cos_theta = ray_dir[0]*ldx + ray_dir[1]*ldy + ray_dir[2]*ldz
+                phase = henyey_greenstein(cos_theta, params.phase_g)
+                falloff = max(0.0, 1.0 - (light_dist - params.falloff_start) / max_dist)
+                light_intensity = falloff * shadow
+                scatter = density * params.scattering_coeff * phase * light_intensity * params.volumetric_gain
+                intensity += scatter * step_size
+            # Boden bei z=0
+            if ray_dir[2] > 0:
+                t_ground = -ray_origin[2] / ray_dir[2]
+                if 0 < t_ground < max_dist:
+                    gx = ray_origin[0] + ray_dir[0] * t_ground
+                    gy = ray_origin[1] + ray_dir[1] * t_ground
+                    gdx = lx - gx
+                    gdy = ly - gy
+                    gdz = lz
+                    gdist = math.sqrt(gdx*gdx + gdy*gdy + gdz*gdz)
+                    gfalloff = max(0.0, 1.0 - (gdist - params.falloff_start) / max_dist)
+                    gshadow = schattenfaktor_für_punkt(gx, gy, lx, ly, gdist, bäume, params)
+                    ground_intensity = gfalloff * gshadow * 0.5
+                    intensity += ground_intensity
             img[y][x] = intensity
-    # Blur anwenden
-    if params.blur_radius > 0:
-        gew = gauß_gewichte(params.blur_radius)
-        img = box_blur_1d(img, gew, horizontal=True)
-        img = box_blur_1d(img, gew, horizontal=False)
-    # ASCII Ausgabe
-    lines = []
-    for row in img:
-        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        lines.append(line)
-    return '\n'.join(lines)
+    weights = gauß_gewichte(params.blur_radius)
+    img = box_blur_1d(img, weights, horizontal=True)
+    img = box_blur_1d(img, weights, horizontal=False)
+    return img
 
 def main():
     params = ShaderParams()
-    # Beispiel-Bäume: (x, y, radius)
-    bäume = [(-0.3, 0.2, 0.2), (0.4, -0.1, 0.15), (0.0, 0.5, 0.25)]
-    licht_pos = (0.0, 0.8, -1.0)
-    print('Starte 3D‑Lichtspiel‑Simulation. Drücke Enter für nächsten Frame, EOF zum Beenden.')
+    random.seed(params.noise_seed)
+    bäume = []
+    for _ in range(15):
+        bx = random.uniform(-1.5, 1.5)
+        by = random.uniform(-1.5, 1.5)
+        br = random.uniform(0.05, 0.15)
+        bäume.append((bx, by, br))
+    licht_pos = (0.0, 0.0, 2.0)
+    width, height = 80, 24
     frame = 0
-    while True:
-        try:
-            if frame == 0:
-                print('--- Frame 1 ---')
-            else:
-                print(f'--- Frame {frame+1} ---')
-            output = render(params, bäume, licht_pos)
-            print(output)
-            # leichte Bewegung des Lichts für Animation
-            licht_pos = (licht_pos[0] + (random.random() - 0.5) * 0.05,
-                         licht_pos[1] + (random.random() - 0.5) * 0.05,
-                         licht_pos[2])
-            frame += 1
-            if frame >= 20:
-                print('Maximale Frame‑Anzahl erreicht, Ende.')
+    try:
+        while True:
+            licht_pos = (math.sin(frame * 0.05) * 1.0,
+                         math.cos(frame * 0.03) * 1.0,
+                         2.0 + math.sin(frame * 0.02) * 0.5)
+            img = render(params, bäume, licht_pos, width, height)
+            for y in range(height):
+                line = ''.join(intensitaet_zu_ascii(img[y][x], params.gamma) for x in range(width))
+                print(line)
+            print(f"Frame {frame} – Enter für weiter, 'q' zum Beenden")
+            sys.stdout.flush()
+            try:
+                inp = input()
+                if inp.strip().lower() == 'q':
+                    break
+            except EOFError:
                 break
-            input('Weiter (Enter) ...')
-        except EOFError:
-            print('\nEOF erhalten – Simulation wird freundlich beendet.')
-            break
-        except KeyboardInterrupt:
-            print('\nAbbruch durch Benutzer – Auf Wiedersehen.')
-            break
+            frame += 1
+            print("\033[H\033[J", end="")
+    except KeyboardInterrupt:
+        pass
+    print("Gute Nacht!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
