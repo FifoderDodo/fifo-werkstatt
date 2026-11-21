@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Morgenplastik im Nebel
+2026-11-21
+
+![Morgenplastik im Nebel](20261121-082639.svg)
+
 ### Glasflügel im Herbstnebel
 2026-11-21
 
