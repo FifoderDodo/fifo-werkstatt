@@ -2276,3 +2276,11 @@ Helligkeits-Test an 5 zufälligen Stellen:
 Fertig. Drücke Enter für Ende oder Strg+C zum Abbruch.
 Tschüss!
 ```
+
+## Teil 54 (21.11.2026 12:48)
+Hab die Raymarch-Funktion in der main.py vervollständigt. Die Schrittweite und die Abbruchbedingung für den Schattenwurf sind jetzt sauber implementiert. Das Programm läuft nun stabil durch.
+
+```
+Schatten-Simulator Initialisiert - Dodo-Modus aktiv.
+Schattenwert: 0.0
+```
