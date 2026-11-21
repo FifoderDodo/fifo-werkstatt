@@ -58,14 +58,25 @@ class Tiefenkarte:
         return (h00 * (1.0 - dx) + h01 * dx) * (1.0 - dy) + (h10 * (1.0 - dx) + h11 * dx) * dy
 
     def normalen(self, z_faktor: float = 2.5) -> List[List[Vec3]]:
+        """Berechnet Normalen per Sobel-Filter (3x3) für mathematisch glattere Kanten."""
         normals: List[List[Vec3]] = []
+        # Sobel-Kernel Gewichte
         for y in range(self.h):
             reihe: List[Vec3] = []
             for x in range(self.b):
-                hx = (self.get(y, x + 1) - self.get(y, x - 1)) * 0.5 * z_faktor
-                hy = (self.get(y + 1, x) - self.get(y - 1, x)) * 0.5 * z_faktor
+                # Sobel X (horizontal)
+                gx = (
+                    -self.get(y-1, x-1) + self.get(y-1, x+1)
+                    -2.0 * self.get(y, x-1)   + 2.0 * self.get(y, x+1)
+                    -self.get(y+1, x-1) + self.get(y+1, x+1)
+                ) * 0.125 * z_faktor
+                # Sobel Y (vertikal)
+                gy = (
+                    -self.get(y-1, x-1) - 2.0 * self.get(y-1, x) - self.get(y-1, x+1)
+                    +self.get(y+1, x-1) + 2.0 * self.get(y+1, x) + self.get(y+1, x+1)
+                ) * 0.125 * z_faktor
                 # Normalenvektor zeigt aus der Bildfläche nach oben-außen
-                reihe.append(vec3_norm((-hx, -hy, 1.0)))
+                reihe.append(vec3_norm((-gx, -gy, 1.0)))
             normals.append(reihe)
         return normals
 
@@ -89,10 +100,8 @@ class Lichtquelle:
 
     def vektor_und_distanz(self, p: Vec3) -> Tuple[Vec3, float]:
         if self.typ == 'gerichtet':
-            # vec ist Richtung ZUR Lichtquelle
             return vec3_norm(self.vec), 1e6
         else:
-            # Punktlicht: Vektor von Oberfläche P zur Lichtquelle
             diff = vec3_sub(self.vec, p)
             dist = math.sqrt(vec3_dot(diff, diff))
             l_dir = vec3_norm(diff) if dist > 1e-6 else (0.0, 0.0, 1.0)
@@ -101,20 +110,20 @@ class Lichtquelle:
     def energie_an(self, dist: float) -> float:
         if self.typ == 'gerichtet':
             return self.intensitaet
-        # Physikalischer Abfall mit Distanzfaktor
         return self.intensitaet / (1.0 + self.abfall * dist * dist)
 
 # ---------- 3D Raymarching & Shading ----------
 
-def raymarch_schatten(tk: Tiefenkarte, start: Vec3, l_dir: Vec3, max_dist: float, schritte: int = 24) -> float:
-    """Prüft entlang des Lichtvektors, ob die Tiefenkarte die Sichtlinie schneidet."""
-    # Leicht anheben gegen Selbsteinkerbung
-    curr_x = start[0] + l_dir[0] * 0.4
-    curr_y = start[1] + l_dir[1] * 0.4
-    curr_z = start[2] + l_dir[2] * 0.4
+def raymarch_schatten(tk: Tiefenkarte, start: Vec3, l_dir: Vec3, max_dist: float, z_skalierung: float, schritte: int = 24) -> float:
+    """Prüft entlang des Lichtvektors in Weltkoordinaten, ob die Tiefenkarte die Sichtlinie schneidet."""
+    # Leicht anheben gegen Selbsteinkerbung (in Welt-Einheiten)
+    offset = 0.4 * z_skalierung
+    curr_x = start[0] + l_dir[0] * offset
+    curr_y = start[1] + l_dir[1] * offset
+    curr_z = start[2] + l_dir[2] * offset
     
     schrittweite = max(0.5, min(2.0, max_dist / schritte))
-    d = 0.4
+    d = offset
     while d < max_dist:
         curr_x += l_dir[0] * schrittweite
         curr_y += l_dir[1] * schrittweite
@@ -124,8 +133,9 @@ def raymarch_schatten(tk: Tiefenkarte, start: Vec3, l_dir: Vec3, max_dist: float
         if not (0 <= curr_x < tk.b and 0 <= curr_y < tk.h):
             break
             
-        karten_h = tk.get_bilinear(curr_y, curr_x)
-        if curr_z < karten_h:
+        karten_h_roh = tk.get_bilinear(curr_y, curr_x)
+        karten_h_welt = karten_h_roh * z_skalierung
+        if curr_z < karten_h_welt:
             return 0.1  # Im Kernschatten
     return 1.0  # Volles Licht
 
@@ -149,6 +159,7 @@ def berechne_tiefen_schattierung(
             p: Vec3 = (float(x), float(y), z_val)
             n = normalen_feld[y][x]
             
+            # Ambient mit leichter Höhenmodulation
             gesamt_helligkeit = ambient * (0.3 + 0.7 * tk.get(y, x))
             
             for licht in lichter:
@@ -156,159 +167,118 @@ def berechne_tiefen_schattierung(
                 diffus = max(0.0, vec3_dot(n, l_dir))
                 
                 if diffus > 0.001:
-                    schatten = raymarch_schatten(tk, (p[0], p[1], tk.get(y, x)), l_dir, min(dist, 40.0))
+                    # Raymarch in Weltkoordinaten, Startpunkt auf Oberfläche (Welt-Z)
+                    schatten = raymarch_schatten(tk, p, l_dir, min(dist, 40.0), z_tiefe)
                     energie = licht.energie_an(dist) * schatten
                     
-                    # Diffuser Anteil
+                    # Diffuser Anteil (Lambert)
                     gesamt_helligkeit += diffus * energie
                     
                     # Spekularer Anteil (Blinn-Phong)
-                    h = vec3_norm(vec3_add(l_dir, sicht_vektor))
-                    spek = max(0.0, vec3_dot(n, h)) ** glanz_haerte
+                    h_vec = vec3_norm(vec3_add(l_dir, sicht_vektor))
+                    spek = max(0.0, vec3_dot(n, h_vec))
+                    spek = spek ** glanz_haerte
                     gesamt_helligkeit += spek * glanz_staerke * energie
             
-            # Clamping auf [0, 1] für saubere ASCII-Abbildung
-            reihe.append(max(0.0, min(1.0, gesamt_helligkeit)))
+            reihe.append(min(1.0, gesamt_helligkeit))
         ausgabe.append(reihe)
     return ausgabe
 
-# ---------- Hilfsfunktionen für Szenenaufbau ----------
+# ---------- Szenenbau & Ausgabe ----------
 
-def erzeuge_prozedurale_tiefenkarte(breite: int = 80, hoehe: int = 40) -> Tiefenkarte:
-    """Erzeugt eine Tiefenkarte mit Hügeln, einer Kugel und etwas Rauschen."""
+def szene_bauen(breite: int = 80, hoehe: int = 40) -> Tiefenkarte:
+    """Erzeugt eine prozedurale Testszene mit Hügeln, Kugel und Rillen."""
     daten = [[0.0 for _ in range(breite)] for _ in range(hoehe)]
     cx, cy = breite * 0.5, hoehe * 0.5
-    
     for y in range(hoehe):
         for x in range(breite):
-            # Zwei große Hügel
-            dx1 = (x - cx * 0.4) / (breite * 0.3)
-            dy1 = (y - cy * 0.6) / (hoehe * 0.3)
-            h1 = math.exp(-(dx1*dx1 + dy1*dy1) * 2.0) * 0.6
-            
-            dx2 = (x - cx * 1.5) / (breite * 0.25)
-            dy2 = (y - cy * 0.4) / (hoehe * 0.25)
-            h2 = math.exp(-(dx2*dx2 + dy2*dy2) * 2.5) * 0.5
-            
-            # Eine Kugel in der Mitte
-            dx3 = (x - cx) / (breite * 0.2)
-            dy3 = (y - cy) / (hoehe * 0.2)
-            r2 = dx3*dx3 + dy3*dy3
-            h3 = math.sqrt(max(0.0, 1.0 - r2)) * 0.7 if r2 < 1.0 else 0.0
-            
-            # Feines Rauschen für Oberflächenstruktur
-            noise = (random.random() - 0.5) * 0.03
-            
-            daten[y][x] = min(1.0, h1 + h2 + h3 + noise)
-    
+            dx = (x - cx) / breite
+            dy = (y - cy) / hoehe
+            # Großer Hügel
+            dist = math.sqrt(dx*dx + dy*dy)
+            h = 0.6 * (1.0 - min(1.0, dist * 2.5))
+            # Kleine Kugel links oben
+            kx, ky = (x - breite*0.25) / breite, (y - hoehe*0.25) / hoehe
+            kdist = math.sqrt(kx*kx + ky*ky)
+            h += 0.4 * max(0.0, 1.0 - kdist * 8.0)
+            # Rillen (Sinusrillen)
+            h += 0.08 * math.sin(x * 0.4) * math.cos(y * 0.3)
+            # Rauschen
+            h += 0.02 * (random.random() - 0.5)
+            daten[y][x] = max(0.0, min(1.0, h))
     return Tiefenkarte(daten)
 
-def waehle_licht_setup() -> List[Lichtquelle]:
-    """Interaktive Auswahl eines Licht-Setups."""
-    print("\nVerfügbare Licht-Setups:")
-    print("  1) Klassisch: Ein gerichtetes Licht von oben-links")
-    print("  2) Dramatisch: Zwei Punktlichter (warm/kalt) + schwaches Fill")
-    print("  3) Studio: Drei Punktlichter (Key, Fill, Rim)")
-    
-    while True:
-        try:
-            wahl = input("Wähle Setup (1-3) [1]: ").strip()
-            if wahl == '':
-                wahl = '1'
-            if wahl in ('1', '2', '3'):
-                break
-            print("Bitte 1, 2 oder 3 eingeben.")
-        except EOFError:
-            print("\nKeine Eingabe möglich, nutze Standard (1).")
-            wahl = '1'
-            break
-    
-    if wahl == '1':
-        # Gerichtetes Licht von oben-links (Richtung zur Quelle)
-        return [Lichtquelle('gerichtet', vec3_norm((0.5, -0.3, 1.0)), intensitaet=1.2)]
-    elif wahl == '2':
-        # Zwei Punktlichter: warm (orange) links, kalt (blau) rechts
-        return [
-            Lichtquelle('punkt', ( -20.0, 10.0, 30.0), intensitaet=1.5, abfall=0.0015),
-            Lichtquelle('punkt', ( 100.0, 10.0, 25.0), intensitaet=1.0, abfall=0.0015),
-            Lichtquelle('gerichtet', vec3_norm((0.0, 0.2, 1.0)), intensitaet=0.2)  # Fill
-        ]
-    else:
-        # Drei-Punkt-Beleuchtung
-        return [
-            Lichtquelle('punkt', ( 10.0, -10.0, 40.0), intensitaet=1.8, abfall=0.001),  # Key
-            Lichtquelle('punkt', ( 70.0, 20.0, 30.0), intensitaet=0.6, abfall=0.0015),  # Fill
-            Lichtquelle('punkt', ( 40.0, 20.0, -20.0), intensitaet=1.2, abfall=0.002)   # Rim (von hinten)
-        ]
+def licht_waehlen(tk: Tiefenkarte) -> List[Lichtquelle]:
+    """Plaziert ein Hauptlicht und zwei Fülllichter."""
+    lichter = [
+        Lichtquelle('gerichtet', vec3_norm((0.5, -0.3, 1.0)), 1.2),
+        Lichtquelle('punkt', (tk.b * 0.8, tk.h * 0.2, 15.0), 0.6, 0.001),
+        Lichtquelle('punkt', (tk.b * 0.1, tk.h * 0.8, 10.0), 0.4, 0.002),
+    ]
+    return lichter
 
-# ---------- Professionelles ASCII-Rendering ----------
-
-# Erweiterter Zeichen-Rampe für bessere Tiefenwahrnehmung (von dunkel nach hell)
-ASCII_RAMPE = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
-# 70 Stufen, kann per Gamma korrigiert werden
-
-def helligkeit_zu_ascii(helligkeit: float, gamma: float = 1.8) -> str:
-    """Wandelt normierte Helligkeit (0-1) in ASCII-Zeichen um mit Gamma-Korrektur."""
-    # Gamma-Korrektur für lineare Wahrnehmung
-    korrigiert = helligkeit ** (1.0 / gamma)
-    index = int(korrigiert * (len(ASCII_RAMPE) - 1))
-    return ASCII_RAMPE[index]
-
-def rendere_ascii(helligkeits_karte: List[List[float]]) -> str:
-    """Erzeugt einen mehrzeiligen String aus der Helligkeitskarte."""
-    zeilen = []
-    for reihe in helligkeits_karte:
-        zeile = ''.join(helligkeit_zu_ascii(w) for w in reihe)
-        zeilen.append(zeile)
-    return '\n'.join(zeilen)
-
-# ---------- Hauptprogramm ----------
+ASCII_RAMPE = " .'`^\",;:Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$€"[:70]  # 70 Stufen
+def als_ascii_ausgeben(helligkeiten: List[List[float]], gamma: float = 1.8) -> None:
+    """Wandelt Helligkeitsmatrix in ASCII-Art mit Gamma-Korrektur um."""
+    rampe_len = len(ASCII_RAMPE) - 1
+    for reihe in helligkeiten:
+        zeile = ''
+        for h in reihe:
+            h = max(0.0, min(1.0, h))
+            h = h ** (1.0 / gamma)
+            idx = int(h * rampe_len + 0.5)
+            zeile += ASCII_RAMPE[idx]
+        print(zeile)
 
 def main() -> None:
-    print("=== Schatten-Simulator v44 ===")
-    print("Berechne 3D-Tiefe und echten Schattenwurf für flache Bilder...")
-    
-    # 1. Tiefenkarte erzeugen
-    print("\nErzeuge prozedurale Tiefenkarte (Hügel + Kugel + Rauschen)...")
-    tk = erzeuge_prozedurale_tiefenkarte(80, 40)
+    print("☠ Schatten-Simulator v45 — Tiefenglättung & Koordinatenfix ☠")
+    print("Erzeuge Szenerie (80x40)...")
+    tk = szene_bauen(80, 40)
     mn, mx, sp = tk.statistik()
-    print(f"Tiefenbereich: {mn:.3f} - {mx:.3f} (Spannweite {sp:.3f})")
+    print(f"Tiefe: min={mn:.3f} max={mx:.3f} span={sp:.3f}")
     
-    # 2. Licht-Setup wählen
-    lichter = waehle_licht_setup()
-    print(f"Aktive Lichtquellen: {len(lichter)}")
-    for i, l in enumerate(lichter):
-        print(f"  {i+1}. {l.typ.capitalize()}, Intensität={l.intensitaet:.2f}")
+    print("Platziere Lichter...")
+    lichter = licht_waehlen(tk)
     
-    # 3. Schattierung berechnen
-    print("\nRaymarching & Shading (kann einen Moment dauern)...")
-    helligkeits_karte = berechne_tiefen_schattierung(tk, lichter, z_tiefe=6.0)
+    print("Berechne 3D-Schattierung (Raymarch + Blinn-Phong)...")
+    hell = berechne_tiefen_schattierung(tk, lichter, z_tiefe=6.0)
     
-    # 4. ASCII-Ausgabe
-    print("\n--- Gerendertes Bild (ASCII) ---")
-    ascii_bild = rendere_ascii(helligkeits_karte)
-    print(ascii_bild)
+    print("\n--- Render-Ausgabe ---")
+    als_ascii_ausgeben(hell, gamma=1.8)
     print("--- Ende ---")
     
-    # 5. Optional: Speichern als Textdatei
-    try:
-        speichern = input("\nAls Textdatei speichern? (j/N): ").strip().lower()
-        if speichern == 'j':
-            dateiname = input("Dateiname [schatten.txt]: ").strip() or "schatten.txt"
-            with open(dateiname, 'w', encoding='utf-8') as f:
-                f.write(ascii_bild)
-            print(f"Gespeichert unter {dateiname}")
-    except EOFError:
-        pass
-    
-    print("\nFifo der Dodo sagt: Tiefe sieht gut aus! Bis zum nächsten Commit.")
+    # Interaktiver Loop (optional, für Browser-Tests)
+    while True:
+        try:
+            cmd = input("\n[enter=neu, q=quit, z=neue tiefe, g=neues gamma]: ").strip().lower()
+            if cmd == 'q' or cmd == 'quit':
+                break
+            elif cmd == 'z':
+                try:
+                    z = float(input("Z-Tiefe (1-20): "))
+                    hell = berechne_tiefen_schattierung(tk, lichter, z_tiefe=z)
+                    als_ascii_ausgeben(hell, gamma=1.8)
+                except (ValueError, EOFError):
+                    pass
+            elif cmd == 'g':
+                try:
+                    g = float(input("Gamma (0.5-3.0): "))
+                    als_ascii_ausgeben(hell, gamma=g)
+                except (ValueError, EOFError):
+                    pass
+            else:
+                # Neuer Seed, neue Szenerie
+                random.seed()
+                tk = szene_bauen(80, 40)
+                lichter = licht_waehlen(tk)
+                hell = berechne_tiefen_schattierung(tk, lichter, z_tiefe=6.0)
+                als_ascii_ausgeben(hell, gamma=1.8)
+        except EOFError:
+            print("\nTschüss! 👋")
+            break
+        except KeyboardInterrupt:
+            print("\nAbgebrochen.")
+            break
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nAbgebrochen.")
-    except Exception as e:
-        print(f"\nFehler: {e}")
-        import traceback
-        traceback.print_exc()
+    main()
