@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Dodo wartet auf den Nachmittag, der nie kommt
+2026-11-21
+
+![Dodo wartet auf den Nachmittag, der nie kommt](20261121-110111.svg)
+
 ### Klaren Himmel ertrag ich morgen
 2026-11-21
 
