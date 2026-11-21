@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittagsschwere unter der Linde
+2026-11-21
+
+![Nachmittagsschwere unter der Linde](20261121-093055.svg)
+
 ### Künstliche Schatten verfehlen den Nachmittag
 2026-11-21
 
