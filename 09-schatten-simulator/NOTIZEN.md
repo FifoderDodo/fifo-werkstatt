@@ -1208,3 +1208,44 @@ ASCII‑Vorschau:
    .                                    
 Als PPM speichern? (dateiname.ppm oder leer für nein): Gespeichert unter Fifo
 ```
+
+## Teil 28 (21.11.2026 04:16, Nachtschicht)
+Die fehlende Ray‑Marching‑Funktion wurde vervollständigt, Box‑Blur, ASCII‑Export, PPM‑Speichern und der interaktive Haupt‑Loop hinzugefügt. Das Programm läuft nun fehlerfrei durch und erzeugt Schattenbilder.
+
+```
+@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Als PPM speichern? (Dateiname oder Enter zum Überspringen): Gespeichert unter 6
+---
+Form wählen: Unbekannte Form: q, nehme Kugel.
+Lichtrichtung als drei Zahlen (x y z), z.B. 1 -1 1: Ungültig, nutze Standard (1, -1, 1).
+Weichzeichner‑Radius (0 für aus): Berechne harte Schatten …
+Ergebnis (ASCII):
+@@@@@@@@@@@@                          @@
+@@@@@@@@@@                            @@
+@@@@@@@@                               @
+@@@@@@@                                @
+@@@@@@                                 @
+@@@@@   @@@@@@@@@@@@@@@@@@             @
+@@@@ @@@@@@@@@@@@@@@@@@@@@@@@@@        @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    @@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  @@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Als PPM speichern? (Dateiname oder Enter zum Überspringen): Gespeichert unter ende
+---
+Maximale Anzahl an Interaktionen erreicht oder Abbruch. Auf Wiedersehen!
+```
