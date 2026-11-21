@@ -1,5 +1,6 @@
-# 3D-Lichtspiel – Teil 11: Specular Highlights mit Blinn-Phong im Raymarching
+# 3D-Lichtspiel – Teil 12: Specular Highlights mit Blinn-Phong im Raymarching (vollständig)
 # Fifo der Dodo poliert die Herbstluft – jetzt glitzern Staub und Tau im Lichtkegel.
+# Der Truncation-Fehler in noise_3d wurde behoben, Hauptschleife und Menü sind enthalten.
 
 import math
 import sys
@@ -206,282 +207,289 @@ def noise_3d(x: float, y: float, z: float, seed: int) -> float:
     c011 = hash3d(ix, iy + 1, iz + 1)
     c111 = hash3d(ix + 1, iy + 1, iz + 1)
     
+    # Interpolate
     def lerp(a, b, t):
         return a + (b - a) * t
     
-    u = fx * fx * (3.0 - 2.0 * fx)
-    v = fy * fy * (3.0 - 2.0 * fy)
-    w = fz * fz * (3.0 - 2.0 * fz)
+    c00 = lerp(c000, c100, fx)
+    c01 = lerp(c001, c101, fx)
+    c10 = lerp(c010, c110, fx)
+    c11 = lerp(c011, c111, fx)
     
-    x0 = lerp(c000, c100, u)
-    x1 = lerp(c010, c110, u)
-    x2 = lerp(c001, c101, u)
-    x3 = lerp(c011, c111, u)
+    c0 = lerp(c00, c10, fy)
+    c1 = lerp(c01, c11, fy)
     
-    y0 = lerp(x0, x1, v)
-    y1 = lerp(x2, x3, v)
-    
-    return lerp(y0, y1, w) * 2.0 - 1.0
+    return lerp(c0, c1, fz) * 2.0 - 1.0  # -1 bis 1
 
 
-def berechne_volumetrisch(breite: int, hoehe: int, quelle: tuple, radius: float, 
-                          bäume: list, params: ShaderParams) -> list:
-    """Raymarching für volumetrische Lichtkegel mit Schatten, Streuung, Falloff & Specular."""
-    qx, qy = quelle
-    rgb_factors = kelvin_to_rgb_factor(params.color_temp)
+def rendere_szene(breite: int, hoehe: int, params: ShaderParams, bäume: list, licht_pos: tuple, kamera_pos: tuple) -> list:
+    """Raymarching für jeden Pixel, gibt 2D-Liste mit Helligkeitswerten zurück."""
+    lx, ly, lz = licht_pos
+    cx, cy, cz = kamera_pos
+    radius = max(breite, hoehe) * 0.5
     
-    # Shadow-Cache: Berechne Schattenfaktor pro Pixel einmal (2D)
-    print("  Berechne Shadow-Map...")
-    shadow_map = [[1.0 for _ in range(breite)] for __ in range(hoehe)]
-    for y in range(hoehe):
-        for x in range(breite):
-            wx = (x - breite * 0.5) * 0.1
-            wy = (y - hoehe * 0.5) * 0.1
-            shadow_map[y][x] = schattenfaktor_für_punkt(wx, wy, qx, qy, radius, bäume, params)
+    # Farbtemperatur-Faktoren
+    rf, gf, bf = kelvin_to_rgb_factor(params.color_temp)
     
-    # Raymarching pro Pixel
-    print("  Raymarching mit Blinn-Phong Specular...")
-    ergebnis = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
-    
-    # Kamera-Parameter: orthografisch, Blickrichtung -Z
-    cam_z = -20.0
-    max_dist = 40.0
+    bild = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
     
     for y in range(hoehe):
         for x in range(breite):
-            # Weltkoordinaten des Pixels (XY-Ebene)
-            wx = (x - breite * 0.5) * 0.1
-            wy = (y - hoehe * 0.5) * 0.1
+            # Normalisierte Koordinaten -1..1
+            nx = (x - breite * 0.5) / (breite * 0.5)
+            ny = (y - hoehe * 0.5) / (hoehe * 0.5)
             
-            shadow = shadow_map[y][x]
-            if shadow <= params.umbra_dunkelheit * 1.5:
-                # Tiefer Schatten – wenig Volumetrik nötig
-                ergebnis[y][x] = params.ambient * shadow
-                continue
+            # Ray-Direktion (einfache orthogonale Projektion)
+            rdx, rdy, rdz = nx * 0.5, ny * 0.5, -1.0
+            rd_len = math.sqrt(rdx*rdx + rdy*rdy + rdz*rdz)
+            rdx, rdy, rdz = rdx/rd_len, rdy/rd_len, rdz/rd_len
             
-            # Raymarching entlang Z
+            # Raymarching
             transmittance = 1.0
-            accumulated = 0.0
-            specular_accum = 0.0
+            scattered = 0.0
+            specular_acc = 0.0
             
-            step_size = max_dist / params.march_steps
-            
-            # Jitter-Offset für dieses Pixel
-            jitter = 0.0
-            if params.jitter_enabled:
-                jitter = noise_2d(x * 0.1, y * 0.1, params.noise_seed) * params.jitter_strength * step_size
+            # Startpunkt leicht vor der Kamera
+            px, py, pz = cx, cy, cz
+            step_size = 2.0 / params.march_steps
             
             for step in range(params.march_steps):
-                t = (step + 0.5) * step_size + jitter
-                z = cam_z + t
+                # Jitter für dithering
+                if params.jitter_enabled:
+                    jitter = (noise_2d(x + step * 0.1, y + step * 0.1, params.noise_seed) * 2 - 1) * params.jitter_strength
+                    px += rdx * step_size + jitter
+                    py += rdy * step_size + jitter
+                    pz += rdz * step_size + jitter
+                else:
+                    px += rdx * step_size
+                    py += rdy * step_size
+                    pz += rdz * step_size
                 
-                # Distanz zur Lichtquelle (3D)
-                dx = wx - qx
-                dy = wy - qy
-                dz = z - 0.0  # Lichtquelle auf z=0
-                dist_to_light = math.sqrt(dx*dx + dy*dy + dz*dz)
+                # Distanz zum Licht
+                to_light_x = lx - px
+                to_light_y = ly - py
+                to_light_z = lz - pz
+                dist_light = math.sqrt(to_light_x**2 + to_light_y**2 + to_light_z**2)
                 
-                if dist_to_light > radius:
+                if dist_light < 0.01:
                     continue
                 
-                # Falloff mit Start-Offset
-                falloff_dist = max(dist_to_light - params.falloff_start, 0.001)
-                falloff = 1.0 / (falloff_dist ** params.falloff_exponent)
+                # Licht-Richtung
+                ldx, ldy, ldz = to_light_x/dist_light, to_light_y/dist_light, to_light_z/dist_light
                 
-                # Mist-Dichte mit Höhen-Abfall (z-Achse = Höhe)
-                height_factor = math.exp(-abs(z) * params.mist_height_falloff)
-                density = params.mist_density * height_factor
+                # Schattenfaktor (2D-Schattenwurf auf Bodenebene, approximiert)
+                shadow = schattenfaktor_für_punkt(px, py, lx, ly, dist_light, bäume, params)
                 
-                # Transparenz (Absorption)
-                transmittance *= math.exp(-params.absorption_coeff * density * step_size)
-                if transmittance < 0.01:
-                    break
+                # Mist-Dichte mit Höhenabfall
+                mist = params.mist_density * math.exp(-pz * params.mist_height_falloff)
+                
+                # Extinction
+                extinction = (params.scattering_coeff + params.absorption_coeff) * mist
+                transmittance *= math.exp(-extinction * step_size)
                 
                 # Phase-Funktion (Henyey-Greenstein)
-                # View dir: (0, 0, 1) - Kamera schaut entlang +Z
-                # Light dir: von Sample zur Lichtquelle
-                lx, ly, lz = -dx, -dy, -dz
-                light_len = math.sqrt(lx*lx + ly*ly + lz*lz)
-                if light_len > 0:
-                    lx, ly, lz = lx/light_len, ly/light_len, lz/light_len
-                cos_theta = lz  # View dir ist (0,0,1)
+                cos_theta = rdx*ldx + rdy*ldy + rdz*ldz
                 phase = henyey_greenstein(cos_theta, params.phase_g)
                 
-                # Volumetrischer Streuungs-Beitrag
-                scatter = density * phase * falloff * shadow * transmittance
-                accumulated += scatter
+                # Falloff
+                falloff = 1.0 / (1.0 + params.falloff_start * dist_light**params.falloff_exponent)
                 
-                # NEU: Blinn-Phong Specular Highlights
-                # Half-Vector zwischen View (0,0,1) und Light Dir
-                hx = lx * 0.5
-                hy = ly * 0.5
-                hz = (lz + 1.0) * 0.5
+                # Streulicht-Akkumulation
+                scattered += transmittance * params.scattering_coeff * mist * phase * falloff * shadow * step_size
+                
+                # Specular (Blinn-Phong) an Partikeln
+                # Half-Vector
+                hx = rdx + ldx
+                hy = rdy + ldy
+                hz = rdz + ldz
                 h_len = math.sqrt(hx*hx + hy*hy + hz*hz)
-                if h_len > 0:
+                if h_len > 1e-6:
                     hx, hy, hz = hx/h_len, hy/h_len, hz/h_len
-                    # N dot H (Normal ist View-Dir für isotrope Partikel, aber wir nutzen Noise für Variation)
-                    # Verwende 3D-Noise als "Normalen-Störung" für Glitzer-Partikel
-                    noise_val = noise_3d(wx * params.specular_noise_scale, 
-                                         wy * params.specular_noise_scale, 
-                                         z * params.specular_noise_scale, 
-                                         params.noise_seed + 12345)
-                    # Spekulare Normale: leicht gestört von View-Dir
-                    nx = noise_val * 0.3
-                    ny = noise_val * 0.3
-                    nz = math.sqrt(max(0.0, 1.0 - nx*nx - ny*ny))
-                    nh = nx*hx + ny*hy + nz*hz
-                    if nh > 0:
-                        spec = (nh ** params.specular_power) * params.specular_intensity
-                        spec *= falloff * shadow * transmittance * density
-                        specular_accum += spec
+                    # Normalen-Variation durch 3D-Noise
+                    nscale = params.specular_noise_scale
+                    nx_noise = noise_3d(px * nscale, py * nscale, pz * nscale, params.noise_seed + 1)
+                    ny_noise = noise_3d(px * nscale + 100, py * nscale + 100, pz * nscale + 100, params.noise_seed + 2)
+                    nz_noise = noise_3d(px * nscale + 200, py * nscale + 200, pz * nscale + 200, params.noise_seed + 3)
+                    # Störte Normalen
+                    n_len = math.sqrt(nx_noise**2 + ny_noise**2 + nz_noise**2)
+                    if n_len > 1e-6:
+                        nx_noise, ny_noise, nz_noise = nx_noise/n_len, ny_noise/n_len, nz_noise/n_len
+                    # Half-Vector dot Normal
+                    ndot_h = hx*nx_noise + hy*ny_noise + hz*nz_noise
+                    if ndot_h > 0:
+                        spec = (ndot_h ** params.specular_power) * params.specular_intensity
+                        specular_acc += transmittance * spec * falloff * shadow * step_size
             
-            # Kombiniere Volumetrik + Specular + Ambient
-            total = (accumulated + specular_accum) * params.volumetric_gain + params.ambient * shadow
-            ergebnis[y][x] = min(1.0, total)
+            # Gesamt-Helligkeit mit Ambient und Gain
+            gesamt = (scattered + specular_acc) * params.volumetric_gain + params.ambient
+            bild[y][x] = gesamt
     
-    return ergebnis
+    # Box-Blur für weichere Kanten
+    if params.blur_radius > 0:
+        gewichte = gauß_gewichte(params.blur_radius)
+        bild = box_blur_1d(bild, gewichte, True)
+        bild = box_blur_1d(bild, gewichte, False)
+    
+    return bild
 
 
-def wende_blur_an(puffer: list, radius: int) -> list:
-    if radius <= 0:
-        return puffer
-    gewichte = gauß_gewichte(radius)
-    tmp = box_blur_1d(puffer, gewichte, horizontal=True)
-    res = box_blur_1d(tmp, gewichte, horizontal=False)
-    return res
-
-
-def rendere_ascii(puffer: list, gamma: float) -> str:
+def bild_zu_ascii(bild: list, gamma: float) -> str:
     zeilen = []
-    for row in puffer:
-        zeile = ''.join(intensitaet_zu_ascii(v, gamma) for v in row)
-        zeilen.append(zeile)
+    for row in bild:
+        zeilen.append(''.join(intensitaet_zu_ascii(v, gamma) for v in row))
     return '\n'.join(zeilen)
 
 
-def erstelle_demo_szene():
-    """Erzeugt Beispieldaten: Lichtquelle, Bäume, Parameter."""
-    quelle = (0.0, 0.0)
-    radius = 15.0
-    bäume = [
-        (-5.0, -3.0, 1.2),
-        (6.0, -2.0, 0.9),
-        (-7.0, 4.0, 1.5),
-        (4.0, 5.0, 1.0),
-        (0.0, -8.0, 1.3),
-        (-3.0, 7.0, 0.8),
-        (8.0, 1.0, 1.1),
-    ]
-    params = ShaderParams()
-    return quelle, radius, bäume, params
-
-
-def menü_anzeigen(params: ShaderParams):
+def parameter_menü(params: ShaderParams) -> bool:
+    """Zeigt Menü und verarbeitet Eingabe. Gibt False zurück bei Beenden."""
     print("\n=== 3D-Lichtspiel – Parameter ===")
-    print(f"1) Penumbra-Breite:      {params.penumbra_breite:.2f}")
-    print(f"2) Umbra-Dunkelheit:     {params.umbra_dunkelheit:.2f}")
-    print(f"3) Falloff-Exponent:     {params.falloff_exponent:.2f}")
-    print(f"4) Falloff-Start:        {params.falloff_start:.2f}")
-    print(f"5) Blur-Radius:          {params.blur_radius}")
-    print(f"6) Ambient:              {params.ambient:.3f}")
-    print(f"7) Volumetric Gain:      {params.volumetric_gain:.2f}")
-    print(f"8) Gamma:                {params.gamma:.2f}")
-    print(f"9) Scattering Coeff:     {params.scattering_coeff:.2f}")
-    print(f"10) Absorption Coeff:    {params.absorption_coeff:.2f}")
-    print(f"11) Mist Density:        {params.mist_density:.2f}")
+    print(f"1) Penumbra-Breite: {params.penumbra_breite:.2f}")
+    print(f"2) Umbra-Dunkelheit: {params.umbra_dunkelheit:.2f}")
+    print(f"3) Falloff-Exponent: {params.falloff_exponent:.2f}")
+    print(f"4) Falloff-Start: {params.falloff_start:.2f}")
+    print(f"5) Blur-Radius: {params.blur_radius}")
+    print(f"6) Ambient: {params.ambient:.3f}")
+    print(f"7) Volumetric Gain: {params.volumetric_gain:.2f}")
+    print(f"8) Gamma: {params.gamma:.2f}")
+    print(f"9) Scattering Coeff: {params.scattering_coeff:.2f}")
+    print(f"10) Absorption Coeff: {params.absorption_coeff:.2f}")
+    print(f"11) Mist Density: {params.mist_density:.2f}")
     print(f"12) Mist Height Falloff: {params.mist_height_falloff:.2f}")
-    print(f"13) Color Temp (K):      {params.color_temp:.0f}")
-    print(f"14) Jitter Strength:     {params.jitter_strength:.2f}")
-    print(f"15) Phase g:             {params.phase_g:.2f}")
-    print(f"16) March Steps:         {params.march_steps}")
-    print(f"17) Specular Intensity:  {params.specular_intensity:.2f}")
-    print(f"18) Specular Power:      {params.specular_power:.1f}")
-    print(f"19) Specular Noise Scale:{params.specular_noise_scale:.2f}")
-    print(f"20) JitterEnabled:       {params.jitter_enabled}")
+    print(f"13) Color Temp (K): {params.color_temp:.0f}")
+    print(f"14) Jitter Strength: {params.jitter_strength:.2f}")
+    print(f"15) Phase g: {params.phase_g:.2f}")
+    print(f"16) Noise Seed: {params.noise_seed}")
+    print(f"17) March Steps: {params.march_steps}")
+    print(f"18) Jitter Enabled: {params.jitter_enabled}")
+    print(f"19) Specular Intensity: {params.specular_intensity:.2f}")
+    print(f"20) Specular Power: {params.specular_power:.1f}")
+    print(f"21) Specular Noise Scale: {params.specular_noise_scale:.2f}")
     print("R) Rendern")
     print("Q) Beenden")
-
-
-def parameter_eingabe(params: ShaderParams, wahl: str) -> bool:
     try:
-        if wahl == '1':
-            params.penumbra_breite = float(input("Penumbra-Breite (0.01-0.5): "))
-        elif wahl == '2':
-            params.umbra_dunkelheit = float(input("Umbra-Dunkelheit (0.0-0.5): "))
-        elif wahl == '3':
-            params.falloff_exponent = float(input("Falloff-Exponent (0.5-4.0): "))
-        elif wahl == '4':
-            params.falloff_start = float(input("Falloff-Start (0.0-5.0): "))
-        elif wahl == '5':
-            params.blur_radius = int(input("Blur-Radius (0-10): "))
-        elif wahl == '6':
-            params.ambient = float(input("Ambient (0.0-0.2): "))
-        elif wahl == '7':
-            params.volumetric_gain = float(input("Volumetric Gain (0.1-5.0): "))
-        elif wahl == '8':
-            params.gamma = float(input("Gamma (0.2-1.5): "))
-        elif wahl == '9':
-            params.scattering_coeff = float(input("Scattering Coeff (0.0-2.0): "))
-        elif wahl == '10':
-            params.absorption_coeff = float(input("Absorption Coeff (0.0-1.0): "))
-        elif wahl == '11':
-            params.mist_density = float(input("Mist Density (0.0-1.0): "))
-        elif wahl == '12':
-            params.mist_height_falloff = float(input("Mist Height Falloff (0.1-3.0): "))
-        elif wahl == '13':
-            params.color_temp = float(input("Color Temp Kelvin (1000-10000): "))
-        elif wahl == '14':
-            params.jitter_strength = float(input("Jitter Strength (0.0-0.5): "))
-        elif wahl == '15':
-            params.phase_g = float(input("Phase g (-0.9-0.9): "))
-        elif wahl == '16':
-            params.march_steps = int(input("March Steps (8-128): "))
-        elif wahl == '17':
-            params.specular_intensity = float(input("Specular Intensity (0.0-2.0): "))
-        elif wahl == '18':
-            params.specular_power = float(input("Specular Power (1-128): "))
-        elif wahl == '19':
-            params.specular_noise_scale = float(input("Specular Noise Scale (0.1-2.0): "))
-        elif wahl == '20':
-            val = input("JitterEnabled (j/n): ").strip().lower()
-            params.jitter_enabled = val == 'j'
+        wahl = input("Wahl: ").strip()
+    except EOFError:
+        return False
+    
+    if _norm(wahl) == 'q':
+        return False
+    if _norm(wahl) == 'r':
+        return 'render'
+    
+    try:
+        idx = int(wahl)
+        if idx == 1:
+            val = float(input("Penumbra-Breite (0.01-0.5): "))
+            params.penumbra_breite = max(0.01, min(0.5, val))
+        elif idx == 2:
+            val = float(input("Umbra-Dunkelheit (0.0-0.5): "))
+            params.umbra_dunkelheit = max(0.0, min(0.5, val))
+        elif idx == 3:
+            val = float(input("Falloff-Exponent (0.5-5.0): "))
+            params.falloff_exponent = max(0.5, min(5.0, val))
+        elif idx == 4:
+            val = float(input("Falloff-Start (0.01-2.0): "))
+            params.falloff_start = max(0.01, min(2.0, val))
+        elif idx == 5:
+            val = int(input("Blur-Radius (0-10): "))
+            params.blur_radius = max(0, min(10, val))
+        elif idx == 6:
+            val = float(input("Ambient (0.0-0.2): "))
+            params.ambient = max(0.0, min(0.2, val))
+        elif idx == 7:
+            val = float(input("Volumetric Gain (0.1-5.0): "))
+            params.volumetric_gain = max(0.1, min(5.0, val))
+        elif idx == 8:
+            val = float(input("Gamma (0.1-2.0): "))
+            params.gamma = max(0.1, min(2.0, val))
+        elif idx == 9:
+            val = float(input("Scattering Coeff (0.0-2.0): "))
+            params.scattering_coeff = max(0.0, min(2.0, val))
+        elif idx == 10:
+            val = float(input("Absorption Coeff (0.0-1.0): "))
+            params.absorption_coeff = max(0.0, min(1.0, val))
+        elif idx == 11:
+            val = float(input("Mist Density (0.01-1.0): "))
+            params.mist_density = max(0.01, min(1.0, val))
+        elif idx == 12:
+            val = float(input("Mist Height Falloff (0.1-2.0): "))
+            params.mist_height_falloff = max(0.1, min(2.0, val))
+        elif idx == 13:
+            val = float(input("Color Temp (1000-10000): "))
+            params.color_temp = max(1000.0, min(10000.0, val))
+        elif idx == 14:
+            val = float(input("Jitter Strength (0.0-0.5): "))
+            params.jitter_strength = max(0.0, min(0.5, val))
+        elif idx == 15:
+            val = float(input("Phase g (-0.95-0.95): "))
+            params.phase_g = max(-0.95, min(0.95, val))
+        elif idx == 16:
+            val = int(input("Noise Seed (0-9999): "))
+            params.noise_seed = max(0, min(9999, val))
+        elif idx == 17:
+            val = int(input("March Steps (8-128): "))
+            params.march_steps = max(8, min(128, val))
+        elif idx == 18:
+            val = input("Jitter Enabled (ja/nein): ").strip().lower()
+            params.jitter_enabled = val in ('ja', 'j', 'yes', 'y', 'true', '1')
+        elif idx == 19:
+            val = float(input("Specular Intensity (0.0-2.0): "))
+            params.specular_intensity = max(0.0, min(2.0, val))
+        elif idx == 20:
+            val = float(input("Specular Power (1.0-128.0): "))
+            params.specular_power = max(1.0, min(128.0, val))
+        elif idx == 21:
+            val = float(input("Specular Noise Scale (0.01-2.0): "))
+            params.specular_noise_scale = max(0.01, min(2.0, val))
         else:
-            return False
-    except (ValueError, EOFError):
+            print("Unbekannte Option.")
+        print("Parameter aktualisiert.")
+    except ValueError:
         print("Ungültige Eingabe.")
+    except EOFError:
+        return False
     return True
 
 
 def main():
-    print("🍂 3D-Lichtspiel – Teil 11: Blinn-Phong Specular Highlights 🍂")
-    print("Fifo der Dodo lässt Herbststaub im Lichtkegel glitzern.\n")
+    # Szenen-Setup
+    bäume = [
+        (-1.5, -1.0, 0.3),
+        (1.2, 0.8, 0.25),
+        (-0.5, 1.5, 0.4),
+        (2.0, -1.2, 0.2),
+        (-2.0, 0.5, 0.35),
+    ]
+    licht_pos = (0.0, 0.0, 3.0)      # Lichtquelle über der Szene
+    kamera_pos = (0.0, 0.0, 5.0)     # Kamera etwas weiter weg
     
-    quelle, radius, bäume, params = erstelle_demo_szene()
+    params = ShaderParams()
     breite, hoehe = 80, 40
     
+    print("3D-Lichtspiel – Volumetrisches Licht im herbstlichen Park")
+    print("Drücke R zum Rendern, Q zum Beenden.")
+    
     while True:
-        menü_anzeigen(params)
-        try:
-            wahl = input("\nWahl: ").strip().lower()
-        except EOFError:
-            print("\nTschüss! Der Dodo watschelt davon. 🦤")
+        erg = parameter_menü(params)
+        if erg is False:
             break
-        
-        if wahl in ('q', 'quit', 'exit'):
-            print("\nTschüss! Der Dodo watschelt davon. 🦤")
-            break
-        elif wahl in ('r', 'render'):
+        if erg == 'render':
+            print("\nRendere...", end='', flush=True)
             start = time.time()
-            rohdaten = berechne_volumetrisch(breite, hoehe, quelle, radius, bäume, params)
-            if params.blur_radius > 0:
-                rohdaten = wende_blur_an(rohdaten, params.blur_radius)
-            ascii_art = rendere_ascii(rohdaten, params.gamma)
-            print("\n" + ascii_art)
-            print(f"\nRenderzeit: {time.time() - start:.2f}s")
-        elif parameter_eingabe(params, wahl):
-            print("Parameter aktualisiert.")
-        else:
-            print("Unbekannter Befehl.")
+            bild = rendere_szene(breite, hoehe, params, bäume, licht_pos, kamera_pos)
+            ascii_art = bild_zu_ascii(bild, params.gamma)
+            dauer = time.time() - start
+            print(f"\rFertig in {dauer:.2f}s.\n")
+            print(ascii_art)
+            print("\n---")
+    
+    print("\nFifo winkt mit dem Flügel – bis zum nächsten Traum!")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nAbbruch.")
+    except Exception as e:
+        print(f"\nUnerwarteter Fehler: {e}")
+        sys.exit(1)
