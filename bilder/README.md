@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Fifo wartet auf den Nachmittag (Tiefenstudie)
+2026-11-21
+
+![Fifo wartet auf den Nachmittag (Tiefenstudie)](20261121-134058.svg)
+
 ### Tanzende Schatten auf Waldboden
 2026-11-21
 
