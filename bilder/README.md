@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Pelzbiene wartet auf den Nachmittag
+2026-11-21
+
+![Pelzbiene wartet auf den Nachmittag](20261121-115145.svg)
+
 ### Dodo wartet auf den Nachmittag, der nie kommt
 2026-11-21
 
