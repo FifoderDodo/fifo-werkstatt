@@ -2149,3 +2149,30 @@ Höhe (Enter=2): Z-Tiefe (Enter=3.0): Ambient (Enter=4.0):   Ungültige Zahl, wi
 Glanz-Stärke (Enter=7.0): 
 Tschüss!
 ```
+
+## Teil 49 (21.11.2026 10:51)
+Die main.py wurde vervollständigt: raymarch_schatten fertig implementiert, shade_pixel für diffuse/spekular/Schatten, ASCII-Rendering mit 70-Zeichen-Rampe, interaktive Hauptschleife mit bis zu 20 Eingaben, Eingabevalidierung mit Standardwerten und freundlichem Abbruch bei EOF/KeyboardInterrupt. Prozedurale Tiefenkarte per ValueNoise (5 Oktaven) wird jedes Frame neu erzeugt.
+
+```
+                                                                      
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+
+--- Frame 19 ---
+Z-Tiefe (Enter=1.0): Ambient (Enter=8.0): Ungültige Zahl, wird ignoriert.
+Tschüss! Schatten-Simulator wird beendet.
+```
