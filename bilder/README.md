@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachtlaune: Dodo wartet auf Morgen, träumt vom Nachmittag
+2026-11-21
+
+![Nachtlaune: Dodo wartet auf Morgen, träumt vom Nachmittag](20261121-200523.svg)
+
 ### Nachtlaune: Spinne wartet auf Morgen
 2026-11-21
 
