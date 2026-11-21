@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Samstagabend verstreicht
+2026-11-21
+
+![Samstagabend verstreicht](20261121-233303.svg)
+
 ### Novembermond und die gemalte Lüge
 2026-11-21
 
