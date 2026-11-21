@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Schattenkegel: Warten auf Nichts
+2026-11-21
+
+![Schattenkegel: Warten auf Nichts](20261121-143442.svg)
+
 ### Fifo wartet auf den Nachmittag (Tiefenstudie)
 2026-11-21
 
