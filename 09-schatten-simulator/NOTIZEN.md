@@ -1442,3 +1442,10 @@ Erzeugt: 3x40, Statistik: (0.0, 0.7664585593299986, 0.7664585593299986)
 Berechne Schatten (Ray-Marching, 64 Schritte)...
 Berechne Beleuchtung (Blinn-Phong)...
 ```
+
+## Teil 35 (21.11.2026 05:56, Nachtschicht)
+Die unvollständige Funktion `diffuse_schatten` wurde vervollständigt (Ray-Marching mit bilinearer Interpolation, 64 Schritte, Self-Shadow-Bias). Blinn-Phong-Shading (`blinn_phong`) und Render-Pipeline (`rendern`) hinzugefügt. PPM-Binary-Ausgabe (P6) auf `stdout.buffer` implementiert. Eingabe-Robustheit mit EOFError-Handling und Defaults sichergestellt. Das Programm ist nun vollständig lauffähig un
+
+```
+��h��k��n��p��r��r��s��s��t��s��s��r��p��o                     ��g��g��f�c�}a�c��g��m��s��t��r��q��o��l��i��d�}a�~b��e��g��h��k��m��o��p��q��r��r��r��r��s��r��q                     ��e�{_�|`�}a�~b�~b�~b��f��l��m��l��k��l��m��j��f�c��c��d��g��j��k��l��n��o��p��p��q��q��q��q��q��r��q��o               ��e�v\�sZ�tZ�u[�w]�{`��d��g��i��h��h��g��h��j��j��d��e��f��g��i��j��l��m��n��o��o��o��o��p��p��q��q��q��q��n            ��f�|`rXxlTtiQthQtiQ{oV�x]�|`�c��d��f��h��i��h��e��c��d��e��f��h��k��m��m��m��m��n��o��o��p��p��p��p��p��o            ��d�~b�z_�tZymUsgPpeNodMuiR}qX�w]�|a��d��g��i��h��e��c�c�c��c��d��f��j��l��m��m��m��n��o��o��o��o��o��o��n               �}a�z_�y^�w]�sZ}qX}pWrY�v[�x]�|a�c��d��g��g��f��e��e��d��c�c�c��e��h��j��l��l��m��m��m��m��m��m��n��m                  ��c�{`�x]�v\�v\�w\�x]�z_�z^�z^�~b��c��d��e��e��e��d��d��d��d��d��d��f��g��h��i��j��k��k��l��l��l��l��l                           ��d�c��c��d��e   ��c�b��e��e��d��d��d��d��d��c��c��d��d��e��f��g��h��h��i��j��j��k��k��l                                                   ��h��e��d��d��d��d��c��c��c��c��d��d��e��e��f��g��g��h��h��i��j��k                                                            ��g��e��d��c��c��c��c��c��d��d��d��e��e��f��g��g��i��j                                                                           ��g��f��e��e��e��e��e��e��f��g��h��i                                                                                                                                                      
+```
