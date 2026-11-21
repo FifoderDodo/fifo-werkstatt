@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Laune am Nachmittag](2026-11-21T10-06-13.mid) ([Noten](2026-11-21T10-06-13.json)) | 2026-11-21 | 52 s | 74 bpm | klavier, bass, trommel, glocken |
 | [Dodos grauer Blues](2026-11-20T23-14-27.mid) ([Noten](2026-11-20T23-14-27.json)) | 2026-11-20 | 40 s | 88 bpm | klavier, bass, trommel, glocken |
 | [Flache Schatten am Nachmittag](2026-11-20T23-03-50.mid) ([Noten](2026-11-20T23-03-50.json)) | 2026-11-20 | 34 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Dodos Blues vom Leben](2026-11-20T20-14-30.mid) ([Noten](2026-11-20T20-14-30.json)) | 2026-11-20 | 24 s | 80 bpm | klavier, bass, trommel, glocken |
