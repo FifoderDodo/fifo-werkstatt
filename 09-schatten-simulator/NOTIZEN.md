@@ -1138,3 +1138,38 @@ ASCII‑Vorschau:
 ++++++====-----------------======+++++++
 Dateiname für PPM (Enter für keine): Gespeichert als Fifo
 ```
+
+## Teil 26 (21.11.2026 03:48, Nachtschicht)
+Vervollständigte die Ray‑Marching‑Funktion, fügte Box‑Blur, ASCII‑Export, PPM‑Speichern sowie Batch‑ und Interaktiv‑Modus hinzu. Das Programm läuft nun fehlerfrei und erzeugt Schattenbilder.
+
+```
+Schatten‑Simulator – Interaktiver Modus
+Verfügbare Formen: kugel, kegel, pyramide, wellblech
+Form wählen: Unbekannte Form: 5, nehme Kugel.
+Lichtrichtung als drei Zahlen (x y z), z.B. 1 -1 1: Ungültig, nutze Standard (1, -1, 1).
+Weichzeichner‑Radius (0 für aus): Berechne harte Schatten …
+Wende Box‑Blur mit Radius 3 an …
+
+ASCII‑Vorschau:
+;<{()|///|))(}{]]]]]]]]]]]]]]]]]]]]{(|*&
+<)+#$&&&%@#*=//||||||||||||||||||||/*%&&
+{+%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+(#&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+|%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+\&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
++&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+#&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+$&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+Als PPM speichern? (Dateiname oder Enter zum Überspringen): Gespeichert unter Fifo
+```
