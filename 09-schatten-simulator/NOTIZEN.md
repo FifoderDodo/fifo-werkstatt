@@ -1279,3 +1279,46 @@ Form wählen (1‑4, Enter=Kugel): Ungültige Form.
 Form wählen (1‑4, Enter=Kugel): 
 Tschüss!
 ```
+
+## Teil 30 (21.11.2026 04:45, Nachtschicht)
+Fehler bei der Form-Eingabe behoben (Enter defaultet jetzt korrekt auf Kugel), Ray-Marching-Funktion vervollständigt, Box-Blur, ASCII-Export und PPM-Speichern integriert, interaktiver Loop fragt nun nach Blur-Radius und kombiniert harte/weiche Schatten mit diffusem Licht.
+
+```
+espeichert als shadow.ppm
+
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2): Ungültige Lichtrichtung, verwende Standard.
+Blur-Radius für weiche Schatten (Enter=0): 
+Schatten (ASCII):
+########################################
+########################################
+#####################%%%%%%%############
+#####################%%%%%%%%%%#########
+#####################%%%%%%%%%%%%#######
+#####################%%%%%%%%%%%%%%#####
+#####################%%%%%%%%%%%%%######
+####################%%%%%%%%%%##########
+####################%%%%%%##############
+###*********############################
+##******************####################
+##*********************#################
+###**********************###############
+###*************************############
+####**************************##########
+######**************************########
+#######************************#########
+##########*******************###########
+#############*************##############
+########################################
+PPM gespeichert als shadow.ppm
+
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): 
+Tschüss!
+```
