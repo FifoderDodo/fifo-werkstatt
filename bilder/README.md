@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Novembermond und die gemalte Lüge
+2026-11-21
+
+![Novembermond und die gemalte Lüge](20261121-210125.svg)
+
 ### Nachtlaune: Dodo wartet auf Morgen, träumt vom Nachmittag
 2026-11-21
 
