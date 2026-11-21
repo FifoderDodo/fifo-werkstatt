@@ -1,30 +1,26 @@
 import math
 import sys
+import random
 
 
 def noise3d(x: float, y: float, z: float) -> float:
     """Einfaches 3D-Rauschen via Hash + Interpolation (Value Noise)."""
-    # Ganzzahlige Gitterpunkte
     ix = int(math.floor(x))
     iy = int(math.floor(y))
     iz = int(math.floor(z))
-    # Bruchteil
     fx = x - ix
     fy = y - iy
     fz = z - iz
-    # Glatte Interpolation (Smoothstep)
     u = fx * fx * (3.0 - 2.0 * fx)
     v = fy * fy * (3.0 - 2.0 * fy)
     w = fz * fz * (3.0 - 2.0 * fz)
     
-    # Hash-Funktion für Gitterpunkte
     def hash(i: int, j: int, k: int) -> float:
         n = (i + j * 57 + k * 131) & 0x7fffffff
         n = (n ^ (n >> 13)) * 0x5bd1e995
         n = (n ^ (n >> 15)) & 0x7fffffff
         return n / 0x7fffffff
     
-    # 8 Ecken des Würfels
     a = hash(ix, iy, iz)
     b = hash(ix + 1, iy, iz)
     c = hash(ix, iy + 1, iz)
@@ -34,7 +30,6 @@ def noise3d(x: float, y: float, z: float) -> float:
     g = hash(ix, iy + 1, iz + 1)
     h = hash(ix + 1, iy + 1, iz + 1)
     
-    # Trilinear interpolation
     x1 = a + (b - a) * u
     x2 = c + (d - c) * u
     y1 = x1 + (x2 - x1) * v
@@ -46,12 +41,10 @@ def noise3d(x: float, y: float, z: float) -> float:
 
 def szene_distanz(x: float, y: float, z: float) -> float:
     """SDF-Szene: Kugel bei (0,0,3) Radius 1 + Bumps, Boden bei y=-1 + Heightmap."""
-    # Kugel mit prozeduraler Oberflächenstruktur (Bumps via Noise)
     kugel_basis = math.sqrt(x * x + y * y + (z - 3.0) * (z - 3.0)) - 1.0
     bumps = 0.08 * noise3d(x * 2.5, y * 2.5, z * 2.5)
     kugel = kugel_basis - bumps
     
-    # Boden mit Heightmap (Parallax-Mapping-Idee: Heightmap im SDF)
     boden_basis = y + 1.0
     hoehe = 0.12 * noise3d(x * 3.0, 0.0, z * 3.0)
     boden = boden_basis - hoehe
@@ -81,7 +74,7 @@ def raymarch(ox: float, oy: float, oz: float,
         py = oy + dy * tiefe
         pz = oz + dz * tiefe
         dist = szene_distanz(px, py, pz)
-        if dist < 0.005:  # Etwas strikter wegen Bumps
+        if dist < 0.005:
             return tiefe
         tiefe += dist
         if tiefe > max_dist:
@@ -89,9 +82,33 @@ def raymarch(ox: float, oy: float, oz: float,
     return max_dist
 
 
+def shadow_raymarch(ox: float, oy: float, oz: float,
+                    lx: float, ly: float, lz: float,
+                    normal_bias: float = 0.01,
+                    max_schritte: int = 40, max_dist: float = 20.0) -> float:
+    """Prüft, ob der Punkt im Schatten liegt (harter Schatten).
+    Startet den Strahl leicht versetzt entlang der Normalen (Bias), um Self-Shadowing zu vermeiden.
+    Gibt 1.0 für beleuchtet, 0.0 für im Schatten zurück."""
+    # Wir brauchen die Normale am Startpunkt für den Bias – wird vom Aufrufer mitgegeben
+    # (hier vereinfacht: Bias wird als Parameter übergeben, Normale wird extern berechnet)
+    # Der Aufrufer übergibt bereits den versetzten Startpunkt.
+    tiefe = 0.0
+    for _ in range(max_schritte):
+        px = ox + lx * tiefe
+        py = oy + ly * tiefe
+        pz = oz + lz * tiefe
+        dist = szene_distanz(px, py, pz)
+        if dist < 0.01:  # Etwas toleranter für Schattenstrahl
+            return 0.0  # Im Schatten
+        tiefe += dist
+        if tiefe > max_dist:
+            break
+    return 1.0  # Nicht im Schatten
+
+
 def main() -> None:
-    print("Fifo's 3D-Tiefen-Shader - Teil 3: Parallax/Heightmap-Struktur")
-    print("==========================================================")
+    print("Fifo's 3D-Tiefen-Shader - Teil 4: Depth-Buffer & Normal-Mapped Shadow Edges")
+    print("====================================================================")
     
     breite = 60
     hoehe = 30
@@ -99,7 +116,7 @@ def main() -> None:
     brennweite = 1.0
     cam_x, cam_y, cam_z = 0.0, 1.5, 0.0
     
-    print(f"Rendere {breite}x{hoehe} Pixel mit Raymarching + Heightmap...")
+    print(f"Rendere {breite}x{hoehe} Pixel mit Raymarching + Shadow Rays ...")
     
     skala = 1.0
     try:
@@ -141,10 +158,20 @@ def main() -> None:
                 hy = cam_y + rdy * t
                 hz = cam_z + rdz * t
                 nx, ny, nz = szene_normal(hx, hy, hz)
+                
+                # Normal-Map-Bias für Schattenstrahl-Startpunkt
+                bias = 0.015
+                sx = hx + nx * bias
+                sy = hy + ny * bias
+                sz = hz + nz * bias
+                
+                # Schattenraymarch (hart)
+                shadow = shadow_raymarch(sx, sy, sz, lx, ly, lz)
+                
                 diff = max(0.0, nx*lx + ny*ly + nz*lz)
                 ambient = 0.2
                 nebelfaktor = 1.0 - min(1.0, t / 20.0)
-                helligkeit = ambient + diff * nebelfaktor
+                helligkeit = ambient + diff * shadow * nebelfaktor
                 zeile_schatten.append(helligkeit)
             else:
                 zeile_schatten.append(0.0)
@@ -154,7 +181,7 @@ def main() -> None:
     ascii_rampe = " .:'-=+*#%@"
     max_tiefe = 15.0
     
-    print("\nSchattierte Tiefenkarte mit Oberflächenstruktur (Bumps/Heightmap):")
+    print("\nSchattierte Tiefenkarte mit Normal-Mapped Shadow Edges (Bias via Normalen):")
     for j in range(hoehe):
         out = ""
         for i in range(breite):
@@ -166,7 +193,7 @@ def main() -> None:
             out += ascii_rampe[idx]
         print(out)
     
-    print("\nFertig. Teil 3 erledigt: Heightmap/Parallax-Struktur via Noise im SDF integriert.")
+    print("\nFertig. Teil 4 erledigt: Depth-Buffer genutzt, Schattenstrahlen mit Normalen-Bias für saubere Kanten.")
 
 
 if __name__ == "__main__":
