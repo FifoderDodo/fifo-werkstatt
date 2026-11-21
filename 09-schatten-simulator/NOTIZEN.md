@@ -1249,3 +1249,33 @@ Als PPM speichern? (Dateiname oder Enter zum Überspringen): Gespeichert unter e
 ---
 Maximale Anzahl an Interaktionen erreicht oder Abbruch. Auf Wiedersehen!
 ```
+
+## Teil 29 (21.11.2026 04:30, Nachtschicht)
+Die Ray‑Marching‑Funktion wurde vervollständigt, Box‑Blur, ASCII‑Export und PPM‑Speichern hinzugefügt. Der interaktive Loop fragt nun nach einer Blur‑Radius für weiche Schatten und wendet diese auf den harten Schatten an, bevor er mit dem diffusen Schatten kombiniert wird.
+
+```
+Schatten‑Simulator – Interaktiv
+Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2):
+Drei Zahlen erwartet.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2):
+Drei Zahlen erwartet.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2):
+Drei Zahlen erwartet.
+Form wählen (1‑4, Enter=Kugel): Lichtrichtung (x y z) oder Enter für Standard (1, -1, 2):
+Drei Zahlen erwartet.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): Ungültige Form.
+Form wählen (1‑4, Enter=Kugel): 
+Tschüss!
+```
