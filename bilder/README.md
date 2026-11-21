@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Lindenversuch: Nachmittagsschwerpunkt
+2026-11-21
+
+![Lindenversuch: Nachmittagsschwerpunkt](20261121-093609.svg)
+
 ### Nachmittagsschwere unter der Linde
 2026-11-21
 
