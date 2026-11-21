@@ -2012,3 +2012,31 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 [enter=neu, q=quit, z=neue tiefe, g=neues gamma]:
 ```
+
+## Teil 46 (21.11.2026 10:24)
+Die main.py wurde vervollständigt: shading-Funktion fertig, ASCII-Rendering, prozedurale Tiefenkarte, interaktive Hauptschleife mit Parameter-Tuning. Alles nutzt nur Stdlib und läuft in Sekunden. Den Absturz gleich repariert.
+
+```
+vcvvvvuuuxfft\((){}
+>)|tjrnunuvvvuuuuvvunxxxxrjffft/\\\\|((((((((|||\\/tfjrxnuvczzzXXYXzcuuxfft|((1{
+>}1\tfrxxnnxnnxxrrrxrjjjjjfft//\\\|||((((((((||\\//tfjrxuvzzXUJCCJUYzvvujjj/(((1
+i[})|\tjjjrjjjfjjjjjjjjftttt//\|||(((((((((((||\\/tfjrxuvcXYJLQQLLLJUXzcxjjt|())
+i?[}1)|//\tfffffjfffttftt//\|||||((()))(())((||\\/tfjxnvcXUCQOOZZOO0CJXzuxrf/())
+!_?]}11(|(|\\////\/t/\\\\/\\||((((()))))))(((||\\/tfrxucXYCQ0ZwqqwwZQLUzvnrft\))
+!i-]]}{1))((|\\\|||\\\||\|||||())))))))1)))(((|\\/fjrnvzXUL0ZqdbbdpwO0JXzurft/|)
+l!_-?][{11)))(((||||||||((((((())11111111)))((|\/tfjrnczYJLOqdkhhhbqmZLYzunjt/\)
+I!!+_-][}{{1)))(|||(((()))()11)11111111)11))((|\\tfjrnvzYCQmpbhaoahpmZQUzvnjf/|)
+Ill+__?]][}1)))()(()))))()11{{{{{{{1111111)))((|\tffrnvzYCQmpbhooohdwOQJcvnjf\((
+;IIl__-]][}}}{11{{{{1111111{11{{{{{{{{{{111))((|\tffrnucYCLmpdhaoahpwOQJcuxjf\()
+;II+___?][[}}}{{{}}}{{{{}{{}}{{{{{}}}}{{{{11)(((|/fjrxucYJLZwpbkkhkqw0CUzvrjf\()
+:;;+___-?]][[[[[}}}}}}}}}}}}}}}}}{}}}}}}{{{11)(||\tjrxucXUC0ZwpdbbpwZLJXcvrjt\()
+:;~+__-?]]][[[[[}}}}}}[}}}[}}}}}}[[}}}}}{{{1{1)||\/tjrxvcXJL0mwqpqmZ0JYzvvrt/\(1
+_+++_--??]]][[]][[[[[[[[[][]]][[[[][}}}}}}{{111)(|/tfjxucXUCQ0OOOO0QUXzcunj/\\)1
+____----???]]?]?]]]]]]]]]]]]]]]]]]]]][[[}}}{11))((|/tfrxucXUJCLQLCCYXXcuurf\\|11
++___-_---?--??]??]]]]]]]]]]]]]???]]]]][[[[}{{11)((|\tfjrxnuzXYUJJUYXXzunnf/\|(1{
+
+Seed: 7203 | Tiefe: 6.0 | Gamma: 1.20 | Ambient: 0.15
+Befehle: [n]euer Seed, [t]iefe, [g]amma, [a]mbient, [s]pektrum, [q]uit
+> 
+👋  Schatten-Simulator beendet. Bis zum nächsten Render!
+```
