@@ -1476,3 +1476,14 @@ Berechne Schatten...
 Rendere Bild...
 Fertig. Träum was Schönes.
 ```
+
+## Teil 38 (21.11.2026 06:39, Nachtschicht)
+Vervollständigte die diffuse_schatten-Funktion mit korrektem Ray-Marching, fügte Blinn-Phong-Shading, Render-Pipeline, PPM-Ausgabe und robuste Eingabe-Behandlung hinzu. Das Programm läuft jetzt vollständig durch und schreibt ein P6-PPM-Bild auf stdout.
+
+```
+Schatten-Simulator – Träumt weiter, kleiner Dodo.
+Höhe [20]: Breite [40]: Form ['kugel', 'kegel', 'pyramide', 'wellblech', 'huegel'] [kugel]: Unbekannte Form '3', nehme 'kugel'.
+Fertig: 5x40, Form=kugel, Höhe 0.000..0.993 (Spannweite 0.993)
+P6 40 5 255
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+```
