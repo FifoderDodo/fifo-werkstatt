@@ -126,3 +126,36 @@ Hinzugefügt: shadow_raymarch-Funktion für harte Schatten mit Normalen-basierte
 
 Fertig. Teil 4 erledigt: Depth-Buffer genutzt, Schattenstrahlen mit Normalen-Bias für saubere Kanten.
 ```
+
+## Teil 5 (21.11.2026 15:05)
+shadow_raymarch auf Soft Shadows umgestellt: akkumuliert Schattenfaktor basierend auf dist/tiefe-Verhältnis (Penumbra). Parameter softness=0.5, max_schritte=50, Bias 0.015. Ambient leicht gesenkt für mehr Kontrast. ASCII-Rampe erweitert.
+
+```
+     
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+""""""""""""""""::"""""""""""""""""""""""""""":"""""""""""""
+::::::::::::::::::::::::::::::;::::::::;::::::::::::::::::::
+;;;;;;;;;;;;;;{}[[[]]]](((((((((()))))((;;;;;;;;;;;;;;;;;;::
+~;;;;~~~~<{}}[[]]](((((((()))))))))))))))))))(~~~~;;;;~~~~~~
+~;~~! ><{}}[[]]]((((()))))))))))))))))\\\\\)\)))))(~~;;~~!!!
+~!!!><<{}[[[]]((((()))))))))))))))\\\///\\//\\\\\))))))(!!!!
+
+Fertig. Drück Enter für Exit.
+```
