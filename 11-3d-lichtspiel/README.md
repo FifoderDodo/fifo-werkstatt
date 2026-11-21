@@ -4,7 +4,7 @@ Ein interaktiver Simulator für volumetrisches Licht und Schatten im herbstliche
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 7 von etwa 16
+Stand: in Arbeit, Teil 9 von etwa 16
 
 ## Ausprobieren
 
@@ -15,44 +15,67 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-ent [0.0–0.3]:   → Absorptionskoeffizient = 0.0
+5
+3. Mist Density: 0.18
+4. Phase G (Forward): 0.60
+5. Color Temp (K): 3200
+6. Jitter: An (Strength: 0.15)
+7. Noise Seed: 42
+8. Volumetric Gain: 1.20
+9. Blur Radius: 3
+0. Rendern & Beenden
+Wähle (0-9): 
+--- 3D-Lichtspiel Parameter (Teil 9) ---
+1. March Steps: 32 (Speed vs Quality)
+2. Scattering Coeff: 0.35
+3. Mist Density: 0.18
+4. Phase G (Forward): 0.60
+5. Color Temp (K): 3200
+6. Jitter: Aus (Strength: 0.15)
+7. Noise Seed: 42
+8. Volumetric Gain: 1.20
+9. Blur Radius: 3
+0. Rendern & Beenden
+Wähle (0-9): Unbekannt.
 
-=== Shader-Parameter anpassen ===
-   1. Penumbra-Breite: 0.150  [0.01 – 0.5]
-   2. Umbra-Dunkelheit: 0.050  [0.0 – 0.5]
-   3. Falloff-Exponent: 2.000  [1.0 – 4.0]
-   4. Blur-Radius (int): 3.000  [1 – 8]
-   5. Ambient-Grundhelligkeit: 0.020  [0.0 – 0.2]
-   6. Volumetric Gain: 1.200  [0.5 – 3.0]
-   7. Gamma-Korrektur: 0.600  [0.3 – 1.0]
-   8. Streuungskoeffizient: 0.350  [0.1 – 1.0]
-   9. Absorptionskoeffizient: 0.000  [0.0 – 0.3]
-  10. Nebeldichte: 0.180  [0.0 – 0.4]
-  11. Nebel-Höhenabfall: 0.800  [0.5 – 1.5]
-  12. Farbtemperatur (K): 3200.000  [2500.0 – 5500.0]
-  13. Jitter-Stärke: 0.150  [0.0 – 0.3]
-  14. Phasen-Asymmetrie (g): 0.600  [0.0 – 0.9]
-  0. Zurück zum Hauptmenü
-Parameter wählen (0-14):   Bitte Zahl eingeben.
+--- 3D-Lichtspiel Parameter (Teil 9) ---
+1. March Steps: 32 (Speed vs Quality)
+2. Scattering Coeff: 0.35
+3. Mist Density: 0.18
+4. Phase G (Forward): 0.60
+5. Color Temp (K): 3200
+6. Jitter: Aus (Strength: 0.15)
+7. Noise Seed: 42
+8. Volumetric Gain: 1.20
+9. Blur Radius: 3
+0. Rendern & Beenden
+Wähle (0-9): Blur Radius (0-10): 
+--- 3D-Lichtspiel Parameter (Teil 9) ---
+1. March Steps: 32 (Speed vs Quality)
+2. Scattering Coeff: 0.35
+3. Mist Density: 0.18
+4. Phase G (Forward): 0.60
+5. Color Temp (K): 3200
+6. Jitter: Aus (Strength: 0.15)
+7. Noise Seed: 42
+8. Volumetric Gain: 1.20
+9. Blur Radius: 0
+0. Rendern & Beenden
+Wähle (0-9): Unbekannt.
 
-=== Shader-Parameter anpassen ===
-   1. Penumbra-Breite: 0.150  [0.01 – 0.5]
-   2. Umbra-Dunkelheit: 0.050  [0.0 – 0.5]
-   3. Falloff-Exponent: 2.000  [1.0 – 4.0]
-   4. Blur-Radius (int): 3.000  [1 – 8]
-   5. Ambient-Grundhelligkeit: 0.020  [0.0 – 0.2]
-   6. Volumetric Gain: 1.200  [0.5 – 3.0]
-   7. Gamma-Korrektur: 0.600  [0.3 – 1.0]
-   8. Streuungskoeffizient: 0.350  [0.1 – 1.0]
-   9. Absorptionskoeffizient: 0.000  [0.0 – 0.3]
-  10. Nebeldichte: 0.180  [0.0 – 0.4]
-  11. Nebel-Höhenabfall: 0.800  [0.5 – 1.5]
-  12. Farbtemperatur (K): 3200.000  [2500.0 – 5500.0]
-  13. Jitter-Stärke: 0.150  [0.0 – 0.3]
-  14. Phasen-Asymmetrie (g): 0.600  [0.0 – 0.9]
-  0. Zurück zum Hauptmenü
-Parameter wählen (0-14): 
-🦤 Tschüss!
+--- 3D-Lichtspiel Parameter (Teil 9) ---
+1. March Steps: 32 (Speed vs Quality)
+2. Scattering Coeff: 0.35
+3. Mist Density: 0.18
+4. Phase G (Forward): 0.60
+5. Color Temp (K): 3200
+6. Jitter: Aus (Strength: 0.15)
+7. Noise Seed: 42
+8. Volumetric Gain: 1.20
+9. Blur Radius: 0
+0. Rendern & Beenden
+Wähle (0-9): 
+Kein Input, fliege weg. Tschüss!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
