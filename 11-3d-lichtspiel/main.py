@@ -1,9 +1,15 @@
-# 3D-Lichtspiel – Teil 3: Robuste Eingabe für Blur & Tageszeit, Ambient-Licht
-# Fifo der Dodo poliert die Bedienung, damit keine Tippfehler den Nebel lichten
+# 3D-Lichtspiel – Teil 4: Robuste Tageszeit-Wahl mit Aliasen, Unicode-Normalisierung, Hauptschleife
+# Fifo der Dodo macht die Eingabe wasserdicht und lässt den Park erstrahlen
 
 import math
 import sys
 import random
+import unicodedata
+
+
+def _norm(s: str) -> str:
+    """Normalisiert String für robusten Vergleich: NFC, lower, strip."""
+    return unicodedata.normalize('NFC', s).strip().lower()
 
 
 def gauß_gewichte(kernel_radius: int) -> list:
@@ -139,15 +145,29 @@ def frage_int(prompt: str, default: int, min_v: int, max_v: int) -> int:
             sys.exit(0)
 
 
-def frage_wahl(prompt: str, default: str, optionen: list) -> str:
-    """Fragt robust eine Option ab (case-insensitiv), fängt EOFError ab."""
-    opt_lower = [o.lower() for o in optionen]
+def frage_wahl(prompt: str, default: str, optionen: list, aliases: dict = None) -> str:
+    """
+    Fragt robust eine Option ab (case-insensitiv, Unicode-normalisiert).
+    aliases: Dict {alias_normiert: ziel_option_original}
+    """
+    # Mapping: normierter Key -> Original-Schreibweise der Option
+    opt_map = {_norm(o): o for o in optionen}
+    
+    # Aliase hinzufügen (z.B. "daemmerung" -> "dämmerung")
+    if aliases:
+        for alias, ziel in aliases.items():
+            if _norm(ziel) in opt_map:
+                opt_map[_norm(alias)] = opt_map[_norm(ziel)]
+    
+    gültige_anzeige = ', '.join(optionen)
+    
     while True:
         try:
-            val = (input(prompt) or default).strip().lower()
-            if val in opt_lower:
-                return optionen[opt_lower.index(val)]  # Original-Schreibweise zurückgeben
-            print(f"  Fifo kennt nur: {', '.join(optionen)}. Nochmal! 🦤")
+            val = (input(prompt) or default)
+            key = _norm(val)
+            if key in opt_map:
+                return opt_map[key]
+            print(f"  Fifo kennt nur: {gültige_anzeige}. Nochmal! 🦤")
         except EOFError:
             print("\nEingabeende – Fifo watschelt nach Hause. 🦤")
             sys.exit(0)
@@ -164,44 +184,52 @@ def main():
     tageszeit = frage_wahl(
         "Tageszeit (dämmerung/nacht/herbsttag) [dämmerung]: ",
         "dämmerung",
-        ["dämmerung", "nacht", "herbsttag"]
+        ["dämmerung", "nacht", "herbsttag"],
+        aliases={
+            "daemmerung": "dämmerung",
+            "tag": "herbsttag",
+            "herbst": "herbsttag"
+        }
     )
     
     blur_staerke = frage_int("Blur-Radius (1-5, Streuung) [3]: ", 3, 1, 5)
     
-    # Tageszeit beeinflusst Ambient-Licht und Quell-Intensität
+    # Tageszeit beeinflusst Ambient-Licht und Quell-Parameter
     if tageszeit == "nacht":
         ambient = 0.02
-        quell_staerke_faktor = 1.2
-    elif tageszeit == "herbsttag":
+        basis_radius = 12
+        quell_staerke = 1.0  # wird über Radius simuliert
+    elif tageszeit == "dämmerung":
         ambient = 0.15
-        quell_staerke_faktor = 0.7
-    else:  # dämmerung
-        ambient = 0.05
-        quell_staerke_faktor = 1.0
+        basis_radius = 18
+        quell_staerke = 1.0
+    else:  # herbsttag
+        ambient = 0.4
+        basis_radius = 25
+        quell_staerke = 0.8  # weicher
     
-    print(f"\nFifo malt {anzahl_quellen} Lichtkegel in den {breite}x{hoehe} Park (Blur={blur_staerke}, {tageszeit})...\n")
-    
+    # Lichtquellen generieren: zufällige Positionen, nach unten gerichtet (Laternen)
     quellen = []
-    random.seed(42)
-    for i in range(anzahl_quellen):
-        qx = random.randint(breite // 4, 3 * breite // 4)
-        qy = random.randint(hoehe // 4, 3 * hoehe // 4)
-        radius = random.randint(min(breite, hoehe) // 6, min(breite, hoehe) // 3)
-        winkel = random.uniform(0, 2 * math.pi)
-        richtung_x = math.cos(winkel)
-        richtung_y = math.sin(winkel)
-        # Radius leicht skalieren je nach Tageszeit für gefühlte Helligkeit
+    random.seed(42)  # reproduzierbar
+    for _ in range(anzahl_quellen):
+        qx = random.uniform(basis_radius, breite - basis_radius)
+        qy = random.uniform(basis_radius, hoehe // 2)  # oben im Park
+        radius = basis_radius + random.uniform(-2, 2)
+        # Richtung leicht schräg für interessante Schatten
+        winkel = random.uniform(-0.5, 0.5)
+        richtung_x = math.sin(winkel)
+        richtung_y = math.cos(winkel)  # zeigt nach unten
         quellen.append((qx, qy, radius, richtung_x, richtung_y))
-        print(f"  Laterne {i+1}: ({qx},{qy}) R={radius} Dir=({richtung_x:.2f},{richtung_y:.2f})")
     
-    bild = zeichne_lichtkegel(breite, hoehe, quellen, blur_staerke, ambient)
+    print(f"\nFifo rendert {anzahl_quellen} Lichtquellen bei {tageszeit}... 🦤\n")
     
-    print()
+    bild = zeichne_lichtkegel(breite, hoehe, quellen, blur_radius=blur_staerke, ambient=ambient)
+    
+    # Ausgabe
     for zeile in bild:
         print(''.join(zeile))
-    print()
-    print("Fifo nickt zufrieden. Das Licht ruht auf dem Laub. 🦤")
+    
+    print(f"\nFertig. Fifo putzt die Federn. 🦤")
 
 if __name__ == "__main__":
     main()
