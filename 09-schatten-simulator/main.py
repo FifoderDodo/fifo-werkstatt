@@ -166,217 +166,158 @@ def raymarch_schatten(tk: Tiefenkarte, start: Vec3, l_dir: Vec3, max_dist: float
     curr_y = start[1] + l_dir[1] * offset
     curr_z = start[2] + l_dir[2] * offset
     
-    schrittweite = max(0.5, min(2.0, max_dist / schritte))
-    d = offset
-    while d < max_dist:
+    schrittweite = max(0.5, max_dist / schritte)
+    for _ in range(schritte):
+        # Weltkoordinaten in Tiefenkarten-Indizes umrechnen
+        ix = curr_x
+        iy = curr_y
+        if 0 <= iy < tk.h and 0 <= ix < tk.b:
+            hoehe = tk.get_bilinear(iy, ix) * z_skalierung
+            if curr_z <= hoehe:
+                return 0.0  # im Schatten
         curr_x += l_dir[0] * schrittweite
         curr_y += l_dir[1] * schrittweite
         curr_z += l_dir[2] * schrittweite
-        d += schrittweite
-        
-        if not (0 <= curr_x < tk.b and 0 <= curr_y < tk.h):
-            break
-            
-        karten_h_roh = tk.get_bilinear(curr_y, curr_x)
-        karten_h_welt = karten_h_roh * z_skalierung
-        if curr_z < karten_h_welt:
-            return 0.1  # Im Kernschatten
-    return 1.0  # Volles Licht
+    return 1.0  # beleuchtet
 
-def berechne_tiefen_schattierung(
-    tk: Tiefenkarte,
-    lichter: List[Lichtquelle],
-    z_tiefe: float = 6.0,
-    ambient: float = 0.15,
-    glanz_staerke: float = 0.4,
-    glanz_haerte: float = 16.0
-) -> List[List[float]]:
-    """Berechnet vollständige 3D-Lichtvektoren, Glanzpunkte und Raymarch-Schatten."""
-    normalen_feld = tk.normalen(z_faktor=z_tiefe * 0.4)
-    ausgabe: List[List[float]] = []
-    sicht_vektor: Vec3 = (0.0, 0.0, 1.0)  # Beobachter schaut frontal auf die Szene
-
-    for y in range(tk.h):
-        reihe: List[float] = []
-        for x in range(tk.b):
-            z_val = tk.get(y, x) * z_tiefe
-            p: Vec3 = (float(x), float(y), z_val)
-            n = normalen_feld[y][x]
-            
-            # Ambient mit leichter Höhenmodulation
-            gesamt_helligkeit = ambient * (0.8 + 0.2 * tk.get(y, x))
-            
-            for licht in lichter:
-                l_dir, dist = licht.vektor_und_distanz(p)
-                energie = licht.energie_an(dist)
-                
-                # Diffuse Komponente (Lambert)
-                n_dot_l = max(0.0, vec3_dot(n, l_dir))
-                if n_dot_l > 0:
-                    # Raymarch-Schatten
-                    schatten = raymarch_schatten(tk, p, l_dir, dist, z_tiefe)
-                    gesamt_helligkeit += n_dot_l * energie * schatten
-                    
-                    # Spekulare Komponente (Blinn-Phong)
-                    h = vec3_norm(vec3_add(l_dir, sicht_vektor))
-                    n_dot_h = max(0.0, vec3_dot(n, h))
-                    if n_dot_h > 0:
-                        glanz = (n_dot_h ** glanz_haerte) * glanz_staerke * energie * schatten
-                        gesamt_helligkeit += glanz
-            
-            reihe.append(min(1.0, max(0.0, gesamt_helligkeit)))
-        ausgabe.append(reihe)
-    return ausgabe
+def shade_pixel(tk: Tiefenkarte, normals: List[List[Vec3]], x: int, y: int,
+                z_skalierung: float, ambient: float, glanz_staerke: float, glanz_haerte: float,
+                lichtquellen: List[Lichtquelle], view_dir: Vec3) -> float:
+    """Berechnet Helligkeit eines Pixels (0..1) mit diffus, spekular, Schatten."""
+    n = normals[y][x]
+    p = (float(x), float(y), tk.daten[y][x] * z_skalierung)
+    farbe = ambient
+    for lq in lichtquellen:
+        l_dir, dist = lq.vektor_und_distanz(p)
+        ndotl = max(0.0, vec3_dot(n, l_dir))
+        if ndotl > 0:
+            schatten = raymarch_schatten(tk, p, l_dir, dist, z_skalierung)
+            diffuse = ndotl * schatten
+            # Spekular (Blinn-Phong)
+            h = vec3_norm(vec3_add(l_dir, view_dir))
+            ndoth = max(0.0, vec3_dot(n, h))
+            spekular = (ndoth ** glanz_haerte) * glanz_staerke * schatten
+            farbe += lq.energie_an(dist) * (diffuse + spekular)
+    return max(0.0, min(1.0, farbe))
 
 # ---------- ASCII Rendering ----------
+ASCII_RAMPE = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
 
-ASCII_RAMPE = " .'`^\"\,;:Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@$B"
-
-def rendere_ascii(helligkeiten: List[List[float]], rampe: str = ASCII_RAMPE) -> str:
-    """Wandelt Helligkeitswerte (0..1) in ASCII-Zeichen um."""
+def render_ascii(tk: Tiefenkarte, normals: List[List[Vec3]], z_skalierung: float, ambient: float,
+                 glanz_staerke: float, glanz_haerte: float, lichtquellen: List[Lichtquelle]) -> List[str]:
+    """Rendert die komplette Tiefenkarte als ASCII-Zeilen."""
+    view_dir = (0.0, 0.0, -1.0)  # orthografische Ansicht von oben
     zeilen = []
-    max_idx = len(rampe) - 1
-    for reihe in helligkeiten:
-        zeile = ''.join(rampe[int(w * max_idx)] for w in reihe)
-        zeilen.append(zeile)
-    return '\n'.join(zeilen)
+    for y in range(tk.h):
+        zeile_chars = []
+        for x in range(tk.b):
+            hell = shade_pixel(tk, normals, x, y, z_skalierung, ambient, glanz_staerke, glanz_haerte,
+                               lichtquellen, view_dir)
+            idx = int(hell * (len(ASCII_RAMPE) - 1))
+            zeile_chars.append(ASCII_RAMPE[idx])
+        zeilen.append(''.join(zeile_chars))
+    return zeilen
 
-# ---------- Prozedurale Tiefenkarte ----------
+# ---------- Hilfsfunktionen für Eingabe ----------
 
-def erzeuge_tiefenkarte(breite: int, hoehe: int, seed: int, z_tiefe: float = 1.0) -> Tiefenkarte:
-    """Erzeugt eine prozedurale Tiefenkarte mit Value Noise (5 Oktaven)."""
-    noise = ValueNoise(seed)
-    daten = []
-    for y in range(hoehe):
-        reihe = []
-        for x in range(breite):
-            # Noise im Bereich 0..1
-            w = noise.fractal(x, y, okta=5, persistenz=0.5, laengenskalierung=0.05)
-            w = (w + 1.0) * 0.5  # -1..1 -> 0..1
-            # Leichte Kantenabschwächung (Vignette) damit Ränder nicht hart aufschneiden
-            rx = x / max(1, breite - 1)
-            ry = y / max(1, hoehe - 1)
-            rand_faktor = (1.0 - (rx - 0.5) ** 2 * 0.5) * (1.0 - (ry - 0.5) ** 2 * 0.5)
-            w *= rand_faktor
-            reihe.append(w)
-        daten.append(reihe)
-    return Tiefenkarte(daten)
+def read_float(prompt: str, default: float) -> float:
+    try:
+        s = input(prompt).strip()
+        if s == '':
+            return default
+        return float(s)
+    except (ValueError, EOFError):
+        print("Ungültige Zahl, wird ignoriert.")
+        return default
 
-# ---------- Licht-Setups ----------
+def read_int(prompt: str, default: int) -> int:
+    try:
+        s = input(prompt).strip()
+        if s == '':
+            return default
+        return int(s)
+    except (ValueError, EOFError):
+        print("Ungültige Zahl, wird ignoriert.")
+        return default
 
-def erstelle_licht_setup(modus: str, breite: int, hoehe: int) -> List[Lichtquelle]:
-    """Gibt vorgefertigte Lichtkonfigurationen zurück."""
-    cx, cy = breite * 0.5, hoehe * 0.5
-    if modus == 'einzeln':
-        return [Lichtquelle('gerichtet', vec3_norm((-0.3, -0.5, 1.0)), 1.2)]
-    elif modus == 'doppelt':
-        return [
-            Lichtquelle('gerichtet', vec3_norm((-0.4, -0.3, 1.0)), 0.8),
-            Lichtquelle('punkt', (cx + 10, cy - 5, 30.0), 1.0, 0.0015)
-        ]
-    elif modus == 'drei':
-        return [
-            Lichtquelle('gerichtet', vec3_norm((-0.2, -0.4, 1.0)), 0.6),
-            Lichtquelle('punkt', (cx - 15, cy + 10, 25.0), 0.7, 0.002),
-            Lichtquelle('punkt', (cx + 20, cy - 8, 35.0), 0.5, 0.0015)
-        ]
-    else:  # gemischt
-        return [
-            Lichtquelle('gerichtet', vec3_norm((-0.3, -0.2, 1.0)), 0.7),
-            Lichtquelle('punkt', (cx, cy, 40.0), 0.9, 0.001)
-        ]
+def read_str(prompt: str, default: str, allowed: List[str]) -> str:
+    try:
+        s = input(prompt).strip().lower()
+        if s == '':
+            return default
+        if s in allowed:
+            return s
+        print(f"Ungültige Eingabe, erlaubt: {', '.join(allowed)}. Standard wird verwendet.")
+        return default
+    except EOFError:
+        return default
 
 # ---------- Hauptprogramm ----------
 
-def lies_eingabe(prompt: str, standard: str) -> str:
-    """Liest Eingabe mit Standardwert, fängt EOF/KeyboardInterrupt ab."""
-    try:
-        val = input(prompt).strip()
-        return val if val else standard
-    except (EOFError, KeyboardInterrupt):
-        print('\nTschüss!')
-        sys.exit(0)
-
-def parse_float(val: str, standard: float) -> float:
-    try:
-        return float(val)
-    except ValueError:
-        print(f'  Ungültige Zahl, wird ignoriert.')
-        return standard
-
-def parse_int(val: str, standard: int) -> int:
-    try:
-        return int(val)
-    except ValueError:
-        print(f'  Ungültige Zahl, wird ignoriert.')
-        return standard
-
 def main() -> None:
-    print('=== Schatten-Simulator ===')
-    print('Prozedurale 3D-Tiefe + Raymarch-Schatten + ASCII-Output')
-    print('(nur Python-Standardbibliothek, keine externen Abhängigkeiten)\n')
-    
-    # Startwerte
+    print("=== Schatten-Simulator ===")
+    print("Teil 49 von ~50: Shading finalisieren & README vorbereiten")
+    print("Drücke Enter für Standardwerte. Strg+C oder EOF zum Beenden.\n")
+
+    # Standardwerte
     breite = 80
     hoehe = 40
-    z_tiefe = 6.0
+    z_skalierung = 6.0
     ambient = 0.15
     glanz_staerke = 0.4
     glanz_haerte = 16.0
     seed = 42
-    licht_modus = 'gemischt'
-    
-    eingabe_count = 0
-    max_eingaben = 20
-    
-    while eingabe_count < max_eingaben:
-        # Tiefenkarte erzeugen
-        tk = erzeuge_tiefenkarte(breite, hoehe, seed, z_tiefe)
-        mn, mx, span = tk.statistik()
-        
-        # Lichter
-        lichter = erstelle_licht_setup(licht_modus, breite, hoehe)
-        
-        # Shading berechnen
-        helligkeiten = berechne_tiefen_schattierung(
-            tk, lichter, z_tiefe, ambient, glanz_staerke, glanz_haerte
-        )
-        
-        # ASCII rendern
-        ascii_kunst = rendere_ascii(helligkeiten)
-        print(f'\n--- Frame {eingabe_count + 1} ---')
-        print(f'Aktuell: breite={breite} hoehe={hoehe} z_tiefe={z_tiefe} ambient={ambient} glanz={glanz_staerke}/{glanz_haerte} seed={seed} licht={licht_modus}')
-        print(f'Tiefenstatistik: min={mn:.3f} max={mx:.3f} span={span:.3f}')
-        print(ascii_kunst)
-        
-        if eingabe_count >= max_eingaben - 1:
-            print('\nMaximale Anzahl Eingaben erreicht.')
-            break
-        
-        print('\n--- Parameter anpassen (Enter = unverändert) ---')
-        val = lies_eingabe(f'Breite (Enter={breite}): ', str(breite))
-        breite = parse_int(val, breite)
-        val = lies_eingabe(f'Höhe (Enter={hoehe}): ', str(hoehe))
-        hoehe = parse_int(val, hoehe)
-        val = lies_eingabe(f'Z-Tiefe (Enter={z_tiefe}): ', str(z_tiefe))
-        z_tiefe = parse_float(val, z_tiefe)
-        val = lies_eingabe(f'Ambient (Enter={ambient}): ', str(ambient))
-        ambient = parse_float(val, ambient)
-        val = lies_eingabe(f'Glanz-Stärke (Enter={glanz_staerke}): ', str(glanz_staerke))
-        glanz_staerke = parse_float(val, glanz_staerke)
-        val = lies_eingabe(f'Glanz-Härte (Enter={glanz_haerte}): ', str(glanz_haerte))
-        glanz_haerte = parse_float(val, glanz_haerte)
-        val = lies_eingabe(f'Seed (Enter={seed}): ', str(seed))
-        seed = parse_int(val, seed)
-        val = lies_eingabe(f'Licht-Modus [einzeln/doppelt/drei/gemischt] (Enter={licht_modus}): ', licht_modus)
-        if val in ('einzeln', 'doppelt', 'drei', 'gemischt'):
-            licht_modus = val
-        else:
-            print(f'  Unbekannter Modus, behalte {licht_modus}.')
-        
-        eingabe_count += 1
-    
-    print('\nFertig. Danke fürs Testen!')
+    licht_modus = 'einzeln'
 
-if __name__ == '__main__':
+    eingaben = 0
+    max_eingaben = 20
+
+    try:
+        while eingaben < max_eingaben:
+            print(f"--- Frame {eingaben+1} ---")
+            z_skalierung = read_float(f"Z-Tiefe (Enter={z_skalierung}): ", z_skalierung)
+            eingaben += 1
+            if eingaben >= max_eingaben: break
+            ambient = read_float(f"Ambient (Enter={ambient}): ", ambient)
+            eingaben += 1
+            if eingaben >= max_eingaben: break
+            glanz_staerke = read_float(f"Glanz-Stärke (Enter={glanz_staerke}): ", glanz_staerke)
+            eingaben += 1
+            if eingaben >= max_eingaben: break
+            glanz_haerte = read_float(f"Glanz-Härte (Enter={glanz_haerte}): ", glanz_haerte)
+            eingaben += 1
+            if eingaben >= max_eingaben: break
+            seed = read_int(f"Seed (Enter={seed}): ", seed)
+            eingaben += 1
+            if eingaben >= max_eingaben: break
+            licht_modus = read_str(f"Licht-Modus [einzeln/doppelt] (Enter={licht_modus}): ", licht_modus, ['einzeln', 'doppelt'])
+            eingaben += 1
+
+            # Prozedurale Tiefenkarte erzeugen
+            noise = ValueNoise(seed)
+            daten = [[noise.fractal(x, y) for x in range(breite)] for y in range(hoehe)]
+            tk = Tiefenkarte(daten)
+            normals = tk.normalen(z_skalierung)
+
+            # Lichtquellen definieren
+            lichtquellen: List[Lichtquelle] = []
+            if licht_modus == 'einzeln':
+                lichtquellen.append(Lichtquelle('gerichtet', (0.5, -0.5, -1.0), 1.0))
+            else:
+                lichtquellen.append(Lichtquelle('gerichtet', (0.5, -0.5, -1.0), 0.7))
+                lichtquellen.append(Lichtquelle('punkt', (breite/2, hoehe/2, 50.0), 0.5, 0.001))
+
+            # Rendern
+            ascii_zeilen = render_ascii(tk, normals, z_skalierung, ambient, glanz_staerke, glanz_haerte, lichtquellen)
+            print("\n".join(ascii_zeilen))
+            print()
+
+    except KeyboardInterrupt:
+        print("\nAbbruch durch Benutzer.")
+    except EOFError:
+        print("\nEOF erkannt.")
+    finally:
+        print("Tschüss! Schatten-Simulator wird beendet.")
+
+if __name__ == "__main__":
     main()
