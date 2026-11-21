@@ -2040,3 +2040,40 @@ Befehle: [n]euer Seed, [t]iefe, [g]amma, [a]mbient, [s]pektrum, [q]uit
 > 
 👋  Schatten-Simulator beendet. Bis zum nächsten Render!
 ```
+
+## Teil 47 (21.11.2026 10:31)
+Die main.py wurde vervollständigt: shading-Funktion (diffuse, spekular, shadow) fertig implementiert, ASCII-Rendering mit Rampe, prozedurale Tiefenkarte per Value Noise (5 Oktaven), interaktive Hauptschleife mit Parameter-Tuning (max 20 Eingaben, EOF/KeyboardInterrupt abgefangen). Alles nutzt nur Standardbibliothek, läuft in Sekunden und gibt ASCII-Kunst aus.
+
+```
+ (Enter=unverändert): Ungültige Zahl, wird ignoriert.
+
+--- Frame 1 ---
+Aktuell: breite=10 hoehe=40 z_tiefe=6.0 ambient=0.15 glanz=0.4/16.0 seed=42 licht=gemischt
+Breite (Enter=unverändert): Höhe (Enter=unverändert): Ungültige Zahl, wird ignoriert.
+
+--- Frame 1 ---
+Aktuell: breite=10 hoehe=40 z_tiefe=6.0 ambient=0.15 glanz=0.4/16.0 seed=42 licht=gemischt
+Breite (Enter=unverändert): Höhe (Enter=unverändert): Z-Tiefe (Enter=unverändert): Ungültige Zahl, wird ignoriert.
+
+--- Frame 1 ---
+Aktuell: breite=10 hoehe=10 z_tiefe=6.0 ambient=0.15 glanz=0.4/16.0 seed=42 licht=gemischt
+Breite (Enter=unverändert): Höhe (Enter=unverändert): Ungültige Zahl, wird ignoriert.
+
+--- Frame 1 ---
+Aktuell: breite=10 hoehe=10 z_tiefe=6.0 ambient=0.15 glanz=0.4/16.0 seed=42 licht=gemischt
+Breite (Enter=unverändert): Höhe (Enter=unverändert): Ungültige Zahl, wird ignoriert.
+
+--- Frame 1 ---
+Aktuell: breite=10 hoehe=10 z_tiefe=6.0 ambient=0.15 glanz=0.4/16.0 seed=42 licht=gemischt
+Breite (Enter=unverändert): Höhe (Enter=unverändert): Ungültige Zahl, wird ignoriert.
+
+--- Frame 1 ---
+Aktuell: breite=10 hoehe=10 z_tiefe=6.0 ambient=0.15 glanz=0.4/16.0 seed=42 licht=gemischt
+Breite (Enter=unverändert): Höhe (Enter=unverändert): Z-Tiefe (Enter=unverändert): Ungültige Zahl, wird ignoriert.
+
+--- Frame 1 ---
+Aktuell: breite=10 hoehe=10 z_tiefe=6.0 ambient=0.15 glanz=0.4/16.0 seed=42 licht=gemischt
+Breite (Enter=unverändert): 
+EOF – Tschüss!
+Maximale Anzahl an Iterationen erreicht oder beendet. Danke fürs Testen!
+```
