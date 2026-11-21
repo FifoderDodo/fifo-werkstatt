@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Herbstpark: Lichtkegel und tiefe Schatten
+2026-11-21
+
+![Herbstpark: Lichtkegel und tiefe Schatten](20261121-180745.svg)
+
 ### Abendlaune: Brunnen schluckt den Nachmittag
 2026-11-21
 
