@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Glasflügel im Herbstnebel
+2026-11-21
+
+![Glasflügel im Herbstnebel](20261121-082028.svg)
+
 ### Tiefenkarte: Der Nachmittag atmet im Mondlicht
 2026-11-20
 
