@@ -1,6 +1,6 @@
-# main.py – Schatten‑Simulator, Teil 21
+# main.py – Schatten‑Simulator, Teil 22
 # Fifo, der Dodo, träumt den letzten Schliff: Speichern, Batch‑Modus, kleine Aufräumarbeiten.
-# Diesmal: Ray‑Marching fertig, Weichzeichner, ASCII‑Export, EOF‑Sicherheit.
+# Diesmal: Ray‑Marching fertig, Weichzeichner, ASCII‑Export, EOF‑Sicherheit, Batch‑Modus.
 
 from __future__ import annotations
 import math
@@ -164,209 +164,239 @@ def harte_schatten_raymarch(karte: Tiefenkarte, licht_dir: Vec3,
     inv_xy = 1.0 / l_xy
     dir_x = -lx * inv_xy * step_xy
     dir_y = -ly * inv_xy * step_xy
-    step_z = lz * inv_xy * step_xy * 0.1
+    step_z = lz * inv_xy * step_xy * 0.1  # 0.1 ≈ z‑Skalierung der Tiefenkarte
 
-    schatten: List[List[float]] = [[1.0] * b for _ in range(h)]
+    shadow: List[List[float]] = []
     for y in range(h):
+        reihe: List[float] = []
         for x in range(b):
-            z = karte.get(y, x)
-            if z <= 0.0:
-                schatten[y][x] = 1.0
-                continue
-            sx = float(x)
-            sy = float(y)
-            sz = z
+            # Startpunkt leicht über der Oberfläche
+            cur_x = x + 0.5
+            cur_y = y + 0.5
+            cur_z = karte.daten[y][x] + bias
             blocked = False
             for _ in range(schritte):
-                sx += dir_x
-                sy += dir_y
-                sz += step_z
-                if sx < 0 or sx >= b or sy < 0 or sy >= h:
+                cur_x += dir_x
+                cur_y += dir_y
+                cur_z += step_z
+                if cur_x < 0 or cur_x >= b or cur_y < 0 or cur_y >= h:
                     break
-                h_here = karte.get_bilinear(sy, sx)
-                if h_here > sz + bias:
+                # bilinear sample Höhe
+                h_val = karte.get_bilinear(cur_y, cur_x)
+                if cur_z <= h_val + bias:
                     blocked = True
                     break
-            schatten[y][x] = 0.0 if blocked else 1.0
-    return schatten
+            reihe.append(0.0 if blocked else 1.0)
+        shadow.append(reihe)
+    return shadow
 
-def weiche_schatten(schatten: List[List[float]], radius: int) -> List[List[float]]:
-    """Einfacher Box‑Blur für weiche Schatten."""
+def box_blur(src: List[List[float]], radius: int) -> List[List[float]]:
+    """Einfacher Box‑Blur (separable) für Weichzeichner."""
     if radius <= 0:
-        return schatten
-    h = len(schatten)
-    b = len(schatten[0]) if h > 0 else 0
-    # Horizontale Pass
-    temp = [[0.0] * b for _ in range(h)]
+        return src
+    h = len(src)
+    b = len(src[0]) if h > 0 else 0
+    # horizontal
+    tmp = [[0.0] * b for _ in range(h)]
     for y in range(h):
-        row = schatten[y]
+        row = src[y]
         for x in range(b):
             s = 0.0
             cnt = 0
             for dx in range(-radius, radius + 1):
-                nx = x + dx
-                if 0 <= nx < b:
-                    s += row[nx]
+                xi = x + dx
+                if 0 <= xi < b:
+                    s += row[xi]
                     cnt += 1
-            temp[y][x] = s / cnt if cnt else 0.0
-    # Vertikale Pass
-    result = [[0.0] * b for _ in range(h)]
+            tmp[y][x] = s / cnt if cnt else 0.0
+    # vertical
+    dst = [[0.0] * b for _ in range(h)]
     for x in range(b):
         for y in range(h):
             s = 0.0
             cnt = 0
             for dy in range(-radius, radius + 1):
-                ny = y + dy
-                if 0 <= ny < h:
-                    s += temp[ny][x]
+                yi = y + dy
+                if 0 <= yi < h:
+                    s += tmp[yi][x]
                     cnt += 1
-            result[y][x] = s / cnt if cnt else 0.0
-    return result
+            dst[y][x] = s / cnt if cnt else 0.0
+    return dst
+
+def weiche_schatten(karte: Tiefenkarte, licht_dir: Vec3,
+                    schritte: int = 32, blur_radius: int = 2) -> List[List[float]]:
+    """Kombiniert Ray‑Marching mit Box‑Blur für weiche Schatten."""
+    hard = harte_schatten_raymarch(karte, licht_dir, schritte)
+    return box_blur(hard, blur_radius)
 
 # ---------- ASCII‑Rendering ----------
 
-def render_ascii(werte: List[List[float]], palette: str = " .:-=+*#%@") -> List[str]:
-    """Wandelt 0‑1 Werte in ASCII‑Zeilen um."""
+def ascii_art(werte: List[List[float]], palette: str = " .:-=+*#%@") -> str:
+    """Wandelt 2D‑Float‑Array (0..1) in ASCII‑Zeilen um."""
     lines = []
-    max_i = len(palette) - 1
-    for row in werte:
-        line = ''.join(palette[min(max_i, int(v * max_i + 0.5))] for v in row)
+    n = len(palette) - 1
+    for reihe in werte:
+        line = ''.join(palette[min(n, max(0, int(v * n)))] for v in reihe)
         lines.append(line)
-    return lines
+    return '\n'.join(lines)
 
-def speichere_ascii(lines: List[str], dateiname: str = "schatten.txt") -> bool:
-    """Speichert ASCII‑Art in eine Datei."""
+# ---------- Speichern ----------
+
+def speichern(text: str, dateiname: str) -> bool:
+    """Speichert Text in Datei (nur im aktuellen Ordner)."""
     try:
         with open(dateiname, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(lines))
+            f.write(text)
         return True
-    except OSError as e:
+    except Exception as e:
         print(f"Fehler beim Speichern: {e}")
         return False
+
+# ---------- Eingabe‑Hilfen mit EOF‑Schutz ----------
+
+def safe_input(prompt: str, default: str = "") -> str:
+    """input() mit EOF‑Abruf und Default."""
+    try:
+        return input(prompt)
+    except EOFError:
+        print("\nEOF – Ende.")
+        sys.exit(0)
+
+
+def parse_vec3(s: str, default: Vec3) -> Vec3:
+    parts = s.strip().split()
+    if len(parts) != 3:
+        return default
+    try:
+        return (float(parts[0]), float(parts[1]), float(parts[2]))
+    except ValueError:
+        return default
+
+
+def parse_int(s: str, default: int, lo: int, hi: int) -> int:
+    try:
+        v = int(s.strip())
+        if lo <= v <= hi:
+            return v
+    except ValueError:
+        pass
+    return default
 
 # ---------- Hauptprogramm ----------
 
 def main() -> None:
-    print("=== Schatten‑Simulator (Teil 21) ===")
+    print("=== Schatten‑Simulator (Teil 22) ===")
     print("Formen: 1=Kugel, 2=Kegel, 3=Stufenpyramide, 4=Wellblech")
-    eingaben = 0
-    max_eingaben = 20
     
-    def safe_input(prompt: str) -> Optional[str]:
+    # Eingabezähler für Limit 20
+    eingaben = 0
+    MAX_EINGABEN = 20
+    
+    def get_input(prompt: str, default: str) -> str:
         nonlocal eingaben
-        if eingaben >= max_eingaben:
-            return None
-        try:
-            s = input(prompt)
-            eingaben += 1
-            return s
-        except EOFError:
-            return None
+        if eingaben >= MAX_EINGABEN:
+            print("Eingabe‑Limit erreicht, nutze Defaults.")
+            return default
+        eingaben += 1
+        return safe_input(prompt, default)
     
     # Form wählen
-    form_str = safe_input("Form wählen [1‑4]: ")
-    if form_str is None:
-        print("\nKeine Eingabe mehr – Tschüss!")
-        return
-    try:
-        form = int(form_str.strip())
-        if form not in (1, 2, 3, 4):
-            raise ValueError
-    except ValueError:
+    formwahl = get_input("Form wählen [1‑4]: ", "1")
+    if formwahl not in ("1", "2", "3", "4"):
         print("Ungültig, nehme Kugel.")
-        form = 1
+        formwahl = "1"
     
-    # Lichtrichtung
-    licht_str = safe_input("Lichtrichtung als drei Zahlen (x y z), z.B. \"1 1 -2\": ")
-    if licht_str is None:
-        print("\nKeine Eingabe mehr – Tschüss!")
-        return
-    try:
-        parts = licht_str.strip().split()
-        if len(parts) != 3:
-            raise ValueError
-        lx, ly, lz = map(float, parts)
-        licht_dir = (lx, ly, lz)
-    except ValueError:
-        print("Ungültig, nehme Standard (1, 1, -2).")
-        licht_dir = (1.0, 1.0, -2.0)
-    
-    # Schatten‑Samples
-    samples_str = safe_input("Schatten‑Samples (Ray‑March Steps) [8‑64]: ")
-    if samples_str is None:
-        print("\nKeine Eingabe mehr – Tschüss!")
-        return
-    try:
-        samples = int(samples_str.strip())
-        if samples < 8 or samples > 64:
-            raise ValueError
-    except ValueError:
-        print("Ungültig, nehme 32.")
-        samples = 32
-    
-    # Weichzeichner‑Radius
-    blur_str = safe_input("Weichzeichner‑Radius für Schatten [0‑4]: ")
-    if blur_str is None:
-        print("\nKeine Eingabe mehr – Tschüss!")
-        return
-    try:
-        blur_radius = int(blur_str.strip())
-        if blur_radius < 0 or blur_radius > 4:
-            raise ValueError
-    except ValueError:
-        print("Ungültig, nehme 1.")
-        blur_radius = 1
-    
-    # Tiefenkarte erzeugen
-    if form == 1:
+    if formwahl == "1":
         karte = erzeuge_kugel()
-    elif form == 2:
+        formenname = "kugel"
+    elif formwahl == "2":
         karte = erzeuge_kegel()
-    elif form == 3:
+        formenname = "kegel"
+    elif formwahl == "3":
         karte = erzeuge_stufenpyramide()
+        formenname = "pyramide"
     else:
         karte = erzeuge_wellblech()
+        formenname = "wellblech"
     
+    # Lichtrichtung
+    licht_str = get_input('Lichtrichtung als drei Zahlen (x y z), z.B. "1 1 -2": ', "1 1 -2")
+    licht = parse_vec3(licht_str, (1.0, 1.0, -2.0))
+    if licht_str.strip() == "":
+        print("Ungültig, nehme Standard (1, 1, -2).")
+    
+    # Schatten‑Samples
+    samples_str = get_input("Schatten‑Samples (Ray‑March Steps) [8‑64]: ", "32")
+    samples = parse_int(samples_str, 32, 8, 64)
+    if samples_str.strip() == "":
+        print("Ungültig, nehme 32.")
+    
+    # Weichzeichner‑Radius
+    blur_str = get_input("Weichzeichner‑Radius (Box‑Blur) [0‑4]: ", "2")
+    blur = parse_int(blur_str, 2, 0, 4)
+    if blur_str.strip() == "":
+        print("Ungültig, nehme 2.")
+    
+    # Berechnungen
     print("\nBerechne Normalen …")
     normals = karte.normalen()
     
-    print("Berechne diffusen Schatten …")
-    diff = diffuse_schatten(normals, licht_dir)
+    print("Berechne diffuse Beleuchtung …")
+    diffuse = diffuse_schatten(normals, licht)
     
     print("Berechne harte Schatten (Ray‑Marching) …")
-    hart = harte_schatten_raymarch(karte, licht_dir, schritte=samples)
+    hard = harte_schatten_raymarch(karte, licht, samples)
     
-    # Kombinieren: multiplizieren
-    kombiniert = [[diff[y][x] * hart[y][x] for x in range(karte.b)] for y in range(karte.h)]
+    print("Wende Weichzeichner an …")
+    soft = box_blur(hard, blur)
     
-    if blur_radius > 0:
-        print(f"Wende Weichzeichner (Radius {blur_radius}) an …")
-        kombiniert = weiche_schatten(kombiniert, blur_radius)
+    # Kombinieren: diffuse * shadow
+    combined = []
+    for y in range(karte.h):
+        row = []
+        for x in range(karte.b):
+            row.append(diffuse[y][x] * soft[y][x])
+        combined.append(row)
     
-    print("\nErgebnis (ASCII):")
-    ascii_lines = render_ascii(kombiniert)
-    for line in ascii_lines:
-        print(line)
+    # ASCII Ausgabe
+    print("\n=== Ergebnis (diffus * weicher Schatten) ===")
+    ascii_out = ascii_art(combined)
+    print(ascii_out)
     
     # Speichern?
-    save = safe_input("\nASCII‑Art speichern? (j/n) [j]: ")
-    if save is None:
-        print("\nKeine Eingabe mehr – Tschüss!")
-        return
-    if save.strip().lower() in ('', 'j', 'ja', 'y', 'yes'):
-        fname = safe_input("Dateiname [schatten.txt]: ")
-        if fname is None:
-            print("\nKeine Eingabe mehr – Tschüss!")
-            return
-        fname = fname.strip() or "schatten.txt"
-        if speichere_ascii(ascii_lines, fname):
+    save = get_input("In Datei speichern? (j/n) [n]: ", "n").lower()
+    if save == "j" or save == "ja":
+        fname = get_input("Dateiname (z.B. schatten.txt): ", f"schatten_{formenname}.txt")
+        if speichern(ascii_out, fname):
             print(f"Gespeichert unter {fname}")
         else:
             print("Speichern fehlgeschlagen.")
-    else:
-        print("Nicht gespeichert.")
     
-    print("\nFifo winkt mit dem Flügel – bis zum nächsten Traum!")
+    # Batch‑Modus?
+    batch = get_input("Batch‑Modus für alle Formen? (j/n) [n]: ", "n").lower()
+    if batch == "j" or batch == "ja":
+        print("\n=== Batch‑Modus ===")
+        formen = [
+            ("kugel", erzeuge_kugel),
+            ("kegel", erzeuge_kegel),
+            ("pyramide", erzeuge_stufenpyramide),
+            ("wellblech", erzeuge_wellblech),
+        ]
+        for name, func in formen:
+            print(f"\n--- {name} ---")
+            k = func()
+            n = k.normalen()
+            d = diffuse_schatten(n, licht)
+            h = harte_schatten_raymarch(k, licht, samples)
+            s = box_blur(h, blur)
+            c = [[d[y][x] * s[y][x] for x in range(k.b)] for y in range(k.h)]
+            a = ascii_art(c)
+            print(a)
+            fn = f"batch_{name}.txt"
+            if speichern(a, fn):
+                print(f"Gespeichert: {fn}")
+    
+    print("\nFertig. Gute Nacht!")
 
 if __name__ == "__main__":
     main()
