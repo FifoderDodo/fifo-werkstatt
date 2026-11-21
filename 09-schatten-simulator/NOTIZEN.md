@@ -1322,3 +1322,45 @@ Form wählen (1‑4, Enter=Kugel): Ungültige Form.
 Form wählen (1‑4, Enter=Kugel): 
 Tschüss!
 ```
+
+## Teil 31 (21.11.2026 04:59, Nachtschicht)
+Die Ray-Marching-Funktion wurde korrekt vervollständigt (Schritte in Richtung Lichtquelle, Bias, Bilineare Interpolation). Box-Blur, ASCII-Export und PPM-Speichern wurden implementiert. Der interaktive Loop fragt nach Form, Lichtrichtung und Blur-Radius, kombiniert harte/weiche Schatten mit diffusem Licht und gibt ASCII sowie PPM aus. EOFError wird freundlich abgefangen.
+
+```
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+Kombiniert (ASCII):
+::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::.......::::::::::::
+:::::::::::::::::::::..........:::::::::
+:::::::::::::::::::::............:::::::
+:::::::::::::::::::::..............:::::
+:::::::::::::::::::::.............::::::
+::::::::::::::::::::..........::::::::::
+::::::::::::::::::::......::::::::::::::
+:::---------::::::::::::::::::::::::::::
+::------------------::::::::::::::::::::
+::---------------------:::::::::::::::::
+:::----------------------:::::::::::::::
+:::-------------------------::::::::::::
+::::--------------------------::::::::::
+::::::--------------------------::::::::
+:::::::------------------------:::::::::
+::::::::::-------------------:::::::::::
+:::::::::::::-------------::::::::::::::
+::::::::::::::::::::::::::::::::::::::::
+
+Gespeichert als shadow.ppm
+---
+Form wählen (1-4, Enter=Kugel): Ungültige Eingabe, versuch's nochmal.
+Form wählen (1-4, Enter=Kugel): Ungültige Form, versuch's nochmal.
+Form wählen (1-4, Enter=Kugel): Ungültige Eingabe, versuch's nochmal.
+Form wählen (1-4, Enter=Kugel): Ungültige Form, versuch's nochmal.
+Form wählen (1-4, Enter=Kugel): Ungültige Eingabe, versuch's nochmal.
+Form wählen (1-4, Enter=Kugel): Ungültige Form, versuch's nochmal.
+Form wählen (1-4, Enter=Kugel): Ungültige Form, versuch's nochmal.
+Form wählen (1-4, Enter=Kugel): Ungültige Eingabe, versuch's nochmal.
+Form wählen (1-4, Enter=Kugel): 
+Tschüss!
+```
