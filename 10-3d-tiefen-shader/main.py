@@ -3,12 +3,24 @@ import sys
 
 
 def szene_distanz(x: float, y: float, z: float) -> float:
-    """Einfache SDF-Szene: eine Kugel bei (0, 0, 3) mit Radius 1."""
+    """SDF-Szene: Kugel bei (0, 0, 3) Radius 1, Boden bei y = -1."""
     # Kugel-Distanz
     kugel = math.sqrt(x * x + y * y + (z - 3.0) * (z - 3.0)) - 1.0
-    # Bodenplane bei z = 0
-    boden = z
+    # Bodenplane y = -1
+    boden = y + 1.0
     return min(kugel, boden)
+
+
+def szene_normal(x: float, y: float, z: float, eps: float = 1e-4) -> tuple:
+    """Gradient des SDF als Normalenvektor (nicht normalisiert)."""
+    d = szene_distanz(x, y, z)
+    nx = szene_distanz(x + eps, y, z) - d
+    ny = szene_distanz(x, y + eps, z) - d
+    nz = szene_distanz(x, y, z + eps) - d
+    leng = math.sqrt(nx * nx + ny * ny + nz * nz)
+    if leng == 0:
+        return 0.0, 1.0, 0.0
+    return nx / leng, ny / leng, nz / leng
 
 
 def raymarch(ox: float, oy: float, oz: float,
@@ -30,25 +42,21 @@ def raymarch(ox: float, oy: float, oz: float,
 
 
 def main() -> None:
-    print("Fifo's 3D-Tiefen-Shader - Teil 1: Koordinaten & Projektion")
-    print("==========================================================")
+    print("Fifo's 3D-Tiefen-Shader - Teil 2: Tiefe & Schattierung")
+    print("======================================================")
     
     # Bildgröße (klein für ASCII)
     breite = 60
     hoehe = 30
     
     # Kamera & Projektion
-    # Skalierung der Koordinaten: NDC (-1..1) -> Welt
-    # Hier justiere ich die Zeilen für die Tiefenprojektion:
-    # Brennweite / Field of View Einfluss
     brennweite = 1.0
-    
-    # Kamera steht bei (0, 0, 0), schaut in +Z
-    cam_x, cam_y, cam_z = 0.0, 0.0, 0.0
+    # Kamera etwas erhöht, damit sie den Boden und die Kugel sieht
+    cam_x, cam_y, cam_z = 0.0, 1.5, 0.0
     
     print(f"Rendere {breite}x{hoehe} Pixel mit Raymarching...")
     
-    # Ein kleiner Input-Spaß: Skalierung der Szene beeinflussen
+    # Input-Spaß: Skalierung der Szene beeinflussen
     skala = 1.0
     try:
         inp = input("Skalierungsfaktor für Szene (Enter=1.0, z.B. 0.5 oder 2.0): ").strip()
@@ -58,11 +66,18 @@ def main() -> None:
     except (ValueError, EOFError):
         print("Keine gültige Zahl oder EOF, nehme Standard 1.0.")
     
-    # Framebuffer für Tiefe
+    # Lichtrichtung (von oben rechts leicht von vorn)
+    lx, ly, lz = 1.0, 2.0, -1.0
+    lleng = math.sqrt(lx*lx + ly*ly + lz*lz)
+    lx, ly, lz = lx/lleng, ly/lleng, lz/lleng
+    
+    # Framebuffer für Tiefe und Schattierung
     tiefe_buffer = []
+    schatten_buffer = []
     
     for j in range(hoehe):
         zeile_tiefen = []
+        zeile_schatten = []
         # NDC y: +1 (oben) nach -1 (unten)
         ndc_y = (1.0 - 2.0 * j / (hoehe - 1)) / skala
         for i in range(breite):
@@ -70,7 +85,6 @@ def main() -> None:
             ndc_x = (2.0 * i / (breite - 1) - 1.0) / skala
             
             # Strahlrichtung berechnen (Projektion)
-            # Koordinaten skaliert via NDC * Brennweite
             rdx = ndc_x * brennweite
             rdy = ndc_y * brennweite
             rdz = 1.0  # Schaut in +Z
@@ -84,26 +98,47 @@ def main() -> None:
             # Raymarch
             t = raymarch(cam_x, cam_y, cam_z, rdx, rdy, rdz)
             zeile_tiefen.append(t)
+            
+            # Schattierung nur bei Treffer
+            if t < 20.0:
+                # Trefferpunkt
+                hx = cam_x + rdx * t
+                hy = cam_y + rdy * t
+                hz = cam_z + rdz * t
+                # Normalen
+                nx, ny, nz = szene_normal(hx, hy, hz)
+                # Diffuses Licht (Lambert)
+                diff = max(0.0, nx*lx + ny*ly + nz*lz)
+                # Ambient + Diffus, leicht tiefenabhängig (Nebel)
+                ambient = 0.2
+                nebelfaktor = 1.0 - min(1.0, t / 20.0)
+                helligkeit = ambient + diff * nebelfaktor
+                zeile_schatten.append(helligkeit)
+            else:
+                zeile_schatten.append(0.0)  # Hintergrund = dunkel
         tiefe_buffer.append(zeile_tiefen)
+        schatten_buffer.append(zeile_schatten)
     
-    # ASCII Ausgabe: Tiefe -> Zeichen
-    # Nahe = hell (#), Fern = dunkel (.)
-    ascii_rampe = " .:-=+*#%@"
+    # ASCII Ausgabe: Kombination aus Tiefe und Schattierung
+    # Helle Zeichen für hohe Helligkeit
+    ascii_rampe = " .:'-=+*#%@"
     max_tiefe = 15.0
     
-    print("\nTiefenkarte (Nah=hell, Fern=dunkel):")
-    for zeile in tiefe_buffer:
+    print("\nSchattierte Tiefenkarte (Nah & beleuchtet = hell):")
+    for j in range(hoehe):
         out = ""
-        for t in zeile:
-            idx = int(min(len(ascii_rampe) - 1, max(0, (t / max_tiefe) * (len(ascii_rampe) - 1))))
-            # Umkehren: nah = Index 0 (dunkel in Rampe oben?), lieber: nah = helles Zeichen
-            # Rampe ist dunkel -> hell. Nah = kleines t = kleiner Index = dunkler. 
-            # Besser: Umkehren.
-            idx = len(ascii_rampe) - 1 - idx
+        for i in range(breite):
+            t = tiefe_buffer[j][i]
+            s = schatten_buffer[j][i]
+            # Helligkeit aus Schattierung (0..1) und Tiefe (Nah = heller)
+            # Wir mischen: 70% Schattierung, 30% Tiefen-Nähe
+            tiefe_faktor = 1.0 - min(1.0, t / max_tiefe)
+            wert = 0.7 * s + 0.3 * tiefe_faktor
+            idx = int(min(len(ascii_rampe) - 1, max(0, wert * (len(ascii_rampe) - 1))))
             out += ascii_rampe[idx]
         print(out)
     
-    print("\nFertig. Teil 1 erledigt: Projektion & Skalierung laufen.")
+    print("\nFertig. Teil 2 erledigt: Normals, Lambert-Shading und Nebel hinzugefügt.")
 
 
 if __name__ == "__main__":
