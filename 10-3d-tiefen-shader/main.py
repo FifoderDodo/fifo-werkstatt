@@ -27,7 +27,7 @@ def szene_distanz(x, y, z):
     return min(kugel, boden)
 
 def normal_berechnen(x, y, z, eps=0.001):
-    """Berechnet Normalen via zentrale Differenzen – schärfere Kanten durch kleinere Eps."""
+    """Berechnet Normalen via zentrale Differenzen – schärfere Kanten durch kleineres Eps."""
     d = szene_distanz(x, y, z)
     nx = szene_distanz(x + eps, y, z) - szene_distanz(x - eps, y, z)
     ny = szene_distanz(x, y + eps, z) - szene_distanz(x, y - eps, z)
@@ -71,31 +71,55 @@ def weicher_schatten(ox, oy, oz, licht_dir, max_dist=10.0, schritte=16):
         schatten = min(schatten, d * schritte / (h * 0.5))
     return max(0.0, min(1.0, schatten))
 
-def depth_interpolate_smoothstep(tiefe_buffer, breite, hoehe):
-    ergebnis = []
+def bilateral_filter(tiefe_buffer, normal_buffer, breite, hoehe, sigma_s=1.0, sigma_r=0.5):
+    """Bilateral-Filter für Tiefe und Normalen – glättet Flächen, erhält Kanten."""
+    neue_tiefe = [[0.0]*breite for _ in range(hoehe)]
+    neue_normal = [[(0.0,0.0,0.0)]*breite for _ in range(hoehe)]
     for j in range(hoehe):
-        zeile = []
         for i in range(breite):
-            d = tiefe_buffer[j][i]
-            if d >= 19.0:
-                zeile.append(d)
+            d_center = tiefe_buffer[j][i]
+            if d_center >= 19.0:
+                neue_tiefe[j][i] = d_center
+                neue_normal[j][i] = normal_buffer[j][i]
                 continue
-            d_sum = 0.0
-            count = 0
-            for dy in [-1, 0, 1]:
-                for dx in [-1, 0, 1]:
+            n_center = normal_buffer[j][i]
+            sum_w = 0.0
+            sum_d = 0.0
+            sum_nx, sum_ny, sum_nz = 0.0, 0.0, 0.0
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
                     ni, nj = i + dx, j + dy
                     if 0 <= ni < breite and 0 <= nj < hoehe:
-                        val = tiefe_buffer[nj][ni]
-                        if abs(val - d) < 0.5:
-                            d_sum += val
-                            count += 1
-            zeile.append(d_sum / count if count > 0 else d)
-        ergebnis.append(zeile)
-    return ergebnis
+                        d_n = tiefe_buffer[nj][ni]
+                        if d_n >= 19.0:
+                            continue
+                        n_n = normal_buffer[nj][ni]
+                        # räumliches Gewicht
+                        dist2 = dx*dx + dy*dy
+                        w_s = math.exp(-dist2 / (2.0 * sigma_s * sigma_s))
+                        # Bereichsgewicht (Tiefendifferenz)
+                        diff = d_n - d_center
+                        w_r = math.exp(-diff*diff / (2.0 * sigma_r * sigma_r))
+                        w = w_s * w_r
+                        sum_w += w
+                        sum_d += d_n * w
+                        sum_nx += n_n[0] * w
+                        sum_ny += n_n[1] * w
+                        sum_nz += n_n[2] * w
+            if sum_w > 0:
+                neue_tiefe[j][i] = sum_d / sum_w
+                l = math.sqrt(sum_nx*sum_nx + sum_ny*sum_ny + sum_nz*sum_nz)
+                if l > 0:
+                    neue_normal[j][i] = (sum_nx/l, sum_ny/l, sum_nz/l)
+                else:
+                    neue_normal[j][i] = n_center
+            else:
+                neue_tiefe[j][i] = d_center
+                neue_normal[j][i] = n_center
+    return neue_tiefe, neue_normal
 
 def render_szene(breite=80, hoehe=40):
-    """Raymarch-Renderer mit verbesserter Schattierung: AO, Fresnel, weiche Schatten."""
+    """Raymarch-Renderer mit verbesserter Schattierung: AO, Fresnel, weiche Schatten, Kantenglättung."""
     tiefe_buffer = [[20.0]*breite for _ in range(hoehe)]
     normal_buffer = [[(0,1,0)]*breite for _ in range(hoehe)]
     pos_buffer = [[(0,0,0)]*breite for _ in range(hoehe)]
@@ -126,7 +150,8 @@ def render_szene(breite=80, hoehe=40):
                 oz += rdz * d
                 dist += d
     
-    tiefe_buffer = depth_interpolate_smoothstep(tiefe_buffer, breite, hoehe)
+    # Kantenglättung via bilateral filter
+    tiefe_buffer, normal_buffer = bilateral_filter(tiefe_buffer, normal_buffer, breite, hoehe)
     
     # Licht-Setup
     licht = (0.3, 0.8, 0.5)
@@ -158,38 +183,33 @@ def render_szene(breite=80, hoehe=40):
             # 3. Weiche Schatten – realistischer als harte Schatten
             schatten = weicher_schatten(px + nx*0.01, py + ny*0.01, pz + nz*0.01, licht)
             
-            # 4. Kanten-Schärfung (Laternen-Look)
-            kante = kanten_schaerfe((nx, ny, nz), view, 6.0)
+            # 4. Fresnel-Effekt an Silhouetten
+            fresnel = fresnel_effekt((nx, ny, nz), view)
             
-            # 5. Fresnel-Schimmer an Silhouetten
-            fresnel = fresnel_effekt((nx, ny, nz), view, 4.0)
+            # 5. Spekulare Highlights (Blinn-Phong) für mehr Plastizität
+            hx, hy, hz = licht[0] - view[0], licht[1] - view[1], licht[2] - view[2]
+            hl = math.sqrt(hx*hx + hy*hy + hz*hz)
+            if hl > 0:
+                hx, hy, hz = hx/hl, hy/hl, hz/hl
+                spec = max(0.0, nx*hx + ny*hy + nz*hz) ** 32.0
+            else:
+                spec = 0.0
             
-            # 6. Tiefen-Nebel (Atmosphäre)
-            nebelfaktor = max(0.0, 1.0 - d / 12.0)
+            # 6. Tiefennebel – ferne Objekte blasser
+            nebelfaktor = math.exp(-d * 0.08)
             
-            # Kombinieren: Basis + AO + Schatten + Kanten + Fresnel
-            helligkeit = (diff * 0.5 + 0.15) * ao * schatten  # Basis-Beleuchtung
-            helligkeit += kante * 0.35  # Laternen-Kanten
-            helligkeit += fresnel * 0.25  # Silhouetten-Schimmer
-            helligkeit *= nebelfaktor  # Entfernungs-Abschwächung
-            
-            # Gamma-Korrektur für natürlichere Helligkeitsverteilung
-            helligkeit = helligkeit ** 0.9
+            # Kombinierte Beleuchtung
+            helligkeit = (0.15 + 0.65 * diff * ao * schatten + 0.15 * fresnel + 0.35 * spec) * nebelfaktor
             helligkeit = max(0.0, min(1.0, helligkeit))
             
             idx = int(helligkeit * (len(ascii_ramp) - 1))
             zeile += ascii_ramp[idx]
         bild.append(zeile)
-    return bild
+    return "\n".join(bild)
 
-if __name__ == '__main__':
-    print('Fifo schleift die Schattierung: AO, Fresnel, weiche Schatten – Tiefe wird greifbar!')
-    print()
+if __name__ == "__main__":
     try:
-        bild = render_szene()
-        for zeile in bild:
-            print(zeile)
-    except KeyboardInterrupt:
-        pass
-    print()
-    print('Projekt 3D-Tiefen-Shader: Schattierungs-Routine getestet – Fifo nickt zufrieden.')
+        print(render_szene())
+    except EOFError:
+        print("\nBis zum nächsten Mal, Dodo-Freund!")
+        sys.exit(0)
