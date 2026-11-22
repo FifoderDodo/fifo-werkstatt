@@ -179,168 +179,159 @@ def render(params: ShaderParams, bäume, licht_pos, width=60, height=18, frame=0
     light_r, light_g, light_b = kelvin_to_rgb_factor(params.color_temp)
     for iy in range(height):
         for ix in range(width):
-            # Normalized device coordinates
-            nx = (ix + 0.5) / width
-            ny = (iy + 0.5) / height
-            # World coordinates on near plane
-            wx = (nx - 0.5) * world_w
-            wy = (ny - 0.5) * world_h
-            # Ray direction from camera
-            rdx, rdy, rdz = wx - cam_x, wy - cam_y, -cam_z
-            rlen = math.hypot(rdx, rdy, rdz)
-            rdx, rdy, rdz = rdx / rlen, rdy / rlen, rdz / rlen
+            # Pixel to world direction
+            px = (ix + 0.5) / width * world_w - world_w * 0.5
+            py = (iy + 0.5) / height * world_h - world_h * 0.5
+            # Ray from camera through pixel
+            rx, ry, rz = px - cam_x, py - cam_y, -cam_z
+            rlen = math.hypot(rx, ry, rz)
+            rx, ry, rz = rx / rlen, ry / rlen, rz / rlen
             
             acc = 0.0
             transmittance = 1.0
+            
             for step in range(params.march_steps):
-                t = step * step_size
-                px = cam_x + rdx * t
-                py = cam_y + rdy * t
-                pz = cam_z + rdz * t
-                if pz <= 0.0:
-                    # Ground intersection
-                    ground_dist = t
-                    # Specular reflection on wet ground
-                    if params.specular_intensity > 0:
-                        # Light direction at ground point
-                        ldx, ldy, ldz = lx - px, ly - py, lz - pz
-                        llen = math.hypot(ldx, ldy, ldz)
-                        ldx, ldy, ldz = ldx / llen, ldy / llen, ldz / llen
-                        # View direction (towards camera)
-                        vdx, vdy, vdz = -rdx, -rdy, -rdz
-                        # Half vector
-                        hx, hy, hz = ldx + vdx, ldy + vdy, ldz + vdz
-                        hlen = math.hypot(hx, hy, hz)
-                        if hlen > 0:
-                            hx, hy, hz = hx / hlen, hy / hlen, hz / hlen
-                            # Normal is (0,0,1)
-                            ndoth = hz
-                            if ndoth > 0:
-                                spec = (ndoth ** params.specular_power) * params.specular_intensity
-                                # Add noise to break up specular
-                                n = noise_2d(px * params.specular_noise_scale, py * params.specular_noise_scale, params.noise_seed + frame)
-                                spec *= 0.5 + 0.5 * n
-                                acc += spec * transmittance
-                    break
+                t = (step + 0.5) * step_size
+                sx, sy, sz = cam_x + rx * t, cam_y + ry * t, cam_z + rz * t
                 
-                # Light direction from sample point
-                ldx, ldy, ldz = lx - px, ly - py, lz - pz
-                llen = math.hypot(ldx, ldy, ldz)
-                if llen < 0.01:
+                # Distance to light
+                ldx, ldy, ldz = lx - sx, ly - sy, lz - sz
+                ldist = math.hypot(ldx, ldy, ldz)
+                if ldist < 0.01:
                     continue
-                ldx, ldy, ldz = ldx / llen, ldy / llen, ldz / llen
+                ldx, ldy, ldz = ldx / ldist, ldy / ldist, ldz / ldist
                 
-                # Phase function
-                cos_theta = rdx * ldx + rdy * ldy + rdz * ldz
+                # Shadow factor at this sample point (projected onto ground)
+                shadow = schattenfaktor_für_punkt(sx, sy, lx, ly, ldist, bäume, params)
+                
+                # Phase function (Henyey-Greenstein)
+                cos_theta = rx * ldx + ry * ldy + rz * ldz
                 phase = henyey_greenstein(cos_theta, params.phase_g)
                 
                 # Falloff
-                falloff = 1.0 / max(1e-3, llen ** params.falloff_exponent)
-                if llen > params.falloff_start:
-                    falloff *= (params.falloff_start / llen) ** params.falloff_exponent
-                
-                # Shadow
-                shadow = schattenfaktor_für_punkt(px, py, lx, ly, llen, bäume, params)
+                falloff = 1.0 / max(1e-3, (ldist * params.falloff_start) ** params.falloff_exponent)
                 
                 # Mist density with height falloff
-                mist = params.mist_density * math.exp(-pz * params.mist_height_falloff)
-                # Add 3D noise for volumetric variation
+                mist = params.mist_density * math.exp(-sy * params.mist_height_falloff)
+                
+                # Jitter for volumetric noise
+                jitter = 0.0
                 if params.jitter_enabled:
-                    mist += noise_3d(px * 0.5, py * 0.5, pz * 0.5, params.noise_seed + frame) * params.jitter_strength
-                mist = max(0.0, mist)
+                    jitter = noise_3d(sx * params.specular_noise_scale,
+                                      sy * params.specular_noise_scale,
+                                      sz * params.specular_noise_scale,
+                                      params.noise_seed + frame) * params.jitter_strength
                 
                 # Absorption
                 absorption = math.exp(-params.absorption_coeff * t)
                 
-                # Scattering contribution
-                scatter = phase * falloff * shadow * mist * params.scattering_coeff * absorption * params.volumetric_gain
-                acc += scatter * transmittance * step_size
-                transmittance *= math.exp(-mist * params.absorption_coeff * step_size)
+                # Volumetric contribution
+                contrib = (params.scattering_coeff * phase * falloff * shadow * mist
+                           * (1.0 + jitter) * absorption * transmittance)
+                acc += contrib * params.volumetric_gain
+                transmittance *= (1.0 - mist * params.absorption_coeff * step_size)
                 if transmittance < 0.01:
                     break
             
-            # Add ambient
-            acc += params.ambient
-            img[iy][ix] = acc
-    return img
+            # Ground intersection (simple plane at y=0)
+            if ry < -1e-3:
+                t_ground = -cam_y / ry
+                if 0 < t_ground < max_dist:
+                    gx, gz = cam_x + rx * t_ground, cam_z + rz * t_ground
+                    # Check if in shadow on ground
+                    ground_shadow = schattenfaktor_für_punkt(gx, 0.0, lx, ly,
+                                                            math.hypot(lx - gx, ly - 0.0),
+                                                            bäume, params)
+                    # Specular highlight on wet ground
+                    hx, hy, hz = (rx + ldx) * 0.5, (ry + ldy) * 0.5, (rz + ldz) * 0.5
+                    hlen = math.hypot(hx, hy, hz)
+                    if hlen > 1e-3:
+                        hx, hy, hz = hx / hlen, hy / hlen, hz / hlen
+                        spec = max(0.0, hz) ** params.specular_power
+                        spec *= params.specular_intensity * ground_shadow
+                        acc += spec
+            
+            img[iy][ix] = acc + params.ambient
+    
+    # Blur for volumetric glow
+    weights = gauß_gewichte(params.blur_radius)
+    img = box_blur_1d(img, weights, True)
+    img = box_blur_1d(img, weights, False)
+    
+    # Convert to ASCII
+    ascii_frame = []
+    for row in img:
+        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
+        ascii_frame.append(line)
+    return ascii_frame
 
 def main():
     params = ShaderParams()
-    # Generate some trees
-    random.seed(12345)
-    bäume = []
-    for _ in range(12):
-        bx = random.uniform(-5.5, 5.5)
-        by = random.uniform(-5.5, 5.5)
-        br = random.uniform(0.3, 0.7)
-        bäume.append((bx, by, br))
-    
-    licht_pos = [0.0, 0.0, 5.0]
-    width, height = 60, 18
+    # Bäume: (x, y, radius)
+    bäume = [
+        (-3.0, -2.0, 0.8),
+        (2.5, 1.5, 0.6),
+        (-1.0, 3.0, 0.7),
+        (4.0, -3.0, 0.5),
+        (-4.5, 0.5, 0.9),
+    ]
     frame = 0
+    max_frames = 30
+    light_angle = 0.0
     
-    print("3D-Lichtspiel – Herbstpark. Tasten: q=quit, n=next frame, p=Parameter ändern")
+    print("3D-Lichtspiel – volumetric light & shadows. Tasten: q=quit, n=next, p=params")
     
-    while True:
-        # Animate light position
-        licht_pos[0] = math.sin(frame * 0.07) * 3.0
-        licht_pos[1] = math.cos(frame * 0.05) * 2.5
-        licht_pos[2] = 4.0 + math.sin(frame * 0.03) * 1.0
+    while frame < max_frames:
+        # Animate light in a circle
+        light_angle += 0.08
+        lx = math.sin(light_angle) * 5.0
+        ly = math.cos(light_angle) * 5.0
+        lz = 4.0 + 0.5 * math.sin(light_angle * 0.7)
         
-        img = render(params, bäume, licht_pos, width, height, frame)
-        # Blur
-        gewichte = gauß_gewichte(params.blur_radius)
-        img = box_blur_1d(img, gewichte, True)
-        img = box_blur_1d(img, gewichte, False)
+        ascii_art = render(params, bäume, (lx, ly, lz), frame=frame)
         
-        # Output
-        for row in img:
-            line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-            print(line)
-        print(f"Frame {frame} - 'q' quit, 'n' next, 'p' Parameter ändern (z.B. blur_radius=2)")
+        # Clear screen (ANSI)
+        sys.stdout.write('\x1b[2J\x1b[H')
+        for line in ascii_art:
+            sys.stdout.write(line + '\n')
+        sys.stdout.write(f"Frame {frame} - 'q' quit, 'n' next, 'p' Parameter ändern\n")
+        sys.stdout.flush()
         
         # Non-blocking input
-        try:
-            rlist, _, _ = select.select([sys.stdin], [], [], 0.05)
-            if rlist:
-                cmd = sys.stdin.readline().strip()
-                if not cmd:
-                    break
-                cmd = _norm(cmd)
-                if cmd == 'q':
-                    break
-                elif cmd == 'n':
-                    frame += 1
-                    continue
-                elif cmd == 'p':
-                    print("Parameter: penumbra_breite, umbra_dunkelheit, falloff_exponent, falloff_start, blur_radius, ambient, volumetric_gain, gamma, scattering_coeff, absorption_coeff, mist_density, mist_height_falloff, color_temp, jitter_strength, phase_g, noise_seed, march_steps, jitter_enabled, specular_intensity, specular_power, specular_noise_scale")
-                    print("Format: name=wert")
-                    continue
-                elif '=' in cmd:
-                    name, val = cmd.split('=', 1)
-                    name = name.strip()
-                    val = val.strip()
+        ready, _, _ = select.select([sys.stdin], [], [], 0.1)
+        if ready:
+            key = sys.stdin.readline().strip().lower()
+            if key == 'q':
+                break
+            elif key == 'n':
+                frame += 1
+                continue
+            elif key == 'p':
+                print("\nAktuelle Parameter:")
+                for k, v in params.__dict__.items():
+                    print(f"  {k}: {v}")
+                print("Welchen Parameter ändern? (Name oder Enter zum Überspringen)")
+                name = sys.stdin.readline().strip()
+                if name in params.__dict__:
+                    print(f"Neuer Wert für {name} (aktuell {getattr(params, name)}):")
+                    val_str = sys.stdin.readline().strip()
                     try:
-                        if hasattr(params, name):
-                            current = getattr(params, name)
-                            if isinstance(current, bool):
-                                setattr(params, name, val.lower() in ('true', '1', 'yes', 'on'))
-                            elif isinstance(current, int):
-                                setattr(params, name, int(float(val)))
-                            else:
-                                setattr(params, name, float(val))
-                            print(f"{name} = {getattr(params, name)}")
-                        else:
-                            print(f"Unbekannter Parameter: {name}")
+                        val = float(val_str)
+                        setattr(params, name, val)
+                        print(f"{name} = {val}")
                     except ValueError:
-                        print(f"Ungültiger Wert für {name}: {val}")
-                    continue
-                else:
-                    print(f"Unbekannter Befehl: {cmd}")
-            frame += 1
-        except (EOFError, KeyboardInterrupt):
-            break
-    print("Tschüss!")
+                        print("Ungültige Zahl.")
+                time.sleep(0.5)
+                continue
+        frame += 1
+        time.sleep(0.05)
+    
+    print("\nBis zum nächsten Traum.")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except EOFError:
+        print("\nEingabe beendet. Gute Nacht.")
+    except KeyboardInterrupt:
+        print("\nUnterbrochen. Schlaf gut.")
