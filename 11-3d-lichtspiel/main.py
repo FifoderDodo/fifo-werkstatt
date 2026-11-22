@@ -8,22 +8,23 @@ class ShaderParams:
         self.falloff_exponent = 2.0
         self.falloff_start = 0.5
         self.blur_radius = 3
-        self.ambient = 0.05          # etwas mehr Umgebungslicht
-        self.volumetric_gain = 2.5   # stärkerer Volumeneffekt
-        self.gamma = 0.55            # etwas offener
-        self.scattering_coeff = 0.45 # mehr Streuung
-        self.absorption_coeff = 0.08 # weniger Absorption
+        self.ambient = 0.05
+        self.volumetric_gain = 2.5
+        self.gamma = 0.55
+        self.scattering_coeff = 0.45
+        self.absorption_coeff = 0.08
         self.mist_density = 0.22
         self.mist_height_falloff = 0.8
-        self.color_temp = 3000.0     # wärmeres Licht
+        self.color_temp = 3000.0
         self.jitter_strength = 0.12
         self.phase_g = 0.6
         self.noise_seed = 42
-        self.march_steps = 24        # mehr Schritte für sauberere Kegel
+        self.march_steps = 24
         self.jitter_enabled = True
         self.specular_intensity = 0.6
         self.specular_power = 24.0
         self.specular_noise_scale = 0.5
+        self.light_radius = 0.8  # Radius der Lichtquelle für echte Penumbra
     def klonen(self):
         k = ShaderParams()
         k.__dict__.update(self.__dict__)
@@ -34,8 +35,15 @@ def _norm(s: str) -> str:
 
 def gauß_gewichte(kernel_radius: int) -> list:
     size = kernel_radius * 2 + 1
-    gewicht = 1.0 / size
-    return [gewicht] * size
+    sigma = kernel_radius / 2.0
+    gewichte = []
+    sum_g = 0.0
+    for i in range(size):
+        x = i - kernel_radius
+        g = math.exp(-(x * x) / (2.0 * sigma * sigma))
+        gewichte.append(g)
+        sum_g += g
+    return [g / sum_g for g in gewichte]
 
 def box_blur_1d(puffer: list, gewichte: list, horizontal: bool = True) -> list:
     h, w = len(puffer), len(puffer[0])
@@ -101,39 +109,56 @@ def intensitaet_zu_ascii(wert: float, gamma: float = 0.6) -> str:
         return '.'
     return ' '
 
-def schattenfaktor_für_punkt(px, py, qx, qy, radius, bäume, params):
+def schattenfaktor_für_punkt(px, py, qx, qy, light_radius, bäume, params):
+    """
+    Berechnet Schattenfaktor für Punkt (px, py) von Lichtquelle (qx, qy) mit Radius light_radius.
+    Berücksichtigt echte Umbra/Penumbra-Geometrie durch Flächenlichtquelle.
+    """
     dx, dy = px - qx, py - qy
-    dist = math.hypot(dx, dy)
-    if dist > radius or dist < 0.01:
+    dist_lp = math.hypot(dx, dy)  # Abstand Licht -> Punkt
+    if dist_lp < 0.01:
         return 1.0
-    ux, uy = dx / dist, dy / dist
-    min_shadow = 1.0
+    
+    ux, uy = dx / dist_lp, dy / dist_lp
+    min_faktor = 1.0
+    
     for bx, by, br in bäume:
         vx, vy = bx - qx, by - qy
-        dqb = math.hypot(vx, vy)
-        if dqb < 0.01:
+        dist_lt = math.hypot(vx, vy)  # Abstand Licht -> Baum
+        if dist_lt < 0.01:
             continue
-        proj = vx * ux + vy * uy
-        if proj <= 0.01 or proj >= dist:
-            continue
-        abstand = abs(vx * uy - vy * ux)
-        if abstand >= br:
-            continue
-        shadow_radius = br * (dist / dqb)
-        if shadow_radius <= 0:
-            continue
-        rand_faktor = abstand / shadow_radius
-        pen, umb = params.penumbra_breite, params.umbra_dunkelheit
-        if rand_faktor < 1.0 - pen:
-            faktor = umb
-        elif rand_faktor > 1.0 + pen:
-            faktor = 1.0
+        
+        proj = vx * ux + vy * uy  # Projektion Baum auf Licht->Punkt
+        if proj <= 0.01 or proj >= dist_lp:
+            continue  # Baum nicht zwischen Licht und Punkt
+        
+        abstand = abs(vx * uy - vy * ux)  # Seitlicher Abstand zum Strahl
+        
+        # Geometrie: Ähnliche Dreiecke für Flächenlichtquelle
+        # Penumbra-Außenradius am Punkt:
+        # R_penumbra = br * (dist_lp / dist_lt) + light_radius * (dist_lp - dist_lt) / dist_lt
+        # Umbra-Innenradius (nur wenn light_radius < br):
+        # R_umbra = max(0, br * (dist_lp / dist_lt) - light_radius * (dist_lp - dist_lt) / dist_lt)
+        
+        factor = dist_lp / dist_lt
+        penumbra_radius = br * factor + light_radius * (factor - 1.0)
+        umbra_radius = max(0.0, br * factor - light_radius * (factor - 1.0))
+        
+        if abstand >= penumbra_radius:
+            continue  # Kein Schatten
+        
+        if abstand <= umbra_radius:
+            faktor = params.umbra_dunkelheit
         else:
-            t = (rand_faktor - (1.0 - pen)) / (2.0 * pen)
-            faktor = umb + (1.0 - umb) * t
-        if faktor < min_shadow:
-            min_shadow = faktor
-    return min_shadow
+            # Weicher Übergang in der Penumbra-Zone
+            t = (abstand - umbra_radius) / (penumbra_radius - umbra_radius) if penumbra_radius > umbra_radius else 0.0
+            t = max(0.0, min(1.0, t))
+            faktor = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * t
+        
+        if faktor < min_faktor:
+            min_faktor = faktor
+    
+    return min_faktor
 
 def noise_2d(x, y, seed):
     n = int(x * 123.45) ^ int(y * 678.91) ^ seed
@@ -178,117 +203,152 @@ def render(params: ShaderParams, bäume, licht_pos, width=60, height=18, frame=0
     step_size = max_dist / max(1, params.march_steps)
     light_r, light_g, light_b = kelvin_to_rgb_factor(params.color_temp)
     
+    # Jitter für Temporal Stability / Dithering
+    jitter_x = noise_2d(frame * 0.1, 0.0, params.noise_seed) * params.jitter_strength if params.jitter_enabled else 0.0
+    jitter_y = noise_2d(0.0, frame * 0.1, params.noise_seed) * params.jitter_strength if params.jitter_enabled else 0.0
+
     for y in range(height):
-        py = cam_y + (world_h / 2.0) - (y / (height - 1)) * world_h if height > 1 else 0.0
+        sy = (y / height - 0.5) * world_h + jitter_y
         for x in range(width):
-            px = cam_x - (world_w / 2.0) + (x / (width - 1)) * world_w if width > 1 else 0.0
-            pz = 0.0
+            sx = (x / width - 0.5) * world_w + jitter_x
             
-            # Ray marching durch den volumetrischen Nebel
-            acc_light = params.ambient
-            current_transmittance = 1.0
+            # Ray Direction
+            rdx, rdy, rdz = sx - cam_x, sy - cam_y, -cam_z
+            rd_len = math.hypot(rdx, rdy, rdz)
+            rdx, rdy, rdz = rdx / rd_len, rdy / rd_len, rdz / rd_len
+            
+            acc_r = acc_g = acc_b = 0.0
+            transmittance = 1.0
             
             for step in range(params.march_steps):
-                t_dist = (step + (random.random() if params.jitter_enabled else 0.5)) * step_size
-                rx = px
-                ry = py
-                rz = cam_z - t_dist
+                t = step * step_size
+                px = cam_x + rdx * t
+                py = cam_y + rdy * t
+                pz = cam_z + rdz * t
                 
-                # Lichtvektor vom Samplepunkt zur Lampe
-                ldx, ldy, ldz = lx - rx, ly - ry, lz - rz
-                ldist = math.hypot(math.hypot(ldx, ldy), ldz)
-                if ldist < 1e-3:
+                if pz <= 0.0:  # Boden getroffen
+                    # Bodenbeitrag (Ambient + Schatten)
+                    shadow = schattenfaktor_für_punkt(px, py, lx, ly, params.light_radius, bäume, params)
+                    ground_col = params.ambient * shadow
+                    acc_r += ground_col * light_r * transmittance
+                    acc_g += ground_col * light_g * transmittance
+                    acc_b += ground_col * light_b * transmittance
+                    break
+                
+                # Volumetric Scattering
+                # Lichtvektor vom Sample zur Lichtquelle
+                ldx, ldy, ldz = lx - px, ly - py, lz - pz
+                dist_light = math.hypot(ldx, ldy, ldz)
+                if dist_light < 0.01:
                     continue
+                ldx, ldy, ldz = ldx / dist_light, ldy / dist_light, ldz / dist_light
                 
-                # Schattenprüfung gegen die Bäume
-                shadow = schattenfaktor_für_punkt(lx, ly, rx, ry, ldist, bäume, params)
-                
-                # Dämpfung des Lichts (Falloff)
-                dist_from_start = max(0.0, ldist - params.falloff_start)
-                attenuation = 1.0 / (1.0 + params.falloff_exponent * (dist_from_start ** 2))
-                
-                # Nebeldichte mit Höhen-Falloff und Noise
-                n_val = noise_3d(rx * 0.2, ry * 0.2, rz * 0.2 + frame * 0.05, params.noise_seed)
-                density = params.mist_density * math.exp(-max(0.0, ry) * params.mist_height_falloff) * (1.0 + params.jitter_strength * n_val)
-                
-                # Phasenfunktion (Henyey-Greenstein)
-                # Richtungsvektoren normieren
-                dir_len = math.hypot(math.hypot(rx - cam_x, ry - cam_y), rz - cam_z)
-                if dir_len > 1e-6:
-                    v_x, v_y, v_z = (rx - cam_x)/dir_len, (ry - cam_y)/dir_len, (rz - cam_z)/dir_len
-                else:
-                    v_x, v_y, v_z = 0.0, 0.0, -1.0
-                
-                lv_x, lv_y, lv_z = ldx/ldist, ldy/ldist, ldz/ldist
-                cos_theta = v_x * lv_x + v_y * lv_y + v_z * lv_z
+                # Phase Function
+                cos_theta = rdx * ldx + rdy * ldy + rdz * ldz
                 phase = henyey_greenstein(cos_theta, params.phase_g)
                 
-                # Lichtbeitrag an diesem Punkt
-                step_contribution = shadow * attenuation * density * phase * params.volumetric_gain
+                # Shadow Factor für diesen Sample-Punkt
+                shadow = schattenfaktor_für_punkt(px, py, lx, ly, params.light_radius, bäume, params)
                 
-                # Absorption und Streuung
-                absorption = math.exp(-(params.scattering_coeff + params.absorption_coeff) * step_size * density)
-                current_transmittance *= absorption
+                # Falloff & Absorption
+                falloff = 1.0 / max(0.01, dist_light ** params.falloff_exponent)
+                mist = params.mist_density * math.exp(-pz * params.mist_height_falloff)
+                density = (params.scattering_coeff + mist) * shadow
+                absorption = params.absorption_coeff + mist * 0.5
                 
-                acc_light += step_contribution * current_transmittance * step_size
+                scatter = density * phase * falloff * transmittance
+                
+                acc_r += scatter * light_r * params.volumetric_gain
+                acc_g += scatter * light_g * params.volumetric_gain
+                acc_b += scatter * light_b * params.volumetric_gain
+                
+                transmittance *= math.exp(-absorption * step_size)
+                if transmittance < 0.001:
+                    break
             
-            img[y][x] = max(0.0, acc_light)
+            # Gamma & Tone Mapping
+            def tonemap(c):
+                c = max(0.0, c)
+                return (c ** params.gamma) / (1.0 + c ** params.gamma)
             
-    # Post-Processing: Blur für weichere Lichtkegel
+            fr, fg, fb = tonemap(acc_r), tonemap(acc_g), tonemap(acc_b)
+            luminance = 0.2126 * fr + 0.7152 * fg + 0.0722 * fb
+            img[y][x] = luminance
+    
+    # Blur für weichere Kanten
     if params.blur_radius > 0:
-        w_list = gauß_gewichte(params.blur_radius)
-        img = box_blur_1d(img, w_list, horizontal=True)
-        img = box_blur_1d(img, w_list, horizontal=False)
-        
+        wts = gauß_gewichte(params.blur_radius)
+        img = box_blur_1d(img, wts, True)
+        img = box_blur_1d(img, wts, False)
+    
     return img
 
 def main():
+    print("🦤 Fifo's 3D-Lichtspiel — Part 43: Dynamische Schattenränder")
+    print("Drücke Enter für nächsten Frame, 'q' zum Beenden, 'p' für Parameter.")
+    
     params = ShaderParams()
     bäume = [
-        (-3.0, 1.0, 1.2),
-        (2.5, -0.5, 1.5),
-        (-1.0, -2.0, 0.9),
-        (3.5, 2.0, 1.1)
+        (-3.0, -2.0, 0.6),
+        (2.5, 1.5, 0.5),
+        (-1.0, 3.0, 0.7),
+        (4.0, -3.0, 0.4),
+        (-4.0, 2.0, 0.5),
+        (0.0, -4.0, 0.8),
     ]
+    licht_winkel = 0.0
     frame = 0
-    print("Dodo-Lichtspiel gestartet. Drücke Ctrl+C oder tippe 'q' zum Beenden.")
+    
     while True:
-        licht_pos = (math.sin(frame * 0.1) * 3.0, math.cos(frame * 0.08) * 1.5, 6.0)
-        bild = render(params, bäume, licht_pos, width=50, height=14, frame=frame)
-        
-        # Bild ausgeben
-        print(f"--- Frame {frame} ---")
-        for zeile in bild:
-            print("".join(intensitaet_zu_ascii(val, params.gamma) for val in zeile))
+        try:
+            # Licht animieren
+            licht_winkel += 0.03
+            lx = math.sin(licht_winkel) * 5.0
+            ly = math.cos(licht_winkel) * 5.0
+            lz = 4.0 + math.sin(licht_winkel * 0.7) * 1.5
             
-        # Non-blocking input check
-        rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
-        if rlist:
-            try:
-                eingabe = sys.stdin.readline()
-                if not eingabe:
+            img = render(params, bäume, (lx, ly, lz), frame=frame)
+            
+            # Ausgabe
+            print(f"\n--- Frame {frame} | Licht: ({lx:.1f}, {ly:.1f}, {lz:.1f}) ---")
+            for row in img:
+                line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
+                print(line)
+            
+            frame += 1
+            
+            # Input non-blocking check
+            print("[Enter=Weiter, q=Quit, p=Params] ", end='', flush=True)
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.05)
+            if rlist:
+                inp = sys.stdin.readline()
+                if not inp:
                     break
-                cmd = _norm(eingabe)
-                if cmd == 'q':
+                inp = _norm(inp)
+                if inp == 'q':
                     break
-                elif cmd == 's':
-                    params.penumbra_breite = min(0.5, params.penumbra_breite + 0.05)
-                    print(f"Penumbra erhöht auf: {params.penumbra_breite:.2f}")
-                elif cmd == 'd':
-                    params.penumbra_breite = max(0.0, params.penumbra_breite - 0.05)
-                    print(f"Penumbra verringert auf: {params.penumbra_breite:.2f}")
-                elif cmd == 'm':
-                    params.march_steps = min(40, params.march_steps + 4)
-                    print(f"March Steps erhöht auf: {params.march_steps}")
-                elif cmd == 'n':
-                    params.march_steps = max(8, params.march_steps - 4)
-                    print(f"March Steps verringert auf: {params.march_steps}")
-            except EOFError:
-                break
-        frame += 1
+                elif inp == 'p':
+                    print(f"\nParams: gain={params.volumetric_gain}, mist={params.mist_density}, steps={params.march_steps}, light_r={params.light_radius}")
+                    print("Neue Werte: gain mist steps light_r (Enter zum Überspringen)")
+                    try:
+                        line = sys.stdin.readline()
+                        if line:
+                            parts = line.split()
+                            if len(parts) >= 4:
+                                params.volumetric_gain = float(parts[0])
+                                params.mist_density = float(parts[1])
+                                params.march_steps = int(parts[2])
+                                params.light_radius = float(parts[3])
+                                print("Parameter aktualisiert.")
+                    except:
+                        print("Ungültige Eingabe.")
+                # Enter oder anderes -> einfach weiter
+        except EOFError:
+            break
+        except KeyboardInterrupt:
+            break
+    
+    print("\n🦤 Fifo watschelt weg. Tschüss!")
 
-if __name__ == '__main__':
-    try:
-        main()
-    except EOFError:
-        pass
+if __name__ == "__main__":
+    main()
