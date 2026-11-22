@@ -170,73 +170,96 @@ def noise_3d(x, y, z, seed):
     return lerp(c0, c1, fz)
 
 def render(params: ShaderParams, bäume, licht_pos, width=80, height=24, frame=0):
-    """Ein sehr einfacher Ray‑March‑Durchlauf, der nur Abstand‑Dämpfung nutzt.
-    Der Code ist bewusst minimal, damit er schnell läuft und kein Crash entsteht.
+    """Ein einfacher Ray‑March‑Durchlauf, der Abstand‑Dämpfung nutzt.
+    Gibt eine Liste von Strings (ASCII‑Zeilen) zurück.
     """
     img = [[0.0 for _ in range(width)] for _ in range(height)]
     lx, ly, lz = licht_pos
     max_dist = 10.0
-    step_size = max_dist / params.march_steps
+    step_size = max_dist / max(1, params.march_steps)
 
     for y in range(height):
         for x in range(width):
-            # Normalisierte Bildschirmkoordinaten [-1,1]
+            # Normalisierte Bildkoordinaten [-1,1]
             nx = (x / (width - 1)) * 2 - 1
             ny = (y / (height - 1)) * 2 - 1
-            ray_origin = (0.0, 0.0, -2.0)
-            ray_dir = (nx, ny, 2.0)
-            # Normalisieren des Richtungsvektors
-            rl = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
-            ray_dir = (ray_dir[0]/rl, ray_dir[1]/rl, ray_dir[2]/rl)
-            # Einfacher Abstand‑Falloff zum Licht
-            to_light = (lx - ray_origin[0], ly - ray_origin[1], lz - ray_origin[2])
-            dist_light = math.sqrt(to_light[0]**2 + to_light[1]**2 + to_light[2]**2)
-            attenuation = 1.0 / (params.falloff_start + params.falloff_exponent * (dist_light**2))
-            # Schattierung (hier stark vereinfacht):
-            shadow = 1.0
-            for bx, by, br in bäume:
-                # Abstand des Strahls zur Baumposition (2D‑Projektionsannahme)
-                dx = bx - ray_origin[0]
-                dy = by - ray_origin[1]
-                proj = dx*ray_dir[0] + dy*ray_dir[1]
-                if 0 < proj < max_dist:
-                    # Abstand zur Baummitte senkrecht zum Strahl
-                    perp = abs(dx*ray_dir[1] - dy*ray_dir[0])
-                    if perp < br:
-                        shadow *= params.umbra_dunkelheit
-            intensity = params.ambient + params.volumetric_gain * attenuation * shadow
-            img[y][x] = intensity
+            # Strahl vom Lichtpunkt in Richtung Bildpunkt (z‑Komponente wird ignoriert)
+            ray_dir_x = nx - lx
+            ray_dir_y = ny - ly
+            ray_dir_z = -lz  # nach unten zum Boden
+            length = math.sqrt(ray_dir_x**2 + ray_dir_y**2 + ray_dir_z**2)
+            if length == 0:
+                continue
+            ray_dir_x /= length; ray_dir_y /= length; ray_dir_z /= length
+            # March entlang des Strahls
+            dist = 0.0
+            intensity = 0.0
+            while dist < max_dist:
+                px = lx + ray_dir_x * dist
+                py = ly + ray_dir_y * dist
+                pz = lz + ray_dir_z * dist
+                # einfache Dämpfung mit Abstand und Nebel
+                falloff = 1.0 / (1.0 + params.falloff_exponent * (dist / params.falloff_start)**2)
+                mist = math.exp(-params.mist_density * max(0.0, pz))
+                # Schatten von Bäumen
+                shadow = schattenfaktor_für_punkt(px, py, lx, ly, radius=5.0, bäume=bäume, params=params)
+                contrib = falloff * mist * shadow
+                intensity += contrib * step_size
+                dist += step_size
+            img[y][x] = intensity * params.volumetric_gain
 
-    # In ASCII umwandeln
-    lines = []
-    for row in img:
-        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        lines.append(line)
-    return '\n'.join(lines)
+    # Optional: Blur für weichere Kanten
+    if params.blur_radius > 0:
+        gew = gauß_gewichte(params.blur_radius)
+        img = box_blur_1d(img, gew, horizontal=True)
+        img = box_blur_1d(img, gew, horizontal=False)
+
+    # Umwandeln in ASCII
+    lines = [''.join(intensitaet_zu_ascii(v, params.gamma) for v in row) for row in img]
+    return lines
+
+def beispiel_daten():
+    # ein paar zufällige Bäume (x, y, radius)
+    random.seed(1)
+    bäume = []
+    for _ in range(8):
+        bäume.append((random.uniform(-3, 3), random.uniform(-3, 3), random.uniform(0.2, 0.5)))
+    return bäume
 
 def main():
     params = ShaderParams()
-    # Beispiel‑Bäume: (x, y, radius)
-    bäume = [(-0.5, 0.2, 0.15), (0.3, -0.4, 0.1), (0.0, 0.0, 0.2)]
-    licht_pos = (0.0, 0.0, 5.0)
+    bäume = beispiel_daten()
     frame = 0
-    try:
-        # Initial frame
-        output = render(params, bäume, licht_pos, width=80, height=24, frame=frame)
-        print(output)
+    while True:
+        try:
+            # Eingabe für Lichtposition, z.B. "x y z" oder leer für Weiter
+            line = input('Lichtposition (x y z) oder ENTER für nächste Frame: ').strip()
+        except EOFError:
+            print('\nEnde der Eingabe. Auf Wiedersehen!')
+            break
+        if line:
+            parts = line.split()
+            if len(parts) == 3:
+                try:
+                    lx, ly, lz = map(float, parts)
+                except ValueError:
+                    print('Bitte drei Zahlen eingeben.')
+                    continue
+                licht_pos = (lx, ly, lz)
+            else:
+                print('Bitte exakt drei Werte eingeben.')
+                continue
+        else:
+            # animiere Licht leicht um den Ursprung
+            angle = frame * 0.2
+            licht_pos = (math.cos(angle) * 2.5, math.sin(angle) * 2.5, 2.5)
+        lines = render(params, bäume, licht_pos)
+        print('\n'.join(lines))
+        print(f'Frame {frame}, Licht: {licht_pos}')
         frame += 1
-        # Process up to 20 inputs
-        for _ in range(20):
-            try:
-                inp = input()
-            except EOFError:
-                print('\nEOF empfangen – Programm endet freundlich.')
-                break
-            output = render(params, bäume, licht_pos, width=80, height=24, frame=frame)
-            print(output)
-            frame += 1
-    except KeyboardInterrupt:
-        print('\nSimulation beendet.')
+        if frame >= 50:
+            print('Demo beendet.')
+            break
 
 if __name__ == '__main__':
     main()
