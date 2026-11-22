@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag frisst den Schirm
+2026-11-22
+
+![Nachmittag frisst den Schirm](20261122-110324.svg)
+
 ### Nachmittag bricht durch: Laune verstellt
 2026-11-22
 
