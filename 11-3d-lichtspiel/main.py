@@ -170,96 +170,128 @@ def noise_3d(x, y, z, seed):
     return lerp(c0, c1, fz)
 
 def render(params: ShaderParams, bäume, licht_pos, width=80, height=24, frame=0):
-    """Ein einfacher Ray‑March‑Durchlauf, der Abstand‑Dämpfung nutzt.
-    Gibt eine Liste von Strings (ASCII‑Zeilen) zurück.
-    """
+    """Ray‑March vom Kamerapunkt (0,0,10) auf die Ground‑Plane z=0.
+    Gibt Liste von ASCII‑Zeilen zurück."""
+    # Float-Puffer für Helligkeit
     img = [[0.0 for _ in range(width)] for _ in range(height)]
     lx, ly, lz = licht_pos
-    max_dist = 10.0
+    # Kamera fix über dem Park
+    cam_x, cam_y, cam_z = 0.0, 0.0, 10.0
+    # View‑Plane: x,y in [-5,5] (World‑Units)
+    world_w, world_h = 10.0, 10.0 * height / width
+    max_dist = 15.0
     step_size = max_dist / max(1, params.march_steps)
-
+    
     for y in range(height):
         for x in range(width):
-            # Normalisierte Bildkoordinaten [-1,1]
-            nx = (x / (width - 1)) * 2 - 1
-            ny = (y / (height - 1)) * 2 - 1
-            # Strahl vom Lichtpunkt in Richtung Bildpunkt (z‑Komponente wird ignoriert)
-            ray_dir_x = nx - lx
-            ray_dir_y = ny - ly
-            ray_dir_z = -lz  # nach unten zum Boden
-            length = math.sqrt(ray_dir_x**2 + ray_dir_y**2 + ray_dir_z**2)
-            if length == 0:
+            # Pixel → Weltkoordinate auf Ground‑Plane (z=0)
+            wx = (x / (width - 1) - 0.5) * world_w
+            wy = (y / (height - 1) - 0.5) * world_h
+            wz = 0.0
+            # View‑Richtung (normiert)
+            vx, vy, vz = wx - cam_x, wy - cam_y, wz - cam_z
+            vlen = math.hypot(vx, vy, vz)
+            if vlen == 0:
                 continue
-            ray_dir_x /= length; ray_dir_y /= length; ray_dir_z /= length
-            # March entlang des Strahls
-            dist = 0.0
-            intensity = 0.0
-            while dist < max_dist:
-                px = lx + ray_dir_x * dist
-                py = ly + ray_dir_y * dist
-                pz = lz + ray_dir_z * dist
-                # einfache Dämpfung mit Abstand und Nebel
-                falloff = 1.0 / (1.0 + params.falloff_exponent * (dist / params.falloff_start)**2)
-                mist = math.exp(-params.mist_density * max(0.0, pz))
-                # Schatten von Bäumen
-                shadow = schattenfaktor_für_punkt(px, py, lx, ly, radius=5.0, bäume=bäume, params=params)
-                contrib = falloff * mist * shadow
-                intensity += contrib * step_size
-                dist += step_size
-            img[y][x] = intensity * params.volumetric_gain
+            vx, vy, vz = vx / vlen, vy / vlen, vz / vlen
+            
+            acc = 0.0
+            # Ray‑March von Kamera bis Ground‑Plane (und etwas darüber für Mist)
+            for step in range(params.march_steps):
+                t = step * step_size
+                px = cam_x + vx * t
+                py = cam_y + vy * t
+                pz = cam_z + vz * t
+                if pz < -0.5:  # unter Ground -> abbrechen
+                    break
+                # Vector zum Licht
+                ldx, ldy, ldz = lx - px, ly - py, lz - pz
+                ld = math.hypot(ldx, ldy, ldz)
+                if ld < 0.01:
+                    continue
+                ldx, ldy, ldz = ldx / ld, ldy / ld, ldz / ld
+                # Phase‑Funktion (View vs Light)
+                cos_theta = vx * ldx + vy * ldy + vz * ldz
+                phase = henyey_greenstein(cos_theta, params.phase_g)
+                # Abschwächung (Inverse Square + Absorption)
+                attenuation = (1.0 / (ld * ld + 0.01)) * math.exp(-params.absorption_coeff * ld)
+                # Schatten (2D‑Projection auf Ground, Bäume als Zylinder)
+                shadow = schattenfaktor_für_punkt(px, py, lx, ly, max_dist, bäume, params)
+                # Mist‑Dichte mit Height‑Falloff
+                mist = params.mist_density * math.exp(-max(0.0, pz) * params.mist_height_falloff)
+                # Jitter
+                jitter = 1.0
+                if params.jitter_enabled:
+                    jitter += noise_3d(px * 0.5, py * 0.5, pz * 0.5, params.noise_seed + frame) * params.jitter_strength
+                # Accumulate
+                acc += phase * attenuation * shadow * mist * jitter * params.scattering_coeff * step_size
+            
+            # Ambient + Volumetric Gain
+            acc = (acc + params.ambient) * params.volumetric_gain
+            img[y][x] = acc
+    
+    # Blur (separable box)
+    weights = gauß_gewichte(params.blur_radius)
+    img = box_blur_1d(img, weights, True)
+    img = box_blur_1d(img, weights, False)
+    
+    # Color‑Temperature & Gamma → ASCII
+    rf, gf, bf = kelvin_to_rgb_factor(params.color_temp)
+    ascii_lines = []
+    for y in range(height):
+        line = ''
+        for x in range(width):
+            val = img[y][x]
+            # Einfache Farb‑Modulation (hier nur Helligkeit, aber Faktoren könnten für echte Farb‑ASCII genutzt werden)
+            val = min(1.0, max(0.0, val)) ** params.gamma
+            line += intensitaet_zu_ascii(val, params.gamma)
+        ascii_lines.append(line)
+    return ascii_lines
 
-    # Optional: Blur für weichere Kanten
-    if params.blur_radius > 0:
-        gew = gauß_gewichte(params.blur_radius)
-        img = box_blur_1d(img, gew, horizontal=True)
-        img = box_blur_1d(img, gew, horizontal=False)
-
-    # Umwandeln in ASCII
-    lines = [''.join(intensitaet_zu_ascii(v, params.gamma) for v in row) for row in img]
-    return lines
-
-def beispiel_daten():
-    # ein paar zufällige Bäume (x, y, radius)
-    random.seed(1)
-    bäume = []
-    for _ in range(8):
-        bäume.append((random.uniform(-3, 3), random.uniform(-3, 3), random.uniform(0.2, 0.5)))
-    return bäume
 
 def main():
     params = ShaderParams()
-    bäume = beispiel_daten()
+    # Beispiel‑Bäume: (x, y, radius)
+    bäume = [
+        (-3.0, -2.0, 0.8),
+        (2.5, 1.0, 0.6),
+        (-1.5, 3.0, 0.7),
+        (4.0, -3.5, 0.9),
+        (0.0, 0.0, 0.5),
+    ]
+    licht = [0.0, 0.0, 5.0]  # Start‑Position
     frame = 0
+    print("3D-Lichtspiel – Drücke Strg+C oder EOF zum Beenden.")
+    print("Eingabe: x y z (Leerzeichen-getrennt) oder ENTER für nächsten Frame.")
+    
     while True:
-        try:
-            # Eingabe für Lichtposition, z.B. "x y z" oder leer für Weiter
-            line = input('Lichtposition (x y z) oder ENTER für nächste Frame: ').strip()
-        except EOFError:
-            print('\nEnde der Eingabe. Auf Wiedersehen!')
-            break
-        if line:
-            parts = line.split()
-            if len(parts) == 3:
-                try:
-                    lx, ly, lz = map(float, parts)
-                except ValueError:
-                    print('Bitte drei Zahlen eingeben.')
-                    continue
-                licht_pos = (lx, ly, lz)
-            else:
-                print('Bitte exakt drei Werte eingeben.')
-                continue
-        else:
-            # animiere Licht leicht um den Ursprung
-            angle = frame * 0.2
-            licht_pos = (math.cos(angle) * 2.5, math.sin(angle) * 2.5, 2.5)
-        lines = render(params, bäume, licht_pos)
+        # Render
+        lines = render(params, bäume, licht, width=80, height=24, frame=frame)
         print('\n'.join(lines))
-        print(f'Frame {frame}, Licht: {licht_pos}')
-        frame += 1
-        if frame >= 50:
-            print('Demo beendet.')
+        print(f"Frame {frame} | Licht: {licht[0]:.2f} {licht[1]:.2f} {licht[2]:.2f}")
+        
+        # Input non-blocking? Wir nutzen select für Timeout, aber input() blockiert.
+        # Einfache Variante: input() mit Try/Except.
+        try:
+            s = input("Lichtposition (x y z) oder ENTER: ").strip()
+        except EOFError:
+            print("\nTschüss!")
             break
+        if not s:
+            frame += 1
+            continue
+        parts = s.split()
+        if len(parts) != 3:
+            print("Bitte exakt drei Werte eingeben.")
+            continue
+        try:
+            licht[0] = float(parts[0])
+            licht[1] = float(parts[1])
+            licht[2] = float(parts[2])
+        except ValueError:
+            print("Ungültige Zahlen.")
+            continue
+        frame += 1
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
