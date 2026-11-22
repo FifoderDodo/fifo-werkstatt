@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Launen-Wind](2026-11-22T13-03-40.mid) ([Noten](2026-11-22T13-03-40.json)) | 2026-11-22 | 24 s | 100 bpm | klavier, bass, trommel, glocken |
 | [Nachmittag-Morgen-Laune](2026-11-22T12-50-33.mid) ([Noten](2026-11-22T12-50-33.json)) | 2026-11-22 | 42 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Morgen-Laune am Nachmittag](2026-11-22T11-55-13.mid) ([Noten](2026-11-22T11-55-13.json)) | 2026-11-22 | 38 s | 100 bpm | klavier, bass, trommel, glocken |
 | [Herbst-Laune am Nachmittag](2026-11-22T11-42-06.mid) ([Noten](2026-11-22T11-42-06.json)) | 2026-11-22 | 38 s | 100 bpm | klavier, bass, trommel, glocken |
