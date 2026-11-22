@@ -176,107 +176,39 @@ def noise_3d(x, y, z, seed):
     return y1 + (y2 - y1) * w
 
 def erstelle_szene(params, breite=80, höhe=40):
-    """Generiert Bäume und Lichtposition für den Park."""
+    """Generiert Bäume und Lichtposition für den Park inklusive z-Buffer Test."""
     random.seed(params.noise_seed)
     bäume = []
-    for _ in range(25):
-        bx = random.uniform(2, breite - 3)
-        by = random.uniform(2, höhe - 3)
-        br = random.uniform(0.8, 1.8)
+    for _ in range(20):
+        bx = random.uniform(5, breite - 5)
+        by = random.uniform(5, höhe - 5)
+        br = random.uniform(1.5, 3.5)
         bäume.append((bx, by, br))
-    lx, ly = breite * 0.5, höhe * 0.3
-    return bäume, (lx, ly)
-
-def render_zbuffer(breite, höhe, bäume, licht_pos, params, frame):
-    """Z-Buffer Renderer: Erstellt Tiefenpuffer und Licht-Sichtbarkeit."""
-    lx, ly = licht_pos
-    zbuffer = [[float('inf') for _ in range(breite)] for __ in range(höhe)]
-    shadow_map = [[1.0 for _ in range(breite)] for __ in range(höhe)]
-    
+    licht_pos = (breite / 2.0, höhe / 4.0)
+    z_buffer = [[float('inf') for _ in range(breite)] for __ in range(höhe)]
     for y in range(höhe):
         for x in range(breite):
-            px = x + 0.5
-            py = y + 0.5
-            dist = math.hypot(px - lx, py - ly)
-            zbuffer[y][x] = dist
-            shadow_map[y][x] = schattenfaktor_für_punkt(px, py, lx, ly, params.light_radius, bäume, params)
-    
-    return zbuffer, shadow_map
-
-def render_volumetric(breite, höhe, zbuffer, shadow_map, licht_pos, params, frame):
-    """Berechnet volumetrisches Licht (God Rays) ohne Raymarching."""
-    lx, ly = licht_pos
-    bild = [[0.0 for _ in range(breite)] for __ in range(höhe)]
-    
-    for y in range(höhe):
-        for x in range(breite):
-            px = x + 0.5
-            py = y + 0.5
-            dx = px - lx
-            dy = py - ly
-            dist = math.hypot(dx, dy)
-            if dist < 0.5:
-                continue
-            
-            falloff = 1.0 / (1.0 + (dist * params.falloff_start) ** params.falloff_exponent)
-            shadow = shadow_map[y][x]
-            
-            mist = params.mist_density * math.exp(-py * params.mist_height_falloff / höhe)
-            noise_val = noise_3d(px * 0.1, py * 0.1, frame * 0.05, params.noise_seed)
-            mist *= 1.0 + noise_val * params.jitter_strength
-            
-            cos_theta = -dy / dist if dist > 0 else 0
-            phase = henyey_greenstein(cos_theta, params.phase_g)
-            
-            volumetric = falloff * shadow * mist * phase * params.volumetric_gain
-            bild[y][x] = min(1.0, volumetric + params.ambient)
-    
-    if params.blur_radius > 0:
-        gewichte = gauß_gewichte(params.blur_radius)
-        bild = box_blur_1d(bild, gewichte, True)
-        bild = box_blur_1d(bild, gewichte, False)
-    
-    return bild
-
-def rendere_szene(bild, params):
-    """Wendet Gamma-Korrektur an und konvertiert zu ASCII."""
-    zeilen = []
-    for row in bild:
-        zeile = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        zeilen.append(zeile)
-    return '\n'.join(zeilen)
+            dist_zentrum = math.hypot(x - licht_pos[0], y - licht_pos[1])
+            z_buffer[y][x] = dist_zentrum * 0.1
+    return bäume, licht_pos, z_buffer
 
 def main():
     params = ShaderParams()
-    breite, höhe = 80, 40
-    bäume, licht_pos = erstelle_szene(params, breite, höhe)
+    bäume, licht_pos, z_buffer = erstelle_szene(params, 60, 25)
+    gewichte = gauß_gewichte(params.blur_radius)
+    puffer = [[0.0 for _ in range(60)] for __ in range(25)]
     
-    print("3D-Lichtspiel – Herbstlicher Park (Z-Buffer Version)")
-    print("Drücke Enter für nächsten Frame, 'q' zum Beenden.")
-    print("Strg+C oder EOF beendet ebenfalls.\n")
+    for y in range(25):
+        for x in range(60):
+            schatten = schattenfaktor_für_punkt(licht_pos[0], licht_pos[1], x, y, params.light_radius, bäume, params)
+            puffer[y][x] = schatten * (1.0 / (1.0 + z_buffer[y][x]))
+            
+    geblurrt = box_blur_1d(puffer, gewichte, horizontal=True)
+    geblurrt = box_blur_1d(geblurrt, gewichte, horizontal=False)
     
-    frame = 0
-    try:
-        while frame < 30:
-            zbuffer, shadow_map = render_zbuffer(breite, höhe, bäume, licht_pos, params, frame)
-            bild = render_volumetric(breite, höhe, zbuffer, shadow_map, licht_pos, params, frame)
-            ascii_art = rendere_szene(bild, params)
-            
-            print(f'\033[2J\033[HFrame {frame}')
-            print(ascii_art)
-            print(f'Licht: ({licht_pos[0]:.1f}, {licht_pos[1]:.1f})  Bäume: {len(bäume)}')
-            
-            frame += 1
-            time.sleep(0.15)
-            
-            if select.select([sys.stdin], [], [], 0)[0]:
-                eingabe = sys.stdin.readline()
-                if not eingabe or _norm(eingabe) in ('q', 'quit', 'exit'):
-                    break
-    except (EOFError, KeyboardInterrupt):
-        pass
-    
-    print("\nDanke fürs Zuschauen! Der Dodo watschelt davon. 🦤")
+    print("--- 3D-Lichtspiel Z-Buffer Test --- ")
+    for zeile in geblurrt:
+        print("".join(intensitaet_zu_ascii(v, params.gamma) for v in zeile))
 
 if __name__ == '__main__':
     main()
