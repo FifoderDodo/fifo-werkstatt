@@ -2477,3 +2477,33 @@ Wahl [1-3]: Unbekannte Option. Bitte 1, 2 oder 3 wählen.
 3) Beenden
 Wahl [1-3]: Tschüss!
 ```
+
+## Teil 62 (22.11.2026 19:56)
+Code-Struktur komplett aufgeräumt: Konstanten oben, Typ-Aliase, Vektormath gruppiert, Quasi-Zufall getrennt, Klasse Tiefenkarte mit Docstrings, Raymarch-Funktion vollständig dokumentiert, Demo- und Interaktionsfunktionen sauber getrennt, Hauptmenü mit robuster EOF/KeyboardInterrupt-Behandlung. Alle Kommentare auf Deutsch im Fifo-Ton.
+
+```
+╔══════════════════════════════════════╗
+║ Schatten-Simulator – Teil 62        ║
+║ Raymarching mit PCF & Area Light    ║
+║ Code-Struktur aufgeräumt, Docs added║
+╚══════════════════════════════════════╝
+
+Tiefenkarte erzeugt: 16x16 Pixel
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3] > Unbekannte Option. Bitte 1, 2 oder 3 wählen.
+
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3] > Unbekannte Option. Bitte 1, 2 oder 3 wählen.
+
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3] > Tschüss!
+```
