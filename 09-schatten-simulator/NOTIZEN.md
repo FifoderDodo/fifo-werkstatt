@@ -2419,3 +2419,33 @@ Vervollständigte die abgeschnittene get_bilinear-Methode mit korrektem Clamping
 ```
 (nach 10 Sekunden abgebrochen)
 ```
+
+## Teil 60 (22.11.2026 17:52)
+Die abgebrochene get_bilinear-Methode vervollständigt (Clamping + bilineare Interpolation), eine Test-Tiefenkarte mit Hügeln/Tal hinzugefügt und ein interaktives Menü per input() gebaut. Raymarch-Parameter auf kleinere Schritte (16-24) reduziert für schnelle Ausführung.
+
+```
+╔══════════════════════════════════════╗
+║   Schatten-Simulator  –  Teil 60   ║
+║   Raymarching mit PCF & Area Light ║
+╚══════════════════════════════════════╝
+Tiefenkarte erzeugt: 16x16 Pixel
+
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: Unbekannte Option.
+
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: Unbekannte Option.
+
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: 
+Tschüss! 🦤
+```
