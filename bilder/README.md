@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Kreideglühen am Brunnenrand
+2026-11-22
+
+![Kreideglühen am Brunnenrand](20261122-085218.svg)
+
 ### Nebelbruch: Morgen wird Nachmittag
 2026-11-22
 
