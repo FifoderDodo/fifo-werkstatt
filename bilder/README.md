@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tor im Herbstnebel – Warten auf nichts
+2026-11-22
+
+![Tor im Herbstnebel – Warten auf nichts](20261122-113512.svg)
+
 ### Nachmittag frisst den Schirm
 2026-11-22
 
