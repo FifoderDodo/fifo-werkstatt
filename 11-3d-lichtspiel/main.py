@@ -178,144 +178,137 @@ def render(params: ShaderParams, bäume, licht_pos, width=60, height=18, frame=0
     world_w, world_h = 12.0, 12.0 * height / width
     max_dist = 18.0
     step_size = max_dist / max(1, params.march_steps)
-    
-    # Vorberechnete Farbfaktoren für Lichttemperatur
-    rf, gf, bf = kelvin_to_rgb_factor(params.color_temp)
-    
+    # Farbtemperatur
+    cr, cg, cb = kelvin_to_rgb_factor(params.color_temp)
+    # Jitter für dieses Frame
+    jitter = 0.0
+    if params.jitter_enabled:
+        jitter = noise_2d(frame * 0.1, 0.0, params.noise_seed) * params.jitter_strength
     for iy in range(height):
         for ix in range(width):
-            # Pixel → Weltkoordinaten auf der Viewplane (z=0)
-            wx = (ix - width * 0.5) / width * world_w
-            wy = (iy - height * 0.5) / height * world_h
-            # Ray Direction (normalisiert)
-            rdx, rdy, rdz = wx - cam_x, wy - cam_y, -cam_z
-            rlen = math.hypot(rdx, math.hypot(rdy, rdz))
-            rdx, rdy, rdz = rdx / rlen, rdy / rlen, rdz / rlen
-            
-            # Ray Marching
-            vol = 0.0
-            t = 0.0
+            # NDC -> World
+            ux = (ix + 0.5) / width * world_w - world_w * 0.5
+            uy = (iy + 0.5) / height * world_h - world_h * 0.5
+            # Ray direction
+            rx, ry, rz = ux - cam_x, uy - cam_y, -cam_z
+            rlen = math.hypot(rx, ry, rz)
+            rx, ry, rz = rx / rlen, ry / rlen, rz / rlen
+            # Ray marching
+            accum = 0.0
+            transmittance = 1.0
             for step in range(params.march_steps):
-                # Position entlang des Rays
-                px = cam_x + rdx * t
-                py = cam_y + rdy * t
-                pz = cam_z + rdz * t
+                t = (step + 0.5 + jitter) * step_size
+                px, py, pz = cam_x + rx * t, cam_y + ry * t, cam_z + rz * t
                 if pz <= 0.0:
+                    # Ground hit
                     break
-                
-                # Lichtvektor von Sample zu Lichtquelle
-                ldx, ldy, ldz = lx - px, ly - py, lz - pz
-                ld = math.hypot(ldx, math.hypot(ldy, ldz))
-                if ld < 1e-4:
-                    t += step_size
+                # Vector to light
+                vlx, vly, vlz = lx - px, ly - py, lz - pz
+                dist_light = math.hypot(vlx, vly, vlz)
+                if dist_light < 0.01:
                     continue
-                ldx, ldy, ldz = ldx / ld, ldy / ld, ldz / ld
-                
-                # Phase Function (Henyey‑Greenstein)
-                cos_theta = rdx * ldx + rdy * ldy + rdz * ldz
+                vlx, vly, vlz = vlx / dist_light, vly / dist_light, vlz / dist_light
+                # Phase function
+                cos_theta = rx * vlx + ry * vly + rz * vlz
                 phase = henyey_greenstein(cos_theta, params.phase_g)
-                
-                # Falloff (quadratisch ab falloff_start)
-                falloff = 1.0
-                if ld > params.falloff_start:
-                    falloff = (params.falloff_start / ld) ** params.falloff_exponent
-                
-                # Mist Dichte (exponentiell mit Höhe)
+                # Falloff
+                falloff = 1.0 / max(0.001, (dist_light * params.falloff_start) ** params.falloff_exponent)
+                # Shadow
+                shadow = schattenfaktor_für_punkt(px, py, lx, ly, dist_light, bäume, params)
+                # Mist density with height falloff
                 mist = params.mist_density * math.exp(-pz * params.mist_height_falloff)
-                
-                # Jitter für weichere Kanten
-                jitter = 0.0
-                if params.jitter_enabled:
-                    jitter = noise_3d(px * 0.5, py * 0.5, pz * 0.5 + frame * 0.07, params.noise_seed) * params.jitter_strength
-                
-                # Akkumulation
-                vol += (phase * falloff * mist * params.scattering_coeff * (1.0 + jitter)) * step_size
-                
-                # Absorption (einfaches Beer‑Lambert)
-                vol *= math.exp(-params.absorption_coeff * step_size)
-                
-                t += step_size
-            
-            # Ground Intersection (z=0)
-            if rdz < 0:
-                t_ground = -cam_z / rdz
-                gx = cam_x + rdx * t_ground
-                gy = cam_y + rdy * t_ground
-                # Schattenfaktor von Bäumen
-                shadow = schattenfaktor_für_punkt(gx, gy, lx, ly, max_dist, bäume, params)
-                # Ground Contribution (diffus + spekulär)
-                ground = params.ambient + shadow * (0.6 + 0.4 * max(0.0, -rdz))
-                # Spekularer Glanz auf nassem Laub
-                if params.specular_intensity > 0:
-                    hx, hy, hz = (rdx + ldx) * 0.5, (rdy + ldy) * 0.5, (rdz + ldz) * 0.5
-                    hlen = math.hypot(hx, math.hypot(hy, hz))
-                    if hlen > 0:
-                        hx, hy, hz = hx / hlen, hy / hlen, hz / hlen
-                        spec = max(0.0, hz) ** params.specular_power
-                        spec_noise = noise_2d(gx * params.specular_noise_scale, gy * params.specular_noise_scale, params.noise_seed + 1) * 0.5 + 0.5
-                        ground += params.specular_intensity * spec * spec_noise * shadow
-            else:
-                ground = params.ambient
-            
-            # Volumetric Gain & Gamma
-            total = (vol * params.volumetric_gain + ground) ** params.gamma
-            # Farbtemperatur anwenden (nur für Helligkeit relevant, ASCII ist monochrom)
-            # Wir nutzen den Grün‑Kanal als Luminanz‑Proxy
-            total *= gf
-            img[iy][ix] = min(1.0, max(0.0, total))
+                # Noise for volumetric variation
+                noise = noise_3d(px * 0.5, py * 0.5, pz * 0.5, params.noise_seed + frame) * 0.5 + 0.5
+                mist *= noise
+                # Scattering contribution
+                scatter = params.scattering_coeff * phase * falloff * shadow * mist
+                # Absorption
     
-    # Optional: Box Blur auf dem fertigen Bild für weichere Kanten
+                absorption = math.exp(-params.absorption_coeff * mist * step_size)
+                transmittance *= absorption
+                accum += scatter * transmittance
+                if transmittance < 0.01:
+                    break
+            # Ground contribution (simple lambert + specular)
+            if pz <= 0.0:
+                # Ground normal (0,0,1)
+                # Diffuse
+                ground_diffuse = max(0.0, vlz) * falloff * shadow
+                # Specular (Blinn-Phong)
+                hx, hy, hz = rx + vlx, ry + vly, rz + vlz
+                hlen = math.hypot(hx, hy, hz)
+                if hlen > 0.0:
+                    hx, hy, hz = hx / hlen, hy / hlen, hz / hlen
+                    spec = max(0.0, hz) ** params.specular_power
+                    # Noise on specular
+                    spec_noise = noise_2d(px * params.specular_noise_scale, py * params.specular_noise_scale, params.noise_seed + 100) * 0.5 + 0.5
+                    spec *= spec_noise
+                    ground_specular = spec * params.specular_intensity * falloff * shadow
+                else:
+                    ground_specular = 0.0
+                ground = (ground_diffuse + ground_specular) * transmittance
+                accum += ground
+            # Ambient
+            accum += params.ambient
+            # Volumetric gain
+            accum *= params.volumetric_gain
+            # Tone mapping (simple Reinhard)
+            accum = accum / (1.0 + accum)
+            # Color temperature
+            accum_r = accum * cr
+            accum_g = accum * cg
+            accum_b = accum * cb
+            # Luminance for ASCII
+            lum = 0.2126 * accum_r + 0.7152 * accum_g + 0.0722 * accum_b
+            img[iy][ix] = lum
+    # Optional blur
     if params.blur_radius > 0:
-        gew = gauß_gewichte(params.blur_radius)
-        img = box_blur_1d(img, gew, True)
-        img = box_blur_1d(img, gew, False)
-    
-    # ASCII Konvertierung
+        weights = gauß_gewichte(params.blur_radius)
+        img = box_blur_1d(img, weights, True)
+        img = box_blur_1d(img, weights, False)
+    # Convert to ASCII
     ascii_lines = []
     for row in img:
         line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
         ascii_lines.append(line)
     return ascii_lines
 
-
 def main():
-    params = ShaderParams()
-    # Beispiel‑Bäume: (x, y, radius)
-    random.seed(123)
+    # Szene: Bäume als (x, y, radius)
+    random.seed(12345)
     bäume = []
     for _ in range(12):
         bx = random.uniform(-5.5, 5.5)
         by = random.uniform(-5.5, 5.5)
-        br = random.uniform(0.4, 0.9)
+        br = random.uniform(0.3, 0.7)
         bäume.append((bx, by, br))
-    
-    # Lichtposition startet links oben
-    licht = [ -4.0, 3.0, 4.0 ]
+    params = ShaderParams()
     frame = 0
-    width, height = 60, 18
-    
-    print("3D‑Lichtspiel – Tasten: q=quit, +/- Gain, </> Steps, a/z Ambient,")
-    print("  c/v ColorTemp, b/n Mist, m/, Scatter, j/k Jitter, p/l Specular")
-    
+    licht_winkel = 0.0
+    licht_radius = 4.0
+    licht_höhe = 3.5
+    last_time = time.time()
+    print("\x1b[2J\x1b[H", end='')  # clear screen
     try:
         while True:
-            # Animation: Licht kreist langsam
-            angle = frame * 0.02
-            licht[0] = math.sin(angle) * 4.5
-            licht[1] = math.cos(angle) * 3.5
-            licht[2] = 3.5 + 0.5 * math.sin(frame * 0.01)
-            
-            lines = render(params, bäume, licht, width, height, frame)
-            # Cursor nach oben bewegen (ANSI)
-            sys.stdout.write('\x1b[H')  # Home
-            for ln in lines:
-                sys.stdout.write(ln + '\n')
-            sys.stdout.write(f'Frame {frame} Licht=({licht[0]:.1f},{licht[1]:.1f},{licht[2]:.1f}) Steps={params.march_steps} Gain={params.volumetric_gain:.1f}')
-            sys.stdout.write(' [q]uit [+/-]Gain [.</>]Steps [a/z]Ambient [c/v]ColorTemp [b/n]Mist [m/,]Scatter [j/k]Jitter [p/l]Spec\n')
+            # Animation: Licht kreist
+            licht_winkel += 0.02
+            lx = math.cos(licht_winkel) * licht_radius
+            ly = math.sin(licht_winkel) * licht_radius
+            lz = licht_höhe + 0.5 * math.sin(licht_winkel * 0.7)
+            licht_pos = (lx, ly, lz)
+            # Render
+            lines = render(params, bäume, licht_pos, frame=frame)
+            # UI line
+            ui = f"Frame {frame} Licht=({lx:.1f},{ly:.1f},{lz:.1f}) Steps={params.march_steps} Gain={params.volumetric_gain} [q]uit [+/-]Gain [.</>]Steps [a/z]Ambient [c/v]ColorTemp [b/n]Mist [m/,]Scatter [j/k]Jitter [p/l]Spec"
+            # Output
+            sys.stdout.write("\x1b[H")
+            for line in lines:
+                sys.stdout.write(line + "\n")
+            sys.stdout.write(ui + "\n")
             sys.stdout.flush()
-            
-            # Non‑blocking Input
-            rlist, _, _ = select.select([sys.stdin], [], [], 0.05)
+            # Non-blocking input
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.03)
             if rlist:
                 key = sys.stdin.read(1)
                 if not key:
@@ -326,43 +319,46 @@ def main():
                 elif key == '+':
                     params.volumetric_gain = min(5.0, params.volumetric_gain + 0.1)
                 elif key == '-':
-                    params.volumetric_gain = max(0.5, params.volumetric_gain - 0.1)
+                    params.volumetric_gain = max(0.1, params.volumetric_gain - 0.1)
                 elif key == '.':
                     params.march_steps = min(64, params.march_steps + 2)
                 elif key == '>':
-                    params.march_steps = max(8, params.march_steps - 2)
+                    params.march_steps = max(4, params.march_steps - 2)
                 elif key == 'a':
-                    params.ambient = min(0.3, params.ambient + 0.01)
+                    params.ambient = min(0.5, params.ambient + 0.01)
                 elif key == 'z':
                     params.ambient = max(0.0, params.ambient - 0.01)
                 elif key == 'c':
-                    params.color_temp = min(6500.0, params.color_temp + 100.0)
+                    params.color_temp = min(10000.0, params.color_temp + 200.0)
                 elif key == 'v':
-                    params.color_temp = max(1500.0, params.color_temp - 100.0)
+                    params.color_temp = max(1000.0, params.color_temp - 200.0)
                 elif key == 'b':
-                    params.mist_density = min(0.5, params.mist_density + 0.01)
+                    params.mist_density = min(1.0, params.mist_density + 0.02)
                 elif key == 'n':
-                    params.mist_density = max(0.05, params.mist_density - 0.01)
+                    params.mist_density = max(0.0, params.mist_density - 0.02)
                 elif key == 'm':
-                    params.scattering_coeff = min(1.0, params.scattering_coeff + 0.02)
+                    params.scattering_coeff = min(2.0, params.scattering_coeff + 0.05)
                 elif key == ',':
-                    params.scattering_coeff = max(0.1, params.scattering_coeff - 0.02)
+                    params.scattering_coeff = max(0.0, params.scattering_coeff - 0.05)
                 elif key == 'j':
-                    params.jitter_strength = min(0.3, params.jitter_strength + 0.01)
+                    params.jitter_strength = min(0.5, params.jitter_strength + 0.02)
                 elif key == 'k':
-                    params.jitter_strength = max(0.0, params.jitter_strength - 0.01)
+                    params.jitter_strength = max(0.0, params.jitter_strength - 0.02)
                 elif key == 'p':
-                    params.specular_intensity = min(1.0, params.specular_intensity + 0.05)
+                    params.specular_intensity = min(2.0, params.specular_intensity + 0.05)
                 elif key == 'l':
                     params.specular_intensity = max(0.0, params.specular_intensity - 0.05)
-            
             frame += 1
-            time.sleep(0.03)
+            # Frame rate cap
+            elapsed = time.time() - last_time
+            if elapsed < 0.03:
+                time.sleep(0.03 - elapsed)
+            last_time = time.time()
     except (EOFError, KeyboardInterrupt):
         pass
     finally:
-        sys.stdout.write('\nTschüss! Der Dodo schläft weiter.\n')
-        sys.stdout.flush()
+        print("\x1b[2J\x1b[H", end='')
+        print("Dodo wacht auf. Gute Nacht!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
