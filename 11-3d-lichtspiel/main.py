@@ -179,92 +179,79 @@ def erstelle_szene(params, breite=80, höhe=40):
     """Generiert Bäume, Lichtposition und z-Buffer für den Park."""
     random.seed(params.noise_seed)
     bäume = []
-    for _ in range(20):
-        bx = random.uniform(5, breite - 5)
+    for _ in range(12):
+        bx = random.uniform(10, breite - 10)
         by = random.uniform(5, höhe - 5)
-        br = random.uniform(1.5, 3.0)
+        br = random.uniform(2.0, 5.0)
         bäume.append((bx, by, br))
-    # Lichtposition in der Mitte
-    lx, ly = breite / 2, höhe / 2
-    # z-Buffer: für jeden Pixel die Entfernung zum nächsten Baum (0 = innen)
-    z_buffer = [[0.0 for _ in range(breite)] for __ in range(höhe)]
+    licht_pos = (breite / 2.0, höhe / 4.0)
+    z_buffer = [[0.0 for _ in range(breite)] for _ in range(höhe)]
     for y in range(höhe):
         for x in range(breite):
-            min_dist = float('inf')
-            for bx, by, br in bäume:
-                d = math.hypot(x - bx, y - by) - br
-                if d < min_dist:
-                    min_dist = d
-            z_buffer[y][x] = max(0.0, min_dist)
-    return bäume, (lx, ly), z_buffer
+            n = noise_2d(x * 0.1, y * 0.1, params.noise_seed)
+            z_buffer[y][x] = max(0.0, min(1.0, 0.5 + n * 0.5))
+    return bäume, licht_pos, z_buffer
 
-def render(szene, params, breite=80, höhe=40):
-    """Berechnet das volumetrische Licht und gibt ASCII-Zeilen zurück."""
-    bäume, (lx, ly), z_buffer = szene
-    gewichte = gauß_gewichte(params.blur_radius)
-    raw = [[0.0 for _ in range(breite)] for __ in range(höhe)]
+def render(params, breite=60, höhe=25):
+    bäume, licht_pos, z_buffer = erstelle_szene(params, breite, höhe)
+    puffer = [[params.ambient for _ in range(breite)] for _ in range(höhe)]
+    lx, ly = licht_pos
+    
+    # Raymarching für volumetrisches Licht
     for y in range(höhe):
         for x in range(breite):
+            # Berechne Lichtstrahl zum Punkt
+            acc_light = 0.0
+            steps = params.march_steps
             dx = x - lx
             dy = y - ly
             dist = math.hypot(dx, dy)
-            if dist < 0.01:
-                raw[y][x] = 1.0
+            if dist < 0.1:
                 continue
-            shadow = schattenfaktor_für_punkt(x, y, lx, ly, params.light_radius, bäume, params)
-            falloff = 1.0
-            if dist > params.falloff_start:
-                falloff = (params.falloff_start / dist) ** params.falloff_exponent
-            # Einfaches volumetrisches Rauschen basierend auf 3D-Noise (z=0 für Bodennebel)
-            n = noise_3d(x * 0.1, y * 0.1, 0, params.noise_seed)
-            scattering = params.scattering_coeff * (1.0 + n * params.jitter_strength)
-            absorption = math.exp(-params.absorption_coeff * dist)
-            mist = params.mist_density * math.exp(-y * params.mist_height_falloff / höhe)
-            intensity = shadow * falloff * (1.0 + scattering * params.volumetric_gain) * absorption * (1.0 + mist)
-            raw[y][x] = intensity
-    # Zweipass-Blur für weiche Kegel
-    blurred = box_blur_1d(raw, gewichte, horizontal=True)
-    blurred = box_blur_1d(blurred, gewichte, horizontal=False)
-    ascii_art = []
+            step_x = dx / steps
+            step_y = dy / steps
+            
+            for s in range(steps):
+                sx = lx + step_x * s
+                sy = ly + step_y * s
+                ix, iy = int(sx), int(sy)
+                if 0 <= ix < breite and 0 <= iy < höhe:
+                    schatten = schattenfaktor_für_punkt(ix, iy, lx, ly, params.light_radius, bäume, params)
+                    # Nebel- und Höhendämpfung
+                    height_factor = math.exp(-sy * params.mist_height_falloff / höhe)
+                    n_val = noise_3d(sx * 0.2, sy * 0.2, s * 0.1, params.noise_seed)
+                    density = params.mist_density * height_factor * (1.0 + params.jitter_strength * n_val)
+                    
+                    # Dämpfung nach Distanz
+                    d_sq = (sx - lx)**2 + (sy - ly)**2
+                    attenuation = 1.0 / (params.falloff_start + d_sq ** (params.falloff_exponent / 2.0))
+                    
+                    acc_light += density * schatten * attenuation * params.volumetric_gain
+            
+            puffer[y][x] = min(2.0, puffer[y][x] + acc_light / steps)
+            
+    # Weichzeichnen mit Gauß-Filter
+    if params.blur_radius > 0:
+        gewichte = gauß_gewichte(params.blur_radius)
+        puffer = box_blur_1d(puffer, gewichte, horizontal=True)
+        puffer = box_blur_1d(puffer, gewichte, horizontal=False)
+        
+    # Ausgabe als ASCII-Art
+    ausgabe = []
     for y in range(höhe):
-        line = ''
-        for x in range(breite):
-            val = blurred[y][x]
-            line += intensitaet_zu_ascii(val, params.gamma)
-        ascii_art.append(line)
-    return ascii_art
+        zeile = "".join([intensitaet_zu_ascii(puffer[y][x], params.gamma) for x in range(breite)])
+        ausgabe.append(zeile)
+    return "\n".join(ausgabe)
 
 def main():
     params = ShaderParams()
-    breite, höhe = 80, 40
-    szene = erstelle_szene(params, breite, höhe)
-    print("3D-Lichtspiel - Herbstlicher Park")
-    print("Befehle: q=quit, r=neu rendern, p=Parameter ändern")
+    print("Dodos 3D-Lichtspiel im herbstlichen Park startet...")
+    print(render(params, 50, 20))
+    print("Szene erfolgreich gerendert. Drücke Enter zum Beenden.")
     try:
-        while True:
-            ascii_art = render(szene, params, breite, höhe)
-            for line in ascii_art:
-                print(line)
-            print("\n> ", end='', flush=True)
-            cmd = input().strip().lower()
-            if cmd == 'q':
-                break
-            elif cmd == 'r':
-                szene = erstelle_szene(params, breite, höhe)
-            elif cmd == 'p':
-                print("Parameter: penumbra_breite, umbra_dunkelheit, falloff_exponent, ...")
-                print("Neuer Wert für penumbra_breite (Enter zum Überspringen):")
-                val = input().strip()
-                if val:
-                    try:
-                        params.penumbra_breite = float(val)
-                    except:
-                        pass
-            else:
-                print("Unbekannter Befehl")
+        input()
     except EOFError:
         pass
-    print("Auf Wiedersehen!")
 
 if __name__ == '__main__':
     main()
