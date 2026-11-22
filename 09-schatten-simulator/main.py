@@ -171,205 +171,229 @@ def raymarch_schatten(tk: Tiefenkarte,
     schatten_summe = 0.0
     total_taps = len(kernel[:pcf_samples]) * len(light_offsets)
     
-    # PCF: über Nachbarpixel um Startpunkt herum
-    for kx, ky in kernel[:pcf_samples]:
-        sx = start[0] + kx * pcf_radius
-        sy = start[1] + ky * pcf_radius
-        sz = start[2]
-        
-        # Area Light: über Lichtquellenfläche integrieren
-        for lx, ly in light_offsets:
-            # Lichtrichtung leicht variieren für Area-Light-Sample
-            if lx != 0.0 or ly != 0.0:
-                l_dir_var = vec3_norm((l_dir[0] + lx, l_dir[1] + ly, l_dir[2]))
+    if total_taps == 0:
+        return 1.0
+
+    # Basis-Schrittweite entlang des Rays
+    step_dist = max_dist / schritte
+    
+    # Für jedes Area-Light-Sample
+    for lx_off, ly_off in light_offsets:
+        # Lichtrichtung leicht variieren für Area Light
+        # Wir bauen eine Orthonormalbasis um l_dir herum (einfachheitshalber heuristisch)
+        if light_radius > 1e-6:
+            # Finde einen Vektor, der nicht parallel zu l_dir ist
+            if abs(l_dir[0]) < 0.9:
+                up = (1.0, 0.0, 0.0)
             else:
-                l_dir_var = l_dir
-            
-            # Startpunkt mit Bias vorverschieben (vermeidet Self-Shadowing)
-            curr_x = sx + l_dir_var[0] * OFFSET_BIAS
-            curr_y = sy + l_dir_var[1] * OFFSET_BIAS
-            curr_z = sz + l_dir_var[2] * OFFSET_BIAS
-            
-            schrittweite = max_dist / schritte
-            hit = False
+                up = (0.0, 1.0, 0.0)
+            # Right = up x l_dir
+            right = vec3_norm(vec3_sub(
+                (up[1]*l_dir[2] - up[2]*l_dir[1],
+                 up[2]*l_dir[0] - up[0]*l_dir[2],
+                 up[0]*l_dir[1] - up[1]*l_dir[0]),
+                (0,0,0)
+            ))
+            # TrueUp = l_dir x right
+            true_up = vec3_norm((
+                l_dir[1]*right[2] - l_dir[2]*right[1],
+                l_dir[2]*right[0] - l_dir[0]*right[2],
+                l_dir[0]*right[1] - l_dir[1]*right[0]
+            ))
+            # Neue Lichtrichtung
+            varied_dir = vec3_norm(vec3_add(
+                vec3_add(l_dir, vec3_scale(right, lx_off)),
+                vec3_scale(true_up, ly_off)
+            ))
+        else:
+            varied_dir = l_dir
+
+        # Für jeden PCF-Tap
+        for kx, ky in kernel[:pcf_samples]:
+            # Startposition mit PCF-Offset (in Texel-Koordinaten)
+            # Wir bewegen den Startpunkt auf der XY-Ebene
+            cur_x = start[0] + kx * pcf_radius
+            cur_y = start[1] + ky * pcf_radius
+            cur_z = start[2]
             
             # Raymarching-Schleife
+            hit = False
             for _ in range(schritte):
-                curr_x += l_dir_var[0] * schrittweite
-                curr_y += l_dir_var[1] * schrittweite
-                curr_z += l_dir_var[2] * schrittweite
+                # Aktuelle Höhe der Tiefenkarte an dieser XY-Position abfragen
+                # Koordinaten in Textureinheiten (Pixel)
+                map_h = tk.get_bilinear(cur_y, cur_x) * z_skalierung
                 
-                # Höhe an aktueller (y, x) Position abfragen
-                # Achtung: Tiefenkarte erwartet (y, x) = (row, col)
-                h = tk.get_bilinear(curr_y, curr_x) * z_skalierung
-                
-                # Wenn Ray unter Höhenfeld taucht → Occlusion
-                if curr_z < h:
+                # Wenn Ray unter die Oberfläche taucht -> Shadow
+                if cur_z <= map_h + OFFSET_BIAS:
                     hit = True
                     break
+                
+                # Nächster Schritt
+                cur_x += varied_dir[0] * step_dist
+                cur_y += varied_dir[1] * step_dist
+                cur_z += varied_dir[2] * step_dist
+                
+                # Frühabbruch wenn Ray die Szene verlässt (optional, hier einfach max_dist)
+                # Wir vertrauen auf die Schrittanzahl
             
-            # 1.0 = beleuchtet, 0.0 = im Schatten
-            schatten_summe += 0.0 if hit else 1.0
+            if not hit:
+                schatten_summe += 1.0  # Kein Treffer = beleuchtet
+            # else: hit -> summe += 0 (Schatten)
     
-    return schatten_summe / total_taps if total_taps > 0 else 1.0
+    return schatten_summe / total_taps
 
-# ─── Testdaten-Generierung ──────────────────────────────────────────
+# ─── Demo & Interaktion ──────────────────────────────────────────────
 
-def erstelle_test_karte() -> Tiefenkarte:
-    """Erzeugt eine 16×16 Test-Tiefenkarte mit zwei Hügeln und einem Tal."""
+def erzeuge_testkarte(groesse: int = 16) -> Tiefenkarte:
+    """Erzeugt eine hübsche Test-Tiefenkarte (Hügel + Tal + Noise)."""
     daten = []
-    for y in range(16):
-        reihe = []
-        for x in range(16):
-            # Hügel 1: bei (4, 4), Höhe 1.0, Breite ~sqrt(8)
-            dx1 = x - 4.0
-            dy1 = y - 4.0
-            h1 = 1.0 * math.exp(-(dx1*dx1 + dy1*dy1) / 8.0)
-            
-            # Hügel 2: bei (11, 11), Höhe 0.7, etwas breiter
-            dx2 = x - 11.0
-            dy2 = y - 11.0
-            h2 = 0.7 * math.exp(-(dx2*dx2 + dy2*dy2) / 12.0)
-            
-            # Tal in der Mitte: bei (7.5, 7.5), Tiefe -0.3
-            dx3 = x - 7.5
-            dy3 = y - 7.5
-            tal = -0.3 * math.exp(-(dx3*dx3 + dy3*dy3) / 10.0)
-            
-            reihe.append(h1 + h2 + tal)
-        daten.append(reihe)
+    for y in range(groesse):
+        zeile = []
+        for x in range(groesse):
+            # Normalisierte Koordinaten -1..1
+            nx = (x - groesse * 0.5) / (groesse * 0.5)
+            ny = (y - groesse * 0.5) / (groesse * 0.5)
+            dist = math.sqrt(nx*nx + ny*ny)
+            # Ein großer Hügel in der Mitte
+            hill = math.exp(-dist * dist * 3.0) * 1.5
+            # Ein paar Wellen
+            waves = math.sin(nx * 6.0) * math.cos(ny * 5.0) * 0.15
+            # Kleines zufälliges Detail (deterministisch)
+            noise = ((x * 17 + y * 23) % 11) / 11.0 * 0.05
+            zeile.append(hill + waves + noise)
+        daten.append(zeile)
     return Tiefenkarte(daten)
 
-# ─── Demo & Interaktion ─────────────────────────────────────────────
 
-def demo_raymarch(tk: Tiefenkarte):
-    """Führt vorberechnete Raymarch-Tests an 5 Positionen aus."""
-    print("\n=== Raymarch-Demo ===")
-    print("Lichtrichtung: von oben-links (normiert)")
-    print("Positionen werden auf der Höhe der Karte getestet.\n")
+def demo_schatten() -> None:
+    """Führt eine kleine Demo-Szene aus und druckt Schattenwerte."""
+    print("\n🦤 Fifo startet Schatten-Demo...")
+    tk = erzeuge_testkarte(16)
+    print(f"Tiefenkarte erzeugt: {tk.b}x{tk.h} Pixel")
     
-    l_dir = vec3_norm((-0.5, -0.5, -1.0))  # Licht von oben-links
-    max_dist = 10.0
-    z_skalierung = 2.0
+    # Licht von schräg oben-links
+    l_dir = vec3_norm((-0.5, -0.3, -1.0))
+    # Startpunkt in der Bildmitte, etwas über dem Gelände
+    mid_x, mid_y = tk.b * 0.5, tk.h * 0.5
+    ground_h = tk.get_bilinear(mid_y, mid_x) * 2.0
+    start = (mid_x, mid_y, ground_h + 0.5)
     
-    test_punkte = [
-        (2.0, 2.0, "Nahe Hügel 1 (Schattenseite)"),
-        (7.5, 7.5, "Im Tal (starker Schatten)"),
-        (11.0, 11.0, "Nahe Hügel 2 (Schattenseite)"),
-        (8.0, 8.0, "Kante Tal/Hügel (Penumbra)"),
-        (0.0, 0.0, "Ecke (kein Schatten)"),
-    ]
+    print(f"Start: ({start[0]:.1f}, {start[1]:.1f}, {start[2]:.2f})")
+    print(f"Lichtdir: ({l_dir[0]:.2f}, {l_dir[1]:.2f}, {l_dir[2]:.2f})")
     
-    for x, y, name in test_punkte:
-        h = tk.get_bilinear(y, x) * z_skalierung
-        start = (x, y, h + 0.01)  # Knapp über Oberfläche
-        
-        # Hart / Weich / Area Light vergleichen
-        hart = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                 schritte=32, pcf_samples=1, light_samples=1)
-        weich = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                  schritte=32, pcf_radius=0.6, pcf_samples=9,
-                                  light_samples=1)
-        area = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                 schritte=32, pcf_radius=0.6, pcf_samples=9,
-                                 light_radius=0.3, light_samples=16)
-        
-        print(f"  {name:30s}  x={x:4.1f} y={y:4.1f}  h={h:5.2f}")
-        print(f"    Hart:   {hart:.3f}  |  Weich (PCF): {weich:.3f}  |  Area Light: {area:.3f}")
-    print()
+    # 1. Hartes Schatten (Punktlicht, kein PCF)
+    s_hart = raymarch_schatten(tk, start, l_dir, max_dist=20.0, z_skalierung=2.0,
+                               schritte=64, pcf_samples=1, light_radius=0.0)
+    print(f"\n☀️  Hartes Schatten (Punktlicht): {s_hart:.3f}")
+    
+    # 2. Weiches Schatten (PCF 3x3)
+    s_pcf = raymarch_schatten(tk, start, l_dir, max_dist=20.0, z_skalierung=2.0,
+                              schritte=64, pcf_samples=9, pcf_radius=0.8,
+                              light_radius=0.0)
+    print(f"☁️  Weich (PCF 3x3):              {s_pcf:.3f}")
+    
+    # 3. Area Light (Penumbra)
+    s_area = raymarch_schatten(tk, start, l_dir, max_dist=20.0, z_skalierung=2.0,
+                               schritte=64, pcf_samples=9, pcf_radius=0.8,
+                               light_radius=0.5, light_samples=16)
+    print(f"💡 Area Light (r=0.5, 16 samp):   {s_area:.3f}")
+    
+    # 4. Kombiniert: Area Light + PCF (High Quality)
+    s_hq = raymarch_schatten(tk, start, l_dir, max_dist=20.0, z_skalierung=2.0,
+                             schritte=128, pcf_samples=9, pcf_radius=1.0,
+                             light_radius=0.8, light_samples=32)
+    print(f"🎨 High Quality (Area+PCF):       {s_hq:.3f}")
+    print("\n✅ Demo fertig.")
 
 
-def test_einzelpunkt(tk: Tiefenkarte):
-    """Interaktiver Test: Benutzer gibt x, y ein, Programm zeigt Schattenwerte."""
-    print("\n=== Einzelpunkt-Test ===")
-    print("Gib Koordinaten x y ein (0-15), oder 'q' zum Abbrechen.")
+def interaktiv() -> None:
+    """Ermöglicht manuelles Herumspielen mit den Parametern."""
+    print("\n🎮 Interaktiver Modus – 'q' zum Beenden.")
+    tk = erzeuge_testkarte(32) # Größere Karte für mehr Spaß
+    l_dir = vec3_norm((-0.5, -0.3, -1.0))
+    mid_x, mid_y = tk.b * 0.5, tk.h * 0.5
+    ground_h = tk.get_bilinear(mid_y, mid_x) * 2.0
+    start = (mid_x, mid_y, ground_h + 0.5)
     
-    l_dir = vec3_norm((-0.5, -0.5, -1.0))
-    max_dist = 10.0
-    z_skalierung = 2.0
+    # Defaults
+    params = {
+        'schritte': 64,
+        'pcf_samples': 9,
+        'pcf_radius': 0.8,
+        'light_radius': 0.5,
+        'light_samples': 16,
+        'z_skalierung': 2.0,
+    }
     
     while True:
         try:
-            eingabe = input("Koordinaten (x y) > ").strip()
-            if eingabe.lower() in ('q', 'quit', 'exit', ''):
+            print(f"\nAktuell: {params}")
+            print("Was ändern? (schritte, pcf_samples, pcf_radius, light_radius, light_samples, z_skalierung, enter=rechnen, q=quit)")
+            cmd = input("> ").strip().lower()
+            if cmd in ('q', 'quit', 'exit'):
                 break
-            
-            teile = eingabe.split()
-            if len(teile) != 2:
-                print("  Bitte zwei Zahlen eingeben (z.B. '7.5 7.5').")
+            if cmd == '':
+                pass # Nur neu berechnen
+            elif cmd in params:
+                val = input(f"Neuer Wert für {cmd} (aktuell {params[cmd]}): ").strip()
+                if val:
+                    try:
+                        # Typ beibehalten
+                        if isinstance(params[cmd], int):
+                            params[cmd] = int(float(val))
+                        else:
+                            params[cmd] = float(val)
+                    except ValueError:
+                        print("❌ Ungültige Zahl.")
+            else:
+                print("❓ Unbekannter Parameter.")
                 continue
             
-            x = float(teile[0])
-            y = float(teile[1])
-            
-            if not (0 <= x < 16 and 0 <= y < 16):
-                print("  Koordinaten außerhalb der Karte (0-15).")
-                continue
-            
-            h = tk.get_bilinear(y, x) * z_skalierung
-            start = (x, y, h + 0.01)
-            
-            hart = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                     schritte=32, pcf_samples=1, light_samples=1)
-            weich = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                      schritte=32, pcf_radius=0.6, pcf_samples=9,
-                                      light_samples=1)
-            area = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                     schritte=32, pcf_radius=0.6, pcf_samples=9,
-                                     light_radius=0.3, light_samples=16)
-            
-            print(f"  Position: x={x:.2f} y={y:.2f}  Höhe: {h:.3f}")
-            print(f"  Hart:     {hart:.4f}  (0=Schatten, 1=Licht)")
-            print(f"  Weich:    {weich:.4f}  (PCF 3x3, r=0.6)")
-            print(f"  Area:     {area:.4f}  (Radius 0.3, 16 Samples)\n")
-        
-        except EOFError:
+            # Berechnung
+            shadow = raymarch_schatten(tk, start, l_dir, max_dist=30.0,
+                                       z_skalierung=params['z_skalierung'],
+                                       schritte=params['schritte'],
+                                       pcf_samples=params['pcf_samples'],
+                                       pcf_radius=params['pcf_radius'],
+                                       light_radius=params['light_radius'],
+                                       light_samples=params['light_samples'])
+            print(f"🌑 Schattenfaktor: {shadow:.4f} ({'Schatten' if shadow < 0.5 else 'Licht'})")
+        except (EOFError, KeyboardInterrupt):
+            print("\n👋 Tschüss!")
             break
-        except ValueError:
-            print("  Ungültige Eingabe. Bitte Zahlen eingeben.")
-        except KeyboardInterrupt:
-            break
-    print()
+        except Exception as e:
+            print(f"💥 Fehler: {e}")
 
-# ─── Hauptprogramm ──────────────────────────────────────────────────
+# ─── Hauptprogramm ───────────────────────────────────────────────────
 
-def main() -> int:
-    """Einstiegspunkt: Karte erzeugen, Menü anzeigen, Schleife fahren."""
+def main() -> None:
     print("╔══════════════════════════════════════╗")
-    print("║ Schatten-Simulator – Teil 62        ║")
-    print("║ Raymarching mit PCF & Area Light    ║")
-    print("║ Code-Struktur aufgeräumt, Docs added║")
+    print("║ Schatten-Simulator – Teil 63        ║")
+    print("║ Raymarching: PCF & Area Light Done  ║")
     print("╚══════════════════════════════════════╝")
     
-    tk = erstelle_test_karte()
-    print(f"\nTiefenkarte erzeugt: {tk.b}x{tk.h} Pixel")
-    
     while True:
-        print("--- Menü ---")
-        print("1) Raymarch-Demo an 5 Positionen")
-        print("2) Einzelnen Punkt testen (Eingabe x y)")
-        print("3) Beenden")
-        
         try:
-            wahl = input("Wahl [1-3] > ").strip()
-        except EOFError:
-            print("\nEOF – tschüss!")
+            print("\nMenü:")
+            print("  1 – Demo laufen lassen")
+            print("  2 – Interaktiv parameterspieln")
+            print("  3 – Beenden")
+            choice = input("Wahl (1/2/3): ").strip()
+            
+            if choice == '1':
+                demo_schatten()
+            elif choice == '2':
+                interaktiv()
+            elif choice in ('3', 'q', 'quit'):
+                print("🦤 Fifo watschelt weg. Bis bald!")
+                break
+            else:
+                print("❓ Bitte 1, 2 oder 3 eingeben.")
+        except (EOFError, KeyboardInterrupt):
+            print("\n👋 EOF/Interrupt erkannt. Fifo klappt den Laptop zu.")
             break
-        except KeyboardInterrupt:
-            print("\nAbbruch – tschüss!")
-            break
-        
-        if wahl == '1':
-            demo_raymarch(tk)
-        elif wahl == '2':
-            test_einzelpunkt(tk)
-        elif wahl == '3':
-            print("Tschüss!")
-            break
-        else:
-            print("Unbekannte Option. Bitte 1, 2 oder 3 wählen.\n")
-    
-    return 0
+        except Exception as e:
+            print(f"💥 Unerwarteter Fehler im Hauptmenü: {e}")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
