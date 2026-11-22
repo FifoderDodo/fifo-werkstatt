@@ -42,6 +42,35 @@ def kanten_schaerfe(normal, view_dir, schaerfe=8.0):
     ndotv = normal[0]*view_dir[0] + normal[1]*view_dir[1] + normal[2]*view_dir[2]
     return max(0.0, 1.0 - ndotv) ** schaerfe
 
+def ambiente_okklusion(x, y, z, normal, schritte=5, radius=0.5):
+    """Approximiert Ambient Occlusion durch Raymarching in Normalenrichtung."""
+    nx, ny, nz = normal
+    ao = 0.0
+    for i in range(1, schritte + 1):
+        h = radius * i / schritte
+        d = szene_distanz(x + nx*h, y + ny*h, z + nz*h)
+        ao += max(0.0, h - d)
+    return 1.0 - min(1.0, ao * 2.0 / schritte)
+
+def fresnel_effekt(normal, view_dir, stark=3.0):
+    """Fresnel-Schimmer an Silhouetten – simuliert dünne Kanten-Lichter."""
+    ndotv = normal[0]*view_dir[0] + normal[1]*view_dir[1] + normal[2]*view_dir[2]
+    return max(0.0, 1.0 - ndotv) ** stark
+
+def weicher_schatten(ox, oy, oz, licht_dir, max_dist=10.0, schritte=16):
+    """Weiche Schatten durch Cone-Tracing entlang der Lichtrichtung."""
+    lx, ly, lz = licht_dir
+    schatten = 1.0
+    for i in range(1, schritte + 1):
+        h = max_dist * i / schritte
+        d = szene_distanz(ox + lx*h, oy + ly*h, oz + lz*h)
+        if d < 0.02:
+            schatten = 0.0
+            break
+        # Penumbra: je näher an Hindernis, desto dunkler
+        schatten = min(schatten, d * schritte / (h * 0.5))
+    return max(0.0, min(1.0, schatten))
+
 def depth_interpolate_smoothstep(tiefe_buffer, breite, hoehe):
     ergebnis = []
     for j in range(hoehe):
@@ -65,24 +94,22 @@ def depth_interpolate_smoothstep(tiefe_buffer, breite, hoehe):
         ergebnis.append(zeile)
     return ergebnis
 
-def render_szene(breite=60, hoehe=30):
-    """Einfacher Raymarch-Render mit Normalen-Shading und Kanten-Schärfung."""
+def render_szene(breite=80, hoehe=40):
+    """Raymarch-Renderer mit verbesserter Schattierung: AO, Fresnel, weiche Schatten."""
     tiefe_buffer = [[20.0]*breite for _ in range(hoehe)]
     normal_buffer = [[(0,1,0)]*breite for _ in range(hoehe)]
+    pos_buffer = [[(0,0,0)]*breite for _ in range(hoehe)]
     
-    # Kamera-Setup
     cam_x, cam_y, cam_z = 0.0, 0.5, -5.0
     
     for j in range(hoehe):
         for i in range(breite):
-            # Ray-Direction
             fx = (i - breite/2) / (breite/2) * 1.2
             fy = (j - hoehe/2) / (hoehe/2) * 0.8
             fz = 1.0
             rl = math.sqrt(fx*fx + fy*fy + fz*fz)
             rdx, rdy, rdz = fx/rl, fy/rl, fz/rl
             
-            # Raymarch
             ox, oy, oz = cam_x, cam_y, cam_z
             dist = 0.0
             for _ in range(64):
@@ -90,6 +117,7 @@ def render_szene(breite=60, hoehe=30):
                 if d < 0.01:
                     tiefe_buffer[j][i] = dist
                     normal_buffer[j][i] = normal_berechnen(ox, oy, oz)
+                    pos_buffer[j][i] = (ox, oy, oz)
                     break
                 if dist > 20.0:
                     break
@@ -98,16 +126,17 @@ def render_szene(breite=60, hoehe=30):
                 oz += rdz * d
                 dist += d
     
-    # Depth-Smoothing
     tiefe_buffer = depth_interpolate_smoothstep(tiefe_buffer, breite, hoehe)
     
-    # Shading mit Kanten-Schärfung (Laternen-Look)
+    # Licht-Setup
     licht = (0.3, 0.8, 0.5)
     ll = math.sqrt(licht[0]**2 + licht[1]**2 + licht[2]**2)
     licht = (licht[0]/ll, licht[1]/ll, licht[2]/ll)
     view = (0, 0, 1)
     
-    ascii_ramp = " .:-=+*#%@"
+    # Erweiterte ASCII-Rampe für feinere Abstufungen
+    ascii_ramp = "  .'`^\":;~!><{}[]()_+-=*#%@&$"
+    
     bild = []
     for j in range(hoehe):
         zeile = ""
@@ -116,24 +145,51 @@ def render_szene(breite=60, hoehe=30):
             if d >= 19.0:
                 zeile += " "
                 continue
+            
             nx, ny, nz = normal_buffer[j][i]
-            # Diffuses Licht
+            px, py, pz = pos_buffer[j][i]
+            
+            # 1. Diffuses Licht (Lambert)
             diff = max(0.0, nx*licht[0] + ny*licht[1] + nz*licht[2])
-            # Kanten-Schärfung (gezackte Laternen-Schatten)
-            kante = kanten_schaerfe((nx, ny, nz), view)
-            # Kombinieren
-            helligkeit = diff * 0.7 + kante * 0.5
+            
+            # 2. Ambient Occlusion – vertieft Ecken und Kanten
+            ao = ambiente_okklusion(px, py, pz, (nx, ny, nz))
+            
+            # 3. Weiche Schatten – realistischer als harte Schatten
+            schatten = weicher_schatten(px + nx*0.01, py + ny*0.01, pz + nz*0.01, licht)
+            
+            # 4. Kanten-Schärfung (Laternen-Look)
+            kante = kanten_schaerfe((nx, ny, nz), view, 6.0)
+            
+            # 5. Fresnel-Schimmer an Silhouetten
+            fresnel = fresnel_effekt((nx, ny, nz), view, 4.0)
+            
+            # 6. Tiefen-Nebel (Atmosphäre)
+            nebelfaktor = max(0.0, 1.0 - d / 12.0)
+            
+            # Kombinieren: Basis + AO + Schatten + Kanten + Fresnel
+            helligkeit = (diff * 0.5 + 0.15) * ao * schatten  # Basis-Beleuchtung
+            helligkeit += kante * 0.35  # Laternen-Kanten
+            helligkeit += fresnel * 0.25  # Silhouetten-Schimmer
+            helligkeit *= nebelfaktor  # Entfernungs-Abschwächung
+            
+            # Gamma-Korrektur für natürlichere Helligkeitsverteilung
+            helligkeit = helligkeit ** 0.9
             helligkeit = max(0.0, min(1.0, helligkeit))
+            
             idx = int(helligkeit * (len(ascii_ramp) - 1))
             zeile += ascii_ramp[idx]
         bild.append(zeile)
     return bild
 
 if __name__ == '__main__':
-    print('Fifo schleift die Normalen: Kanten werden messerscharf wie Laternen-Schatten!')
+    print('Fifo schleift die Schattierung: AO, Fresnel, weiche Schatten – Tiefe wird greifbar!')
     print()
-    bild = render_szene()
-    for zeile in bild:
-        print(zeile)
+    try:
+        bild = render_szene()
+        for zeile in bild:
+            print(zeile)
+    except KeyboardInterrupt:
+        pass
     print()
-    print('Projekt 3D-Tiefen-Shader abgeschlossen – Fifo wackelt zufrieden mit den Flügeln.')
+    print('Projekt 3D-Tiefen-Shader: Schattierungs-Routine getestet – Fifo nickt zufrieden.')
