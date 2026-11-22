@@ -2338,3 +2338,38 @@ ASCII Shadow Map:
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Fertig. Dodo watschelt zufrieden weg.
 ```
+
+## Teil 57 (22.11.2026 17:01)
+Hammersley-Sequenz korrigiert (radical_inverse_base2 + konzentrische Abbildung), ascii_shadow vervollständigt, main()-Funktion mit Demo-Szene und drei Schattenmodi hinzugefügt, PPM-Output funktionsfähig gemacht, Dokumentation und Typ-Hints erweitert.
+
+```
+   
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+
+Durchschnittlicher Schattenwert:
+  Hart:      0.0000
+  PCF:       0.0000
+  Area:      0.0000
+```
