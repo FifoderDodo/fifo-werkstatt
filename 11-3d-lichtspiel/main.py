@@ -1,4 +1,4 @@
-import math, sys, random, unicodedata, time
+import math, sys, random, unicodedata, time, select
 
 class ShaderParams:
     """Container für alle einstellbaren Shader-Parameter mit Defaults."""
@@ -169,100 +169,113 @@ def noise_3d(x, y, z, seed):
     c1 = lerp(c01, c11, fy)
     return lerp(c0, c1, fz)
 
-def render(params: ShaderParams, bäume, licht_pos, width=80, height=24):
+def render(params: ShaderParams, bäume, licht_pos, width=80, height=24, frame=0):
     img = [[0.0 for _ in range(width)] for _ in range(height)]
     lx, ly, lz = licht_pos
     max_dist = 10.0
     step_size = max_dist / params.march_steps
+    tree_height = 5.0
+    
     for y in range(height):
         for x in range(width):
             nx = (x / (width - 1)) * 2 - 1
             ny = (y / (height - 1)) * 2 - 1
-            # Kamera bei (0,0,-2), Blickrichtung auf Ebene z=0
             ray_origin = (0.0, 0.0, -2.0)
             ray_dir = (nx, ny, 2.0)
             ray_len = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
             ray_dir = (ray_dir[0]/ray_len, ray_dir[1]/ray_len, ray_dir[2]/ray_len)
-            intensity = params.ambient
-            # Volumetric marching
+            
+            intensity = 0.0
+            transmittance = 1.0
+            
             for step in range(params.march_steps):
-                t = (step + 0.5) * step_size
-                px = ray_origin[0] + ray_dir[0] * t
-                py = ray_origin[1] + ray_dir[1] * t
-                pz = ray_origin[2] + ray_dir[2] * t
-                if pz > 0:
+                t = step * step_size
+                sx = ray_origin[0] + ray_dir[0] * t
+                sy = ray_origin[1] + ray_dir[1] * t
+                sz = ray_origin[2] + ray_dir[2] * t
+                
+                if sz >= 0.0:
+                    ground_x = sx
+                    ground_y = sy
+                    dist_to_light = math.hypot(ground_x - lx, ground_y - ly)
+                    falloff = 1.0 / (1.0 + dist_to_light * dist_to_light * 0.1)
+                    shadow = schattenfaktor_für_punkt(ground_x, ground_y, lx, ly, 8.0, bäume, params)
+                    ground_val = (params.ambient + falloff * shadow) * transmittance
+                    intensity += ground_val
                     break
-                density = params.mist_density * math.exp(-pz * params.mist_height_falloff)
-                ldx = lx - px
-                ldy = ly - py
-                ldz = lz - pz
+                
+                mist = params.mist_density * math.exp(-sz * params.mist_height_falloff)
+                noise_val = noise_3d(sx * 0.5, sy * 0.5, sz * 0.5, params.noise_seed + frame)
+                mist *= 1.0 + noise_val * 0.3
+                
+                ldx, ldy, ldz = lx - sx, ly - sy, lz - sz
                 light_dist = math.sqrt(ldx*ldx + ldy*ldy + ldz*ldz)
                 if light_dist < 0.01:
                     continue
-                ldx /= light_dist
-                ldy /= light_dist
-                ldz /= light_dist
-                shadow = schattenfaktor_für_punkt(px, py, lx, ly, light_dist, bäume, params)
+                ldx, ldy, ldz = ldx/light_dist, ldy/light_dist, ldz/light_dist
+                
                 cos_theta = ray_dir[0]*ldx + ray_dir[1]*ldy + ray_dir[2]*ldz
                 phase = henyey_greenstein(cos_theta, params.phase_g)
-                falloff = max(0.0, 1.0 - (light_dist - params.falloff_start) / max_dist)
-                light_intensity = falloff * shadow
-                scatter = density * params.scattering_coeff * phase * light_intensity * params.volumetric_gain
-                intensity += scatter * step_size
-            # Boden bei z=0
-            if ray_dir[2] > 0:
-                t_ground = -ray_origin[2] / ray_dir[2]
-                if 0 < t_ground < max_dist:
-                    gx = ray_origin[0] + ray_dir[0] * t_ground
-                    gy = ray_origin[1] + ray_dir[1] * t_ground
-                    gdx = lx - gx
-                    gdy = ly - gy
-                    gdz = lz
-                    gdist = math.sqrt(gdx*gdx + gdy*gdy + gdz*gdz)
-                    gfalloff = max(0.0, 1.0 - (gdist - params.falloff_start) / max_dist)
-                    gshadow = schattenfaktor_für_punkt(gx, gy, lx, ly, gdist, bäume, params)
-                    ground_intensity = gfalloff * gshadow * 0.5
-                    intensity += ground_intensity
+                
+                in_shadow = 1.0
+                for bx, by, br in bäume:
+                    vx, vy = bx - sx, by - sy
+                    proj = vx * ldx + vy * ldy
+                    if proj <= 0 or proj >= light_dist:
+                        continue
+                    abstand = abs(vx * ldy - vy * ldx)
+                    if abstand < br * (1.0 - sz/tree_height):
+                        in_shadow = 0.0
+                        break
+                
+                attenuation = 1.0 / (1.0 + light_dist * light_dist * 0.05)
+                scatter = mist * params.scattering_coeff * phase * attenuation * in_shadow
+                intensity += transmittance * scatter * params.volumetric_gain
+                transmittance *= math.exp(-mist * (params.scattering_coeff + params.absorption_coeff) * step_size)
+                if transmittance < 0.01:
+                    break
+            
             img[y][x] = intensity
-    weights = gauß_gewichte(params.blur_radius)
-    img = box_blur_1d(img, weights, horizontal=True)
-    img = box_blur_1d(img, weights, horizontal=False)
-    return img
+    
+    gewichte = gauß_gewichte(params.blur_radius)
+    img = box_blur_1d(img, gewichte, True)
+    img = box_blur_1d(img, gewichte, False)
+    
+    ascii_frame = []
+    for row in img:
+        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
+        ascii_frame.append(line)
+    return '\n'.join(ascii_frame)
 
 def main():
     params = ShaderParams()
-    random.seed(params.noise_seed)
-    bäume = []
-    for _ in range(15):
-        bx = random.uniform(-1.5, 1.5)
-        by = random.uniform(-1.5, 1.5)
-        br = random.uniform(0.05, 0.15)
-        bäume.append((bx, by, br))
-    licht_pos = (0.0, 0.0, 2.0)
-    width, height = 80, 24
+    random.seed(42)
+    bäume = [(random.uniform(-6,6), random.uniform(-4,4), random.uniform(0.3,0.7)) for _ in range(12)]
+    
     frame = 0
     try:
         while True:
-            licht_pos = (math.sin(frame * 0.05) * 1.0,
-                         math.cos(frame * 0.03) * 1.0,
-                         2.0 + math.sin(frame * 0.02) * 0.5)
-            img = render(params, bäume, licht_pos, width, height)
-            for y in range(height):
-                line = ''.join(intensitaet_zu_ascii(img[y][x], params.gamma) for x in range(width))
-                print(line)
-            print(f"Frame {frame} – Enter für weiter, 'q' zum Beenden")
+            angle = frame * 0.03
+            lx = math.sin(angle) * 4.0
+            ly = math.cos(angle) * 3.0
+            lz = 3.0 + math.sin(frame * 0.02) * 0.5
+            
+            sys.stdout.write('\x1b[2J\x1b[H')
+            sys.stdout.write(render(params, bäume, (lx, ly, lz), frame=frame))
+            sys.stdout.write('\n[q] quit, [enter] weiter... ')
             sys.stdout.flush()
-            try:
-                inp = input()
-                if inp.strip().lower() == 'q':
+            
+            ready, _, _ = select.select([sys.stdin], [], [], 0.05)
+            if ready:
+                inp = sys.stdin.readline()
+                if not inp or _norm(inp) in ('q', 'quit', 'exit'):
                     break
-            except EOFError:
-                break
+            
             frame += 1
-            print("\033[H\033[J", end="")
-    except KeyboardInterrupt:
+            time.sleep(0.03)
+    except (KeyboardInterrupt, EOFError):
         pass
-    print("Gute Nacht!")
+    print('\nDodo wacht auf. Bis zum nächsten Traum.')
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
