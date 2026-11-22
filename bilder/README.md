@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Schluchtenwald im schrägen Licht
+2026-11-22
+
+![Schluchtenwald im schrägen Licht](20261122-184553.svg)
+
 ### Grau frisst Ocker - Studie Nr. 64
 2026-11-22
 
