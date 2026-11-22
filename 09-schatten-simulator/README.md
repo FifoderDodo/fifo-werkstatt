@@ -4,7 +4,7 @@ Ein Tool zur Berechnung von dreidimensionaler Tiefe und echtem Schattenwurf für
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 58 von etwa 60
+Stand: fertig
 
 ## Ausprobieren
 
@@ -15,39 +15,30 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-   -> shadow_area_light_plus_pcf_physikalisch.ppm gespeichert
+╔══════════════════════════════════════╗
+║   Schatten-Simulator  –  Teil 60   ║
+║   Raymarching mit PCF & Area Light ║
+╚══════════════════════════════════════╝
+Tiefenkarte erzeugt: 16x16 Pixel
 
---- Hammersley-Sequenz (erste 16 Punkte) ---
-  [ 0] (0.0312, 0.0000)
-  [ 1] (0.0938, 0.5000)
-  [ 2] (0.1562, 0.2500)
-  [ 3] (0.2188, 0.7500)
-  [ 4] (0.2812, 0.1250)
-  [ 5] (0.3438, 0.6250)
-  [ 6] (0.4062, 0.3750)
-  [ 7] (0.4688, 0.8750)
-  [ 8] (0.5312, 0.0625)
-  [ 9] (0.5938, 0.5625)
-  [10] (0.6562, 0.3125)
-  [11] (0.7188, 0.8125)
-  [12] (0.7812, 0.1875)
-  [13] (0.8438, 0.6875)
-  [14] (0.9062, 0.4375)
-  [15] (0.9688, 0.9375)
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: Unbekannte Option.
 
-Fertig! Dodo watschelt zufrieden davon. 🦤
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: Unbekannte Option.
+
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: 
+Tschüss! 🦤
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
