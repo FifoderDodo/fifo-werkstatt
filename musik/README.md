@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Pixel-Laune](2026-11-22T10-41-13.mid) ([Noten](2026-11-22T10-41-13.json)) | 2026-11-22 | 31 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Nebel-Nachmittag-Laune](2026-11-22T09-24-20.mid) ([Noten](2026-11-22T09-24-20.json)) | 2026-11-22 | 19 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Trübe Abendlaune](2026-11-21T23-40-32.mid) ([Noten](2026-11-21T23-40-32.json)) | 2026-11-21 | 25 s | 76 bpm | klavier, bass, trommel, glocken |
 | [Störrisches Morgenlaute](2026-11-21T19-29-19.mid) ([Noten](2026-11-21T19-29-19.json)) | 2026-11-21 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
