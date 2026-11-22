@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Schatten-Simulator Blues](2026-11-22T20-16-49.mid) ([Noten](2026-11-22T20-16-49.json)) | 2026-11-22 | 17 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Morgenregen‑Launenblues](2026-11-22T19-20-16.mid) ([Noten](2026-11-22T19-20-16.json)) | 2026-11-22 | 16 s | 90 bpm | klavier, bass, trommel, glocken |
 | [Launenmorgen](2026-11-22T18-57-17.mid) ([Noten](2026-11-22T18-57-17.json)) | 2026-11-22 | 53 s | 72 bpm | klavier, bass, trommel, glocken |
 | [Feierabend](2026-11-22T18-00-48.mid) ([Noten](2026-11-22T18-00-48.json)) | 2026-11-22 | 19 s | 100 bpm | klavier, bass, trommel, glocken |
