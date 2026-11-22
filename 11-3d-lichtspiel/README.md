@@ -4,7 +4,7 @@ Ein interaktiver Simulator für volumetrisches Licht und Schatten im herbstliche
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 23 von etwa 16
+Stand: in Arbeit, Teil 24 von etwa 16
 
 ## Ausprobieren
 
@@ -38,7 +38,7 @@ Lichtposition> Bitte drei Zahlen eingeben.
 Lichtposition> Bitte drei Zahlen eingeben.
 Lichtposition> Bitte drei Zahlen eingeben.
 Lichtposition> 
-Tschüss! Der Dodo schläft weiter.
+Tschüss!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
