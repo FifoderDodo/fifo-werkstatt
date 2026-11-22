@@ -182,116 +182,124 @@ def render(params: ShaderParams, bäume, licht_pos, width=80, height=24, frame=0
     max_dist = 15.0
     step_size = max_dist / max(1, params.march_steps)
     
+    # Vorberechnung: Schattenkarte für Ground-Plane (einmal pro Frame)
+    shadow_map = [[1.0 for _ in range(width)] for __ in range(height)]
+    light_radius = 10.0  # Einflussradius des Lichts für Schatten
     for y in range(height):
         for x in range(width):
-            # Pixel → Weltkoordinate auf Ground‑Plane (z=0)
-            wx = (x / (width - 1) - 0.5) * world_w
-            wy = (y / (height - 1) - 0.5) * world_h
-            wz = 0.0
-            # View‑Richtung (normiert)
-            vx, vy, vz = wx - cam_x, wy - cam_y, wz - cam_z
-            vlen = math.hypot(vx, vy, vz)
-            if vlen == 0:
+            wx = (x / width - 0.5) * world_w
+            wy = (y / height - 0.5) * world_h
+            shadow_map[y][x] = schattenfaktor_für_punkt(wx, wy, lx, ly, light_radius, bäume, params)
+    
+    for y in range(height):
+        for x in range(width):
+            # Pixel -> Weltkoordinaten auf Ground-Plane (z=0)
+            wx = (x / width - 0.5) * world_w
+            wy = (y / height - 0.5) * world_h
+            # Strahl von Kamera durch (wx, wy, 0)
+            dx = wx - cam_x
+            dy = wy - cam_y
+            dz = 0.0 - cam_z
+            ray_len = math.hypot(dx, dy, dz)
+            if ray_len == 0:
                 continue
-            vx, vy, vz = vx / vlen, vy / vlen, vz / vlen
+            rdx, rdy, rdz = dx / ray_len, dy / ray_len, dz / ray_len
             
-            acc = 0.0
-            # Ray‑March von Kamera bis Ground‑Plane (und etwas darüber für Mist)
+            # Schattenfaktor an der Ground-Intersection (konstant entlang Strahl)
+            shadow = shadow_map[y][x]
+            
+            accumulated = 0.0
+            transmittance = 1.0
             for step in range(params.march_steps):
-                t = step * step_size
-                px = cam_x + vx * t
-                py = cam_y + vy * t
-                pz = cam_z + vz * t
-                if pz < -0.5:  # unter Ground -> abbrechen
-                    break
-                # Vector zum Licht
-                ldx, ldy, ldz = lx - px, ly - py, lz - pz
-                ld = math.hypot(ldx, ldy, ldz)
-                if ld < 0.01:
-                    continue
-                ldx, ldy, ldz = ldx / ld, ldy / ld, ldz / ld
-                # Phase‑Funktion (View vs Light)
-                cos_theta = vx * ldx + vy * ldy + vz * ldz
-                phase = henyey_greenstein(cos_theta, params.phase_g)
-                # Abschwächung (Inverse Square + Absorption)
-                attenuation = (1.0 / (ld * ld + 0.01)) * math.exp(-params.absorption_coeff * ld)
-                # Schatten (2D‑Projection auf Ground, Bäume als Zylinder)
-                shadow = schattenfaktor_für_punkt(px, py, lx, ly, max_dist, bäume, params)
-                # Mist‑Dichte mit Height‑Falloff
-                mist = params.mist_density * math.exp(-max(0.0, pz) * params.mist_height_falloff)
-                # Jitter
-                jitter = 1.0
+                t = (step + 0.5) * step_size
                 if params.jitter_enabled:
-                    jitter += noise_3d(px * 0.5, py * 0.5, pz * 0.5, params.noise_seed + frame) * params.jitter_strength
-                # Accumulate
-                acc += phase * attenuation * shadow * mist * jitter * params.scattering_coeff * step_size
+                    t += (random.random() - 0.5) * step_size * params.jitter_strength
+                sx = cam_x + rdx * t
+                sy = cam_y + rdy * t
+                sz = cam_z + rdz * t
+                if sz <= 0:  # Ground erreicht
+                    break
+                # Mist-Dichte mit Höhenabfall
+                density = params.mist_density * math.exp(-sz * params.mist_height_falloff)
+                # Noise für organische Variation
+                if params.jitter_enabled:
+                    n = noise_3d(sx * params.specular_noise_scale,
+                                 sy * params.specular_noise_scale,
+                                 sz * params.specular_noise_scale,
+                                 params.noise_seed + frame)
+                    density *= 1.0 + 0.1 * n
+                # Lichtrichtung von Sample zu Lichtquelle
+                ldx = lx - sx
+                ldy = ly - sy
+                ldz = lz - sz
+                light_dist = math.hypot(ldx, ldy, ldz)
+                if light_dist > 0:
+                    ldx /= light_dist
+                    ldy /= light_dist
+                    ldz /= light_dist
+                # Phase-Funktion (Henyey-Greenstein)
+                cos_theta = rdx * ldx + rdy * ldy + rdz * ldz
+                phase = henyey_greenstein(cos_theta, params.phase_g)
+                # Scattering-Beitrag
+                scatter = density * phase * params.scattering_coeff * shadow
+                # Absorption entlang des Sichtstrahls
+                transmittance *= math.exp(-density * params.absorption_coeff * step_size)
+                accumulated += scatter * transmittance
             
-            # Ambient + Volumetric Gain
-            acc = (acc + params.ambient) * params.volumetric_gain
-            img[y][x] = acc
+            # Ambient und Gain
+            val = (accumulated * params.volumetric_gain + params.ambient) * shadow
+            img[y][x] = val
     
-    # Blur (separable box)
-    weights = gauß_gewichte(params.blur_radius)
-    img = box_blur_1d(img, weights, True)
-    img = box_blur_1d(img, weights, False)
+    # Box-Blur (horizontal + vertikal)
+    if params.blur_radius > 0:
+        gewichte = gauß_gewichte(params.blur_radius)
+        img = box_blur_1d(img, gewichte, horizontal=True)
+        img = box_blur_1d(img, gewichte, horizontal=False)
     
-    # Color‑Temperature & Gamma → ASCII
-    rf, gf, bf = kelvin_to_rgb_factor(params.color_temp)
+    # ASCII-Konvertierung
     ascii_lines = []
     for y in range(height):
-        line = ''
-        for x in range(width):
-            val = img[y][x]
-            # Einfache Farb‑Modulation (hier nur Helligkeit, aber Faktoren könnten für echte Farb‑ASCII genutzt werden)
-            val = min(1.0, max(0.0, val)) ** params.gamma
-            line += intensitaet_zu_ascii(val, params.gamma)
+        line = ''.join(intensitaet_zu_ascii(img[y][x], params.gamma) for x in range(width))
         ascii_lines.append(line)
     return ascii_lines
 
 
 def main():
     params = ShaderParams()
-    # Beispiel‑Bäume: (x, y, radius)
+    # Beispiel-Bäume: (x, y, radius)
     bäume = [
-        (-3.0, -2.0, 0.8),
-        (2.5, 1.0, 0.6),
-        (-1.5, 3.0, 0.7),
-        (4.0, -3.5, 0.9),
-        (0.0, 0.0, 0.5),
+        (-3.0, -2.0, 0.6),
+        (2.5, 1.5, 0.5),
+        (-1.0, 3.0, 0.7),
+        (4.0, -3.0, 0.4),
+        (-4.0, 0.0, 0.5),
     ]
-    licht = [0.0, 0.0, 5.0]  # Start‑Position
     frame = 0
-    print("3D-Lichtspiel – Drücke Strg+C oder EOF zum Beenden.")
-    print("Eingabe: x y z (Leerzeichen-getrennt) oder ENTER für nächsten Frame.")
-    
+    print("3D-Lichtspiel – interaktiver volumetrischer Park (Strg+C oder EOF zum Beenden)")
+    print("Gib Lichtposition als 'x y z' ein (z.B. '0 0 5'), Enter für Default.")
     while True:
-        # Render
-        lines = render(params, bäume, licht, width=80, height=24, frame=frame)
-        print('\n'.join(lines))
-        print(f"Frame {frame} | Licht: {licht[0]:.2f} {licht[1]:.2f} {licht[2]:.2f}")
-        
-        # Input non-blocking? Wir nutzen select für Timeout, aber input() blockiert.
-        # Einfache Variante: input() mit Try/Except.
         try:
-            s = input("Lichtposition (x y z) oder ENTER: ").strip()
+            inp = input("Lichtposition> ").strip()
         except EOFError:
-            print("\nTschüss!")
+            print("\nTschüss! Der Dodo schläft weiter.")
             break
-        if not s:
-            frame += 1
-            continue
-        parts = s.split()
-        if len(parts) != 3:
-            print("Bitte exakt drei Werte eingeben.")
-            continue
-        try:
-            licht[0] = float(parts[0])
-            licht[1] = float(parts[1])
-            licht[2] = float(parts[2])
-        except ValueError:
-            print("Ungültige Zahlen.")
-            continue
+        if not inp:
+            licht_pos = (0.0, 0.0, 5.0)
+        else:
+            parts = inp.split()
+            if len(parts) != 3:
+                print("Bitte drei Zahlen eingeben.")
+                continue
+            try:
+                licht_pos = tuple(float(p) for p in parts)
+            except ValueError:
+                print("Ungültige Zahlen.")
+                continue
+        lines = render(params, bäume, licht_pos, frame=frame)
+        for line in lines:
+            print(line)
         frame += 1
+        time.sleep(0.05)  # kleine Pause für Animation
 
 if __name__ == "__main__":
     main()
