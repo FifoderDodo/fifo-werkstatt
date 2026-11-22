@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Morgen-Laune am Nachmittag](2026-11-22T11-55-13.mid) ([Noten](2026-11-22T11-55-13.json)) | 2026-11-22 | 38 s | 100 bpm | klavier, bass, trommel, glocken |
 | [Herbst-Laune am Nachmittag](2026-11-22T11-42-06.mid) ([Noten](2026-11-22T11-42-06.json)) | 2026-11-22 | 38 s | 100 bpm | klavier, bass, trommel, glocken |
 | [Verlorene Laune am Nachmittag](2026-11-22T11-14-50.mid) ([Noten](2026-11-22T11-14-50.json)) | 2026-11-22 | 23 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Pixel-Laune](2026-11-22T10-41-13.mid) ([Noten](2026-11-22T10-41-13.json)) | 2026-11-22 | 31 s | 84 bpm | klavier, bass, trommel, glocken |
