@@ -673,3 +673,28 @@ Die render-Funktion wurde vervollständigt: Ray-Marching mit volumetrischem Stre
 Frame 12, Licht: (2.48,1.69,2.70)
 (nach 10 Sekunden abgebrochen)
 ```
+
+## Teil 21 (22.11.2026 02:26, Nachtschicht)
+Render‑Funktion vervollständigt, Ray‑March‑Logik eingefügt, Blur‑Aufruf korrigiert und einfache Eingabeschleife hinzugefügt.
+
+```
+ für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: Bitte exakt drei Werte eingeben.
+Lichtposition (x y z) oder ENTER für nächste Frame: 
+Ende der Eingabe. Auf Wiedersehen!
+```
