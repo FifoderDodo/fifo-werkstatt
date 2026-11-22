@@ -144,138 +144,144 @@ def bilateral_filter(tiefe_buffer, normal_buffer, breite, hoehe, sigma_s=1.0, si
 
 def render_szene(breite=80, hoehe=40):
     """Raymarch-Renderer mit verbesserter Schattierung: AO, Fresnel, weiche Schatten, Kantenglättung, indirekte Schatten."""
-    tiefe_buffer = [[20.0]*breite for _ in range(hoehe)]
-    normal_buffer = [[(0,1,0)]*breite for _ in range(hoehe)]
-    pos_buffer = [[(0,0,0)]*breite for _ in range(hoehe)]
+    # Kamera-Setup
+    cam_x, cam_y, cam_z = 0.0, 0.5, -4.0
+    fov = math.pi / 3.0
+    aspect = breite / hoehe
     
-    cam_x, cam_y, cam_z = 0.0, 0.5, -5.0
+    # Lichtrichtung (normalisiert)
+    licht_dir = (0.5, 1.0, 0.3)
+    l_len = math.sqrt(licht_dir[0]**2 + licht_dir[1]**2 + licht_dir[2]**2)
+    licht_dir = (licht_dir[0]/l_len, licht_dir[1]/l_len, licht_dir[2]/l_len)
     
+    # Buffer für Tiefe und Normalen
+    tiefe_buffer = [[0.0]*breite for _ in range(hoehe)]
+    normal_buffer = [[(0.0,0.0,0.0)]*breite for _ in range(hoehe)]
+    pos_buffer = [[(0.0,0.0,0.0)]*breite for _ in range(hoehe)]
+    hit_buffer = [[False]*breite for _ in range(hoehe)]
+    
+    # Raymarching-Schleife
     for j in range(hoehe):
         for i in range(breite):
-            fx = (i - breite/2) / (breite/2) * 1.2
-            fy = (j - hoehe/2) / (hoehe/2) * 0.8
-            fz = 1.0
-            rl = math.sqrt(fx*fx + fy*fy + fz*fz)
-            rdx, rdy, rdz = fx/rl, fy/rl, fz/rl
+            # NDC-Koordinaten
+            u = (i + 0.5) / breite * 2.0 - 1.0
+            v = (j + 0.5) / hoehe * 2.0 - 1.0
+            v *= aspect  # Korrektur für Seitenverhältnis
             
-            ox, oy, oz = cam_x, cam_y, cam_z
+            # Strahlrichtung
+            dir_x = u * math.tan(fov * 0.5)
+            dir_y = v * math.tan(fov * 0.5)
+            dir_z = 1.0
+            dir_len = math.sqrt(dir_x*dir_x + dir_y*dir_y + dir_z*dir_z)
+            dir_x /= dir_len
+            dir_y /= dir_len
+            dir_z /= dir_len
+            
+            # Raymarching
+            x, y, z = cam_x, cam_y, cam_z
             dist = 0.0
             for _ in range(64):
-                d = szene_distanz(ox, oy, oz)
-                if d < 0.01:
-                    tiefe_buffer[j][i] = dist
-                    normal_buffer[j][i] = normal_berechnen(ox, oy, oz)
-                    pos_buffer[j][i] = (ox, oy, oz)
+                d = szene_distanz(x, y, z)
+                if d < 0.001:
                     break
-                ox += rdx * d
-                oy += rdy * d
-                oz += rdz * d
-                dist += d
                 if dist > 20.0:
+                    dist = 20.0
                     break
+                x += dir_x * d
+                y += dir_y * d
+                z += dir_z * d
+                dist += d
+            
+            if dist < 20.0:
+                hit_buffer[j][i] = True
+                tiefe_buffer[j][i] = dist
+                pos_buffer[j][i] = (x, y, z)
+                normal_buffer[j][i] = normal_berechnen(x, y, z)
+            else:
+                tiefe_buffer[j][i] = 20.0
+                normal_buffer[j][i] = (0.0, 1.0, 0.0)
+                pos_buffer[j][i] = (0.0, 0.0, 0.0)
     
-    # Bilateraler Filter anwenden
+    # Bilateraler Filter anwenden (glättet Tiefe und Normalen)
     tiefe_buffer, normal_buffer = bilateral_filter(tiefe_buffer, normal_buffer, breite, hoehe)
     
-    # Lichtrichtung (von oben-links-hinten)
-    lx, ly, lz = 0.5, -0.8, 0.3
-    l_len = math.sqrt(lx*lx + ly*ly + lz*lz)
-    lx, ly, lz = lx/l_len, ly/l_len, lz/l_len
+    # Shading
+    ascii_ramp = " .'`^\"\,;:Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@$B@$"  # erweiterte Rampe für feinere Abstufungen
+    ramp_len = len(ascii_ramp)
     
-    # View-Richtung für Fresnel/Kanten
-    view_dir = (0.0, 0.0, 1.0)  # Kamera schaut in +Z
-    
-    ascii_rampe = " .'`^\\\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8@B@$"
-    
-    out_lines = []
+    output_lines = []
     for j in range(hoehe):
         line_chars = []
         for i in range(breite):
-            d = tiefe_buffer[j][i]
-            if d >= 19.0:
-                # Himmel: Farbverlauf basierend auf y
-                sky_val = (j / hoehe) * 0.5
-                idx = int(sky_val * (len(ascii_rampe) - 1))
-                line_chars.append(ascii_rampe[max(0, min(idx, len(ascii_rampe)-1))])
+            if not hit_buffer[j][i]:
+                line_chars.append(' ')
                 continue
             
-            nx, ny, nz = normal_buffer[j][i]
-            px, py, pz = pos_buffer[j][i]
+            x, y, z = pos_buffer[j][i]
+            normal = normal_buffer[j][i]
+            view_dir = (-x + cam_x, -y + cam_y, -z + cam_z)
+            v_len = math.sqrt(view_dir[0]**2 + view_dir[1]**2 + view_dir[2]**2)
+            if v_len > 0:
+                view_dir = (view_dir[0]/v_len, view_dir[1]/v_len, view_dir[2]/v_len)
+            else:
+                view_dir = (0.0, 0.0, 1.0)
             
-            # Basis-Lambert
-            ndotl = nx*lx + ny*ly + nz*lz
-            lambert = max(0.0, ndotl)
+            # Diffuse Beleuchtung
+            ndotl = normal[0]*licht_dir[0] + normal[1]*licht_dir[1] + normal[2]*licht_dir[2]
+            diff = max(0.0, ndotl)
             
-            # Weicher Schatten (direct)
-            shadow = weicher_schatten(px, py, pz, (lx, ly, lz))
-            
-            # Indirekter Schatten (Bounce) – Debug
-            indirect_shadow = indirekter_schatten(px, py, pz, (nx, ny, nz), (lx, ly, lz))
-            
-            # Ambient Occlusion
-            ao = ambiente_okklusion(px, py, pz, (nx, ny, nz))
-            
-            # Fresnel an Kanten
-            fresnel = fresnel_effekt((nx, ny, nz), view_dir)
-            
-            # Kantenschärfe (Silhouette)
-            edge = kanten_schaerfe((nx, ny, nz), view_dir)
-            
-            # Spekulär (Blinn-Phong)
-            hx, hy, hz = lx + view_dir[0], ly + view_dir[1], lz + view_dir[2]
-            h_len = math.sqrt(hx*hx + hy*hy + hz*hz)
+            # Specular (Blinn-Phong)
+            half_x = (licht_dir[0] + view_dir[0]) * 0.5
+            half_y = (licht_dir[1] + view_dir[1]) * 0.5
+            half_z = (licht_dir[2] + view_dir[2]) * 0.5
+            h_len = math.sqrt(half_x**2 + half_y**2 + half_z**2)
             if h_len > 0:
-                hx, hy, hz = hx/h_len, hy/h_len, hz/h_len
-                ndoth = max(0.0, nx*hx + ny*hy + nz*hz)
-                spec = ndoth ** 32.0
+                half_x /= h_len; half_y /= h_len; half_z /= h_len
+                ndoth = normal[0]*half_x + normal[1]*half_y + normal[2]*half_z
+                spec = max(0.0, ndoth) ** 32.0
             else:
                 spec = 0.0
             
-            # Tiefennebel
-            fog = max(0.0, 1.0 - d / 12.0)
+            # Weiche Schatten
+            shadow = weicher_schatten(x, y, z, licht_dir)
             
-            # Kombinierte Beleuchtung
-            # Direct light mit Schatten
-            direct = lambert * shadow * 0.8
-            # Indirect light (bounce) gedämpft durch indirect_shadow
-            indirect = (0.3 + 0.2 * ao) * indirect_shadow * 0.4
-            # Ambient basis
-            ambient = 0.15 * ao
-            # Specular nur wo Direct Licht trifft
-            specular = spec * shadow * 0.6
-            # Fresnel/Kanten Aufhellung
-            rim = (fresnel * 0.3 + edge * 0.2) * (1.0 - shadow * 0.5)
+            # Indirekter Schatten (Bounce-Light Occlusion)
+            indirect_shadow = indirekter_schatten(x, y, z, normal, licht_dir)
             
-            helligkeit = ambient + direct + indirect + specular + rim
-            helligkeit = max(0.0, min(1.0, helligkeit))
-            helligkeit = helligkeit * fog + 0.05 * (1.0 - fog)  # Nebel mischen
+            # Ambient Occlusion
+            ao = ambiente_okklusion(x, y, z, normal)
             
-            idx = int(helligkeit * (len(ascii_rampe) - 1))
-            line_chars.append(ascii_rampe[max(0, min(idx, len(ascii_rampe)-1))])
-        out_lines.append(''.join(line_chars))
-    
-    return '\n'.join(out_lines)
+            # Fresnel & Kantenschärfe
+            fresnel = fresnel_effekt(normal, view_dir)
+            kante = kanten_schaerfe(normal, view_dir)
+            
+            # Kombinierte Helligkeit mit Gamma-Korrektur für natürlichere Abstufung
+            brightness = (0.15 * ao * indirect_shadow + 0.6 * diff * shadow + 0.15 * spec * shadow + 0.05 * fresnel + 0.05 * kante)
+            brightness = max(0.0, min(1.0, brightness))
+            # Gamma 2.2
+            brightness = brightness ** (1.0/2.2)
+            
+            # Nebel (Depth Cueing)
+            fog = 1.0 - min(1.0, tiefe_buffer[j][i] / 15.0)
+            brightness *= fog
+            
+            # Mapping auf ASCII-Rampe
+            idx = int(brightness * (ramp_len - 1))
+            line_chars.append(ascii_ramp[idx])
+        output_lines.append(''.join(line_chars))
+    return '\n'.join(output_lines)
 
-def main():
-    print("3D-Tiefen-Shader – Teil 15: Debugging indirekte Schatten")
-    print("======================================================")
+if __name__ == '__main__':
     try:
-        breite = int(input("Breite (40-120, Enter=80): ") or "80")
-        hoehe = int(input("Höhe (20-60, Enter=40): ") or "40")
-    except (ValueError, EOFError):
+        # Optionale Eingabe für Breite/Höhe (Standard 80x40)
+        breite_in = input('Breite (Default 80): ').strip()
+        hoehe_in = input('Höhe (Default 40): ').strip()
+        breite = int(breite_in) if breite_in else 80
+        hoehe = int(hoehe_in) if hoehe_in else 40
+    except (EOFError, ValueError):
         breite, hoehe = 80, 40
     
-    breite = max(40, min(120, breite))
-    hoehe = max(20, min(60, hoehe))
-    
-    print(f"\nRendere {breite}x{hoehe} ...")
-    bild = render_szene(breite, hoehe)
-    print(bild)
-    print("\nFertig. Drücke Enter zum Beenden.")
-    try:
-        input()
-    except EOFError:
-        pass
-
-if __name__ == "__main__":
-    main()
+    print('Rendering...')
+    result = render_szene(breite, hoehe)
+    print(result)
+    print('\nFertig.')
