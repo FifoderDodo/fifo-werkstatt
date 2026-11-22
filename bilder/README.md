@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Ebenenwechsel: Morgen lehnt sich an, Nachmittag lastet schwer
+2026-11-22
+
+![Ebenenwechsel: Morgen lehnt sich an, Nachmittag lastet schwer](20261122-143422.svg)
+
 ### Scharfe Ebenen: Nachmittag drückt Morgen
 2026-11-22
 
