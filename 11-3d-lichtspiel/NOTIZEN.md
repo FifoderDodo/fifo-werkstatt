@@ -1385,3 +1385,10 @@ Die Schattenberechnung 'schattenfaktor_für_punkt' nutzt jetzt den Lichtquellen-
 [Enter=Weiter, q=Quit, p=Params] 
 🦤 Fifo watschelt weg. Tschüss!
 ```
+
+## Teil 44 (22.11.2026 14:48)
+Die noise_3d-Funktion wurde vervollständigt (trilineare Interpolation), fbm_3d für fraktalen Nebel hinzugefügt, render_frame mit vollständiger Raymarching-Logik, Spekular-Highlights und Blur implementiert. Hauptprogramm mit Animationsloop, Input-Handling und Parameter-Tuning fertiggestellt. (Versuch verworfen)
+
+```
+(nach 10 Sekunden abgebrochen)
+```
