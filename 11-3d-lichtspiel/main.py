@@ -185,97 +185,135 @@ def render(params: ShaderParams, bäume, licht_pos, width=80, height=24, frame=0
             ray_len = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
             ray_dir = (ray_dir[0]/ray_len, ray_dir[1]/ray_len, ray_dir[2]/ray_len)
             
-            intensity = 0.0
-            transmittance = 1.0
+            # Optional jitter for temporal AA
+            if params.jitter_enabled:
+                jx = noise_2d(x + frame * 0.1, y + frame * 0.1, params.noise_seed) * params.jitter_strength
+                jy = noise_2d(x + frame * 0.1 + 100, y + frame * 0.1 + 100, params.noise_seed) * params.jitter_strength
+                ray_dir = (ray_dir[0] + jx, ray_dir[1] + jy, ray_dir[2])
+                rl = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
+                ray_dir = (ray_dir[0]/rl, ray_dir[1]/rl, ray_dir[2]/rl)
             
+            accumulated = 0.0
+            transmittance = 1.0
             for step in range(params.march_steps):
                 t = step * step_size
                 sx = ray_origin[0] + ray_dir[0] * t
                 sy = ray_origin[1] + ray_dir[1] * t
                 sz = ray_origin[2] + ray_dir[2] * t
                 
-                if sz >= 0.0:
-                    ground_x = sx
-                    ground_y = sy
-                    dist_to_light = math.hypot(ground_x - lx, ground_y - ly)
-                    falloff = 1.0 / (1.0 + dist_to_light * dist_to_light * 0.1)
-                    shadow = schattenfaktor_für_punkt(ground_x, ground_y, lx, ly, 8.0, bäume, params)
-                    ground_val = (params.ambient + falloff * shadow) * transmittance
-                    intensity += ground_val
-                    break
-                
                 mist = params.mist_density * math.exp(-sz * params.mist_height_falloff)
-                noise_val = noise_3d(sx * 0.5, sy * 0.5, sz * 0.5, params.noise_seed + frame)
-                mist *= 1.0 + noise_val * 0.3
                 
-                ldx, ldy, ldz = lx - sx, ly - sy, lz - sz
+                ldx = lx - sx
+                ldy = ly - sy
+                ldz = lz - sz
                 light_dist = math.sqrt(ldx*ldx + ldy*ldy + ldz*ldz)
                 if light_dist < 0.01:
-                    continue
-                ldx, ldy, ldz = ldx/light_dist, ldy/light_dist, ldz/light_dist
+                    light_dir = (0, 0, 1)
+                else:
+                    light_dir = (ldx/light_dist, ldy/light_dist, ldz/light_dist)
                 
-                cos_theta = ray_dir[0]*ldx + ray_dir[1]*ldy + ray_dir[2]*ldz
+                cos_theta = ray_dir[0]*light_dir[0] + ray_dir[1]*light_dir[1] + ray_dir[2]*light_dir[2]
                 phase = henyey_greenstein(cos_theta, params.phase_g)
                 
-                in_shadow = 1.0
-                for bx, by, br in bäume:
-                    vx, vy = bx - sx, by - sy
-                    proj = vx * ldx + vy * ldy
-                    if proj <= 0 or proj >= light_dist:
-                        continue
-                    abstand = abs(vx * ldy - vy * ldx)
-                    if abstand < br * (1.0 - sz/tree_height):
-                        in_shadow = 0.0
-                        break
+                shadow = schattenfaktor_für_punkt(sx, sy, lx, ly, max_dist, bäume, params)
                 
-                attenuation = 1.0 / (1.0 + light_dist * light_dist * 0.05)
-                scatter = mist * params.scattering_coeff * phase * attenuation * in_shadow
-                intensity += transmittance * scatter * params.volumetric_gain
-                transmittance *= math.exp(-mist * (params.scattering_coeff + params.absorption_coeff) * step_size)
-                if transmittance < 0.01:
+                attenuation = math.exp(-(params.absorption_coeff + params.scattering_coeff) * light_dist * mist)
+                
+                contrib = params.volumetric_gain * mist * phase * attenuation * shadow
+                accumulated += contrib * transmittance
+                transmittance *= math.exp(-mist * step_size)
+                if transmittance < 0.001:
                     break
             
-            img[y][x] = intensity
+            accumulated += params.ambient
+            img[y][x] = accumulated
     
-    gewichte = gauß_gewichte(params.blur_radius)
-    img = box_blur_1d(img, gewichte, True)
-    img = box_blur_1d(img, gewichte, False)
+    weights = gauß_gewichte(params.blur_radius)
+    img = box_blur_1d(img, weights, horizontal=True)
+    img = box_blur_1d(img, weights, horizontal=False)
     
-    ascii_frame = []
-    for row in img:
-        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        ascii_frame.append(line)
-    return '\n'.join(ascii_frame)
+    ascii_img = []
+    for y in range(height):
+        line = ''.join(intensitaet_zu_ascii(img[y][x], params.gamma) for x in range(width))
+        ascii_img.append(line)
+    return ascii_img
 
 def main():
     params = ShaderParams()
-    random.seed(42)
-    bäume = [(random.uniform(-6,6), random.uniform(-4,4), random.uniform(0.3,0.7)) for _ in range(12)]
-    
+    bäume = [
+        (-3.0, -2.0, 0.5),
+        (2.0, 1.5, 0.4),
+        (-1.0, 3.0, 0.6),
+        (4.0, -3.0, 0.5),
+        (-4.0, 2.0, 0.3),
+    ]
+    licht_pos = [0.0, 0.0, 5.0]
     frame = 0
+    width, height = 80, 24
+    
+    print("3D-Lichtspiel – Drücke 'q' zum Beenden, '+'/'-' für Mist-Dichte, 'p' für Pause.")
+    print("Andere Tasten: 'a'/'z' für Umgebungslicht, 'b'/'n' für Blur-Radius.")
+    time.sleep(1)
+    
+    paused = False
     try:
         while True:
-            angle = frame * 0.03
-            lx = math.sin(angle) * 4.0
-            ly = math.cos(angle) * 3.0
-            lz = 3.0 + math.sin(frame * 0.02) * 0.5
+            if not paused:
+                # Animiere Lichtposition in einem Kreis
+                angle = frame * 0.03
+                licht_pos[0] = math.sin(angle) * 4.0
+                licht_pos[1] = math.cos(angle) * 4.0
+                licht_pos[2] = 5.0 + math.sin(angle * 0.5) * 1.0
+                
+                ascii_frame = render(params, bäume, licht_pos, width, height, frame)
+                # Lösche Bildschirm mit ANSI-Escape (funktioniert in den meisten Terminals)
+                sys.stdout.write('\x1b[2J\x1b[H')
+                for line in ascii_frame:
+                    sys.stdout.write(line + '\n')
+                sys.stdout.flush()
+                frame += 1
             
-            sys.stdout.write('\x1b[2J\x1b[H')
-            sys.stdout.write(render(params, bäume, (lx, ly, lz), frame=frame))
-            sys.stdout.write('\n[q] quit, [enter] weiter... ')
-            sys.stdout.flush()
-            
-            ready, _, _ = select.select([sys.stdin], [], [], 0.05)
-            if ready:
-                inp = sys.stdin.readline()
-                if not inp or _norm(inp) in ('q', 'quit', 'exit'):
+            # Non-blocking input
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.05)
+            if rlist:
+                try:
+                    line = sys.stdin.readline()
+                    if not line:
+                        break
+                    cmd = line.strip().lower()
+                    if cmd == 'q':
+                        break
+                    elif cmd == 'p':
+                        paused = not paused
+                        print("Pausiert" if paused else "Fortgesetzt")
+                    elif cmd == '+':
+                        params.mist_density = min(1.0, params.mist_density + 0.02)
+                        print(f"Mist-Dichte: {params.mist_density:.2f}")
+                    elif cmd == '-':
+                        params.mist_density = max(0.0, params.mist_density - 0.02)
+                        print(f"Mist-Dichte: {params.mist_density:.2f}")
+                    elif cmd == 'a':
+                        params.ambient = min(0.5, params.ambient + 0.01)
+                        print(f"Ambient: {params.ambient:.3f}")
+                    elif cmd == 'z':
+                        params.ambient = max(0.0, params.ambient - 0.01)
+                        print(f"Ambient: {params.ambient:.3f}")
+                    elif cmd == 'b':
+                        params.blur_radius = min(10, params.blur_radius + 1)
+                        print(f"Blur-Radius: {params.blur_radius}")
+                    elif cmd == 'n':
+                        params.blur_radius = max(0, params.blur_radius - 1)
+                        print(f"Blur-Radius: {params.blur_radius}")
+                    elif cmd == 'h':
+                        print("Hilfe: q=quit, p=pause, +/-=mist, a/z=ambient, b/n=blur")
+                except EOFError:
                     break
-            
-            frame += 1
             time.sleep(0.03)
-    except (KeyboardInterrupt, EOFError):
+    except KeyboardInterrupt:
         pass
-    print('\nDodo wacht auf. Bis zum nächsten Traum.')
+    finally:
+        sys.stdout.write('\x1b[2J\x1b[H')
+        print("Auf Wiedersehen!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
