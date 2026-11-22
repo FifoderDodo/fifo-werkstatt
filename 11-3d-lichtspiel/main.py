@@ -185,140 +185,105 @@ def render(params: ShaderParams, bäume, licht_pos, width=80, height=24, frame=0
         wy = (iy / (height - 1) - 0.5) * world_h
         for ix in range(width):
             wx = (ix / (width - 1) - 0.5) * world_w
-            # Schattenfaktor für diesen Bodenpunkt aus Lichtrichtung
-            shadow_map[iy][ix] = schattenfaktor_für_punkt(wx, wy, lx, ly, 100.0, bäume, params)
+            # Lichtrichtung zum Bodenpunkt
+            s = schattenfaktor_für_punkt(wx, wy, lx, ly, 100.0, bäume, params)
+            shadow_map[iy][ix] = s
     
-    # Farbtemperatur-Faktor (Luminanz) einmal pro Frame
-    rgb_factor = kelvin_to_rgb_factor(params.color_temp)
-    luminance = 0.2126 * rgb_factor[0] + 0.7152 * rgb_factor[1] + 0.0722 * rgb_factor[2]
-    
+    # Ray-Marching für jeden Pixel
     for iy in range(height):
         wy = (iy / (height - 1) - 0.5) * world_h
         for ix in range(width):
             wx = (ix / (width - 1) - 0.5) * world_w
-            # Ray direction
-            dx = wx - cam_x
-            dy = wy - cam_y
-            dz = 0.0 - cam_z
-            ray_len = math.sqrt(dx*dx + dy*dy + dz*dz)
+            # Ray direction from camera to ground point
+            dx, dy, dz = wx - cam_x, wy - cam_y, -cam_z
+            ray_len = math.hypot(dx, dy, dz)
+            if ray_len == 0:
+                continue
             rdx, rdy, rdz = dx / ray_len, dy / ray_len, dz / ray_len
             
-            # Jitter für dieses Pixel
-            jitter = 0.0
-            if params.jitter_enabled:
-                jitter = noise_2d(ix + frame * 0.1, iy + frame * 0.1, params.noise_seed) * params.jitter_strength
+            # Light direction at ground intersection (for phase function)
+            ldx, ldy, ldz = wx - lx, wy - ly, -lz
+            ldist = math.hypot(ldx, ldy, ldz)
+            if ldist > 0:
+                ldx, ldy, ldz = ldx / ldist, ldy / ldist, ldz / ldist
             
+            acc = 0.0
             transmittance = 1.0
-            radiance = 0.0
-            
+            t = 0.0
             for step in range(params.march_steps):
-                t = (step + 0.5 + jitter) * step_size
-                if t > max_dist:
+                if t >= ray_len:
                     break
-                sx = cam_x + rdx * t
-                sy = cam_y + rdy * t
-                sz = cam_z + rdz * t
-                if sz <= 0.0:
-                    # Boden erreicht
-                    break
+                # Jitter for dithering
+                if params.jitter_enabled:
+                    jitter = noise_3d(ix + t * 0.1, iy + t * 0.1, frame * 0.01, params.noise_seed) * params.jitter_strength
+                    t += jitter * step_size
                 
-                # Distanz zur Lichtquelle
-                ldx = lx - sx
-                ldy = ly - sy
-                ldz = lz - sz
-                light_dist = math.sqrt(ldx*ldx + ldy*ldy + ldz*ldz)
-                if light_dist < 0.01:
-                    continue
-                ldx /= light_dist
-                ldy /= light_dist
-                ldz /= light_dist
+                px = cam_x + rdx * t
+                py = cam_y + rdy * t
+                pz = cam_z + rdz * t
                 
-                # Phase function
+                # Mist density with height falloff
+                mist = params.mist_density * math.exp(-pz * params.mist_height_falloff)
+                
+                # Phase function (Henyey-Greenstein)
                 cos_theta = rdx * ldx + rdy * ldy + rdz * ldz
                 phase = henyey_greenstein(cos_theta, params.phase_g)
                 
-                # Schattenfaktor für diesen Sample (Projektion auf Boden)
-                if sz > 0.0:
-                    # Projektionspunkt auf Ground-Plane entlang Lichtstrahl
-                    ground_t = sz / ldz if ldz < 0 else 1e6
-                    gx = sx + ldx * ground_t
-                    gy = sy + ldy * ground_t
-                    # Schatten aus Schattenkarte (bilinear)
-                    u = (gx + world_w * 0.5) / world_w * (width - 1)
-                    v = (gy + world_h * 0.5) / world_h * (height - 1)
-                    iu, iv = int(u), int(v)
-                    fu, fv = u - iu, v - iv
-                    shadow = 1.0
-                    if 0 <= iu < width - 1 and 0 <= iv < height - 1:
-                        shadow = (
-                            shadow_map[iv][iu] * (1-fu) * (1-fv) +
-                            shadow_map[iv][iu+1] * fu * (1-fv) +
-                            shadow_map[iv+1][iu] * (1-fu) * fv +
-                            shadow_map[iv+1][iu+1] * fu * fv
-                        )
+                # Shadow at this point (approximate using ground shadow map)
+                # Project to ground plane
+                if pz > 0:
+                    ground_x = cam_x + rdx * (cam_z / -rdz) if rdz != 0 else wx
+                    ground_y = cam_y + rdy * (cam_z / -rdz) if rdz != 0 else wy
+                    gx = int((ground_x / world_w + 0.5) * (width - 1))
+                    gy = int((ground_y / world_h + 0.5) * (height - 1))
+                    if 0 <= gx < width and 0 <= gy < height:
+                        shadow = shadow_map[gy][gx]
                     else:
                         shadow = 1.0
                 else:
                     shadow = 1.0
                 
-                # Mist-Dichte mit Höhenfalloff
-                mist = params.mist_density * math.exp(-sz * params.mist_height_falloff)
-                # Noise für turbulente Mist-Verteilung
-                mist *= 1.0 + 0.3 * noise_3d(sx * params.specular_noise_scale, sy * params.specular_noise_scale, sz * params.specular_noise_scale, params.noise_seed + frame)
-                
-                # Extinktion
-                extinction = (params.scattering_coeff + params.absorption_coeff) * mist
-                transmittance *= math.exp(-extinction * step_size)
-                
-                # In-Scattering
-                falloff = 1.0 / max(0.01, light_dist ** params.falloff_exponent)
-                if light_dist < params.falloff_start:
-                    falloff *= (light_dist / params.falloff_start) ** 2
-                scatter = params.scattering_coeff * mist * phase * falloff * shadow * transmittance
-                radiance += scatter * step_size
-                
+                # Scattering contribution
+                scatter = params.scattering_coeff * mist * phase * shadow * params.volumetric_gain
+                acc += transmittance * scatter * step_size
+                transmittance *= math.exp(-params.absorption_coeff * mist * step_size)
                 if transmittance < 1e-4:
                     break
+                t += step_size
             
-            # Boden-Reflexion (Lambertian + Specular)
-            if sz <= 0.0:
-                # Schatten am Bodenpunkt
-                shadow_ground = shadow_map[iy][ix]
-                # Lambertian
-                ground_n = (0.0, 0.0, 1.0)
-                cos_light = max(0.0, ldx * ground_n[0] + ldy * ground_n[1] + ldz * ground_n[2])
-                lambert = cos_light * shadow_ground * falloff
-                # Specular (Blinn-Phong)
-                hx = (ldx - rdx) * 0.5
-                hy = (ldy - rdy) * 0.5
-                hz = (ldz - rdz) * 0.5
-                hlen = math.sqrt(hx*hx + hy*hy + hz*hz)
-                if hlen > 0:
-                    hx, hy, hz = hx/hlen, hy/hlen, hz/hlen
-                    spec_cos = max(0.0, ground_n[0]*hx + ground_n[1]*hy + ground_n[2]*hz)
-                    specular = params.specular_intensity * (spec_cos ** params.specular_power) * shadow_ground * falloff
-                else:
-                    specular = 0.0
-                # Noise auf Specular für raue Oberfläche
-                specular *= 1.0 + 0.5 * noise_2d(wx * params.specular_noise_scale, wy * params.specular_noise_scale, params.noise_seed + frame)
-                ground_contrib = (lambert + specular) * transmittance
-                radiance += ground_contrib
+            # Ground contribution (specular reflection of light)
+            ground_shadow = shadow_map[iy][ix]
+            # Simple Lambertian ground with specular highlight
+            nx, ny, nz = 0.0, 0.0, 1.0
+            view_dx, view_dy, view_dz = -rdx, -rdy, -rdz
+            # Diffuse
+            diffuse = max(0.0, nx * ldx + ny * ldy + nz * ldz) * ground_shadow
+            # Specular (Blinn-Phong)
+            hx, hy, hz = (ldx + view_dx) * 0.5, (ldy + view_dy) * 0.5, (ldz + view_dz) * 0.5
+            hlen = math.hypot(hx, hy, hz)
+            specular = 0.0
+            if hlen > 0:
+                hx, hy, hz = hx / hlen, hy / hlen, hz / hlen
+                spec_angle = max(0.0, nx * hx + ny * hy + nz * hz)
+                specular = params.specular_intensity * (spec_angle ** params.specular_power) * ground_shadow
+            ground_contrib = (diffuse + specular) * 0.5
             
-            # Ambient
-            radiance += params.ambient
+            total = acc + ground_contrib + params.ambient
             
-            # Volumetric Gain & Luminance
-            radiance *= params.volumetric_gain * luminance
+            # Color temperature factor (luminance)
+            rfac, gfac, bfac = kelvin_to_rgb_factor(params.color_temp)
+            luminance = 0.2126 * rfac + 0.7152 * gfac + 0.0722 * bfac
+            total *= luminance
             
-            img[iy][ix] = radiance
+            img[iy][ix] = total
     
-    # Box Blur
+    # Box blur
     if params.blur_radius > 0:
-        weights = gauß_gewichte(params.blur_radius)
-        img = box_blur_1d(img, weights, True)
-        img = box_blur_1d(img, weights, False)
+        gewichte = gauß_gewichte(params.blur_radius)
+        img = box_blur_1d(img, gewichte, horizontal=True)
+        img = box_blur_1d(img, gewichte, horizontal=False)
     
-    # ASCII Mapping
+    # Convert to ASCII
     ascii_lines = []
     for row in img:
         line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
@@ -326,61 +291,58 @@ def render(params: ShaderParams, bäume, licht_pos, width=80, height=24, frame=0
     return ascii_lines
 
 def main():
-    print("3D-Lichtspiel – interaktiver volumetrischer Park (Strg+C oder EOF zum Beenden)")
-    print("Gib Lichtposition als 'x y z' ein (z.B. '0 0 5'), Enter für Default.")
-    
-    # Beispiel-Bäume: (x, y, radius)
-    bäume = [
-        (-3.0, -2.0, 0.8),
-        (2.5, 1.5, 0.6),
-        (-1.0, 3.0, 0.7),
-        (4.0, -3.0, 0.9),
-        (0.0, -4.0, 0.5),
-    ]
-    
     params = ShaderParams()
-    
-    # Lichtposition eingeben
+    random.seed(42)
+    # Beispiel-Bäume: (x, y, radius)
+    bäume = [(random.uniform(-5, 5), random.uniform(-5, 5), random.uniform(0.3, 0.8)) for _ in range(15)]
     licht_pos = (0.0, 0.0, 5.0)
-    for attempt in range(20):
-        try:
-            inp = input("Lichtposition> ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\nTschüss!")
-            return
-        if not inp:
-            break
-        parts = inp.split()
-        if len(parts) != 3:
-            print("Bitte drei Zahlen eingeben.")
-            continue
-        try:
-            licht_pos = tuple(float(p) for p in parts)
-            break
-        except ValueError:
-            print("Bitte drei Zahlen eingeben.")
-    
     frame = 0
-    try:
-        while True:
-            lines = render(params, bäume, licht_pos, frame=frame)
+    width, height = 80, 24
+    
+    print("3D-Lichtspiel – Drücke 'q' zum Beenden, Enter für nächsten Frame.")
+    while True:
+        try:
+            lines = render(params, bäume, licht_pos, width, height, frame)
             # Clear screen (ANSI)
-            sys.stdout.write("\x1b[2J\x1b[H")
-            sys.stdout.write("\n".join(lines))
-            sys.stdout.write("\nFrame: {} | Licht: {:.1f} {:.1f} {:.1f} | Drücke Enter für nächsten Frame, 'q' zum Beenden\n".format(frame, *licht_pos))
-            sys.stdout.flush()
+            print('\033[H\033[J', end='')
+            for line in lines:
+                print(line)
+            print(f"Frame {frame}  Licht: ({licht_pos[0]:.1f}, {licht_pos[1]:.1f}, {licht_pos[2]:.1f})")
+            print("Befehle: q=quit, p=params, +=blur, -=blur, n=neue Bäume, Enter=weiter")
             
-            # Warte auf Enter oder 'q'
-            try:
-                inp = input()
-            except (EOFError, KeyboardInterrupt):
-                break
-            if inp.strip().lower() == 'q':
-                break
+            # Non-blocking input check for 0.1s
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+            if rlist:
+                cmd = sys.stdin.readline().strip().lower()
+                if cmd == 'q':
+                    break
+                elif cmd == 'p':
+                    print(f"penumbra={params.penumbra_breite}, umbra={params.umbra_dunkelheit}, blur={params.blur_radius}, mist={params.mist_density}")
+                    print(f"scattering={params.scattering_coeff}, absorption={params.absorption_coeff}, gain={params.volumetric_gain}")
+                    print(f"gamma={params.gamma}, color_temp={params.color_temp}, jitter={params.jitter_strength}")
+                    continue
+                elif cmd == '+':
+                    params.blur_radius = min(10, params.blur_radius + 1)
+                elif cmd == '-':
+                    params.blur_radius = max(0, params.blur_radius - 1)
+                elif cmd == 'n':
+                    bäume = [(random.uniform(-5, 5), random.uniform(-5, 5), random.uniform(0.3, 0.8)) for _ in range(15)]
+                # else ignore
+            
+            # Animate light
             frame += 1
-    except (EOFError, KeyboardInterrupt):
-        pass
-    print("\nTschüss!")
+            angle = frame * 0.03
+            licht_pos = (math.sin(angle) * 4.0, math.cos(angle) * 4.0, 5.0 + math.sin(angle * 0.5) * 1.0)
+            
+        except EOFError:
+            print("\nEOF – Tschüss!")
+            break
+        except KeyboardInterrupt:
+            print("\nAbbruch – Tschüss!")
+            break
+        except Exception as e:
+            print(f"Fehler: {e}")
+            break
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
