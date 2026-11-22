@@ -755,3 +755,33 @@ Lichtposition> Bitte drei Zahlen eingeben.
 Lichtposition> 
 Tschüss! Der Dodo schläft weiter.
 ```
+
+## Teil 24 (22.11.2026 03:12, Nachtschicht)
+Render-Funktion vervollständigt: Ray-Marching mit volumetrischem Scattering, Bodenreflexion, Schatten, Mist, Jitter und Box-Blur. Hauptschleife robust gegen EOF/KeyboardInterrupt und validiert Eingabe. ASCII-Mapping mit Gamma und Farbtemperatur.
+
+```
+3D-Lichtspiel – interaktiver volumetrischer Park (Strg+C oder EOF zum Beenden)
+Gib Lichtposition als 'x y z' ein (z.B. '0 0 5'), Enter für Default.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> 
+Tschüss!
+```
