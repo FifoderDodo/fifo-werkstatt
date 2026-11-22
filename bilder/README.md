@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nebelbruch: Morgen wird Nachmittag
+2026-11-22
+
+![Nebelbruch: Morgen wird Nachmittag](20261122-083634.svg)
+
 ### Samstagabend verstreicht
 2026-11-21
 
