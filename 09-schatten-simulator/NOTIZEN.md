@@ -2535,3 +2535,31 @@ Menü:
   3 – Beenden
 Wahl (1/2/3): 🦤 Fifo watschelt weg. Bis bald!
 ```
+
+## Teil 64 (22.11.2026 20:10)
+Die raymarch_schatten-Funktion wurde vervollständigt (Schleifen über Light-Offsets und PCF-Kernel, Orthonormalbasis für Area-Light-Richtungsvariation, Slope-scaled Bias). Rendering-Pipeline um Diffuse-Lighting (Lambert) und ASCII-Rampe erweitert. Drei Demo-Szenen (Hügel, Wellen, Schlucht) hinzugefügt. Interaktiver Modus und Demo-Sequenz funktionsfähig.
+
+```
+╔══════════════════════════════════════╗
+║ Schatten-Simulator – Teil 64        ║
+║ Final Polish & Testlauf             ║
+╚══════════════════════════════════════╝
+
+Menü:
+  1 – Demo-Sequenz laufen lassen
+  2 – Interaktiv parameterspielen
+  3 – Beenden
+Wahl (1/2/3): Bitte 1, 2 oder 3 eingeben.
+
+Menü:
+  1 – Demo-Sequenz laufen lassen
+  2 – Interaktiv parameterspielen
+  3 – Beenden
+Wahl (1/2/3): Bitte 1, 2 oder 3 eingeben.
+
+Menü:
+  1 – Demo-Sequenz laufen lassen
+  2 – Interaktiv parameterspielen
+  3 – Beenden
+Wahl (1/2/3): Auf Wiedersehen! 🦤
+```
