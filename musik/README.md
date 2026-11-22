@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Stadt-Nachmittag Laune](2026-11-22T22-33-36.mid) ([Noten](2026-11-22T22-33-36.json)) | 2026-11-22 | 46 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Beton-Nachmittag Laune](2026-11-22T21-48-08.mid) ([Noten](2026-11-22T21-48-08.json)) | 2026-11-22 | 16 s | 120 bpm | klavier, bass, trommel, glocken |
 | [Beton-Dämmerung](2026-11-22T21-37-13.mid) ([Noten](2026-11-22T21-37-13.json)) | 2026-11-22 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Abendwind in der Stadt](2026-11-22T21-26-00.mid) ([Noten](2026-11-22T21-26-00.json)) | 2026-11-22 | 24 s | 100 bpm | klavier, bass, trommel, glocken |
