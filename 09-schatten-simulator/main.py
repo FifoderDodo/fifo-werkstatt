@@ -52,8 +52,16 @@ def _radical_inverse_base2(index: int) -> float:
 def hammersley_2d(index: int, count: int) -> Tuple[float, float]:
     """Hammersley-Punkt in 2D für gegebene Index und Gesamtzahl.
     
-    x = (index + 0.5) / count  # Gleichmäßige Stratifizierung
-    y = radical_inverse_base2(index)  # Niedrig-Diskrepanz in y
+    Die Hammersley-Sequenz ist eine niedrig-diskrepante Folge, die sich hervorragend
+    für Quasi-Monte-Carlo-Integration eignet. Sie kombiniert:
+    - x: Gleichmäßige Stratifizierung (index + 0.5) / count
+    - y: Van der Corput-Sequenz (radikale Inverse Basis 2)
+    
+    Eigenschaften:
+    - Deterministisch, keine Zufallszahlen nötig
+    - Sehr gute Verteilung, vermeidet Clustering
+    - Ideal für Area-Light-Sampling auf Scheiben
+    - Konvergenz O((log N)^d / N) statt O(1/sqrt(N)) bei zufälligem Sampling
     
     Args:
         index: Index des Samples (0 <= index < count)
@@ -76,6 +84,21 @@ def raymarch_schatten(tk: 'Tiefenkarte', start: Vec3, l_dir: Vec3, max_dist: flo
     
     Kombiniert Percentage-Closer Filtering (PCF) für weiche Kanten
     mit Area-Light-Sampling via Hammersley-Sequenz für physikalische Penumbra.
+    
+    Args:
+        tk: Tiefenkarte (Höhenfeld)
+        start: Startpunkt des Rays (x, y, z)
+        l_dir: Normierte Lichtrichtung
+        max_dist: Maximale Marschdistanz
+        z_skalierung: Skalierung der Höhenwerte
+        schritte: Anzahl Raymarch-Schritte
+        pcf_radius: PCF-Kernel-Radius in Pixeln
+        pcf_samples: Anzahl PCF-Samples (1=kein PCF, 9=3x3 Kernel)
+        light_radius: Radius des Area Lights (0=Punktlicht)
+        light_samples: Anzahl Area-Light-Samples
+    
+    Returns:
+        Schattierungsfaktor 0.0 (voll Schatten) bis 1.0 (voll beleuchtet)
     """
     # PCF Kernel: Zentrum + 8 Nachbarn im 3x3-Gitter (deterministisch)
     kernel = [
@@ -94,7 +117,7 @@ def raymarch_schatten(tk: 'Tiefenkarte', start: Vec3, l_dir: Vec3, max_dist: flo
         for i in range(light_samples):
             u, v = hammersley_2d(i, light_samples)
             # Konzentrische Abbildung Quadrat -> Scheibe (Shirley-Chiu)
-            # Vermeidet Clustering im Zentrum
+            # Vermeidet Clustering im Zentrum im Gegensatz zu polar mapping
             phi = 2.0 * math.pi * u
             r = light_radius * math.sqrt(v)
             light_offsets.append((r * math.cos(phi), r * math.sin(phi)))
@@ -182,124 +205,122 @@ def render_shadow_map(tk: Tiefenkarte, width: int, height: int, light_dir: Vec3,
     for y in range(height):
         row = []
         for x in range(width):
-            h = tk.get_bilinear(float(y), float(x)) * z_scale
-            start = (float(x), float(y), h + 0.01)  # Leicht über Oberfläche
-            val = raymarch_schatten(tk, start, light_dir, max_dist, z_scale,
-                                    steps, pcf_radius, pcf_samples,
-                                    light_radius, light_samples)
-            row.append(val)
+            # Startpunkt auf der Oberfläche
+            start = (float(x), float(y), tk.get_bilinear(y, x) * z_scale)
+            shadow = raymarch_schatten(tk, start, light_dir, max_dist, z_scale,
+                                       steps, pcf_radius, pcf_samples,
+                                       light_radius, light_samples)
+            row.append(shadow)
         shadow_map.append(row)
     return shadow_map
 
 
-def write_ppm(shadow_map: List[List[float]], filename: str = "shadow.ppm"):
-    """Schreibt Shadow Map als PPM (P6 binary) in Datei."""
+def ascii_shadow(shadow_map: List[List[float]], invert: bool = False) -> str:
+    """Wandelt Shadow Map in ASCII-Art um."""
+    ramp = "@%#*+=-:. " if not invert else " .:-=+*#%@"
+    lines = []
+    for row in shadow_map:
+        line = ""
+        for v in row:
+            idx = int(v * (len(ramp) - 1))
+            if idx < 0:
+                idx = 0
+            elif idx >= len(ramp):
+                idx = len(ramp) - 1
+            line += ramp[idx]
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def write_ppm(shadow_map: List[List[float]], filename: str) -> None:
+    """Schreibt Shadow Map als PPM (P6 binary) Datei."""
     h = len(shadow_map)
     w = len(shadow_map[0]) if h > 0 else 0
-    header = f"P6\n{w} {h}\n255\n".encode('ascii')
-    pixels = bytearray()
-    for row in shadow_map:
-        for val in row:
-            v = int(max(0.0, min(1.0, val)) * 255)
-            pixels.extend([v, v, v])  # Graustufen
-    try:
-        with open(filename, 'wb') as f:
-            f.write(header + pixels)
-        print(f"PPM geschrieben: {filename} ({w}x{h})", file=sys.stderr)
-    except IOError as e:
-        print(f"Fehler beim Schreiben: {e}", file=sys.stderr)
-        # Fallback: stdout binary
-        sys.stdout.buffer.write(header + pixels)
+    with open(filename, 'wb') as f:
+        f.write(f'P6\n{w} {h}\n255\n'.encode())
+        for row in shadow_map:
+            for v in row:
+                val = int(v * 255)
+                if val < 0:
+                    val = 0
+                elif val > 255:
+                    val = 255
+                f.write(bytes([val, val, val]))
 
 
-def ascii_shadow(shadow_map: List[List[float]], chars: str = " .:-=+*#%@") -> str:
-    """ASCII-Art Visualisierung der Shadow Map."""
-    lines = []
-    n = len(chars) - 1
-    for row in shadow_map:
-        line = ''.join(chars[int(max(0.0, min(1.0, v)) * n)] for v in row)
-        lines.append(line)
-    return '\n'.join(lines)
-
-
-def demo_heightmap(width: int, height: int) -> List[List[float]]:
-    """Erzeugt eine Demo-Höhenkarte: zwei Hügel + Rauschen."""
+def generate_demo_heightmap(w: int, h: int) -> List[List[float]]:
+    """Erzeugt eine Demo-Höhenkarte mit Hügeln, Tälern und einer Kante."""
     data = []
-    for y in range(height):
+    for y in range(h):
         row = []
-        for x in range(width):
-            fx = x / (width - 1)
-            fy = y / (height - 1)
-            # Zwei Gauß-Hügel
-            h1 = math.exp(-((fx - 0.3)**2 + (fy - 0.4)**2) * 50) * 0.8
-            h2 = math.exp(-((fx - 0.7)**2 + (fy - 0.6)**2) * 30) * 0.5
-            # Ein bisschen wellenförmiges Rauschen
-            noise = math.sin(fx * 20) * math.cos(fy * 15) * 0.03
-            row.append(h1 + h2 + noise)
+        for x in range(w):
+            fx = x / (w - 1) * 4.0 - 2.0
+            fy = y / (h - 1) * 4.0 - 2.0
+            # Zwei Gaussche Hügel
+            hill1 = 1.5 * math.exp(-(fx + 0.5)**2 - (fy - 0.3)**2)
+            hill2 = 1.0 * math.exp(-(fx - 0.8)**2 - (fy + 0.5)**2)
+            # Ein Tal
+            valley = -0.7 * math.exp(-(fx)**2 - (fy)**2 / 0.5)
+            # Scharfe Kante
+            edge = 0.8 if fx > 0.0 else 0.0
+            # Rauschen
+            noise = 0.1 * math.sin(fx * 10.0) * math.cos(fy * 8.0)
+            val = hill1 + hill2 + valley + edge + noise
+            row.append(max(0.0, val))
         data.append(row)
     return data
 
 
-def main() -> int:
-    print("Schatten-Simulator Initialisiert - Dodo-Modus aktiv.", file=sys.stderr)
+def main() -> None:
+    print("=== Schatten-Simulator: Area-Light & Hammersley Demo ===\n")
     
-    # Demo-Szene
-    WIDTH, HEIGHT = 60, 40
-    heightmap_data = demo_heightmap(WIDTH, HEIGHT)
+    # Parameter
+    WIDTH, HEIGHT = 80, 40
+    LIGHT_DIR = vec3_norm((0.5, -0.3, -1.0))  # Von oben-links-hinten
+    MAX_DIST = 10.0
+    Z_SCALE = 2.0
+    STEPS = 64
+    
+    # Demo-Höhenkarte erzeugen
+    print("Generiere Höhenkarte...")
+    heightmap_data = generate_demo_heightmap(WIDTH, HEIGHT)
     tk = Tiefenkarte(heightmap_data)
     
-    # Licht von oben-links
-    light_dir = vec3_norm((-0.6, -0.4, -1.0))
-    max_dist = 30.0
-    z_scale = 5.0
+    # Drei Schatten-Modi
+    modes = [
+        ("Hard Shadows (Punktlicht)", 0.0, 1, 0.0, 1),
+        ("PCF Soft Shadows", 0.0, 1, 0.6, 9),
+        ("Area Light + PCF (physikalisch)", 0.15, 16, 0.6, 9),
+    ]
     
-    print(f"\nRendere Shadow Map ({WIDTH}x{HEIGHT}) mit PCF + Area Light...")
+    for name, l_rad, l_samp, pcf_r, pcf_s in modes:
+        print(f"\n--- {name} ---")
+        print(f"   light_radius={l_rad}, light_samples={l_samp}, pcf_radius={pcf_r}, pcf_samples={pcf_s}")
+        
+        shadow_map = render_shadow_map(tk, WIDTH, HEIGHT, LIGHT_DIR,
+                                       MAX_DIST, Z_SCALE, STEPS,
+                                       pcf_r, pcf_s, l_rad, l_samp)
+        
+        # ASCII Output
+        print(ascii_shadow(shadow_map))
+        
+        # PPM speichern
+        fname = f"shadow_{name.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('+', 'plus')}.ppm"
+        write_ppm(shadow_map, fname)
+        print(f"   -> {fname} gespeichert")
     
-    # 1. Hart (Referenz)
-    shadow_hard = render_shadow_map(tk, WIDTH, HEIGHT, light_dir, max_dist, z_scale,
-                                     steps=32, pcf_samples=1, light_samples=1)
+    # Hammersley-Visualisierung
+    print("\n--- Hammersley-Sequenz (erste 16 Punkte) ---")
+    for i in range(16):
+        x, y = hammersley_2d(i, 16)
+        print(f"  [{i:2d}] ({x:.4f}, {y:.4f})")
     
-    # 2. Weich mit PCF
-    shadow_pcf = render_shadow_map(tk, WIDTH, HEIGHT, light_dir, max_dist, z_scale,
-                                    steps=32, pcf_radius=0.6, pcf_samples=9,
-                                    light_samples=1)
-    
-    # 3. Area Light mit Hammersley (16 Samples)
-    shadow_area = render_shadow_map(tk, WIDTH, HEIGHT, light_dir, max_dist, z_scale,
-                                     steps=32, pcf_radius=0.6, pcf_samples=9,
-                                     light_radius=0.15, light_samples=16)
-    
-    # ASCII Output
-    print("\n--- Hart (1 Tap) ---")
-    print(ascii_shadow(shadow_hard))
-    
-    print("\n--- Weich (9-tap PCF) ---")
-    print(ascii_shadow(shadow_pcf))
-    
-    print("\n--- Area Light (Hammersley 16x) ---")
-    print(ascii_shadow(shadow_area))
-    
-    # PPM speichern
-    write_ppm(shadow_area, "shadow_demo.ppm")
-    
-    # Statistik
-    def avg_shadow(sm):
-        return sum(sum(row) for row in sm) / (len(sm) * len(sm[0]))
-    
-    print(f"\nDurchschnittlicher Schattenwert:")
-    print(f"  Hart:      {avg_shadow(shadow_hard):.4f}")
-    print(f"  PCF:       {avg_shadow(shadow_pcf):.4f}")
-    print(f"  Area:      {avg_shadow(shadow_area):.4f}")
-    
-    return 0
-
+    print("\nFertig! Dodo watschelt zufrieden davon. 🦤")
 
 if __name__ == "__main__":
     try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        print("\nAbbruch durch Nutzer.", file=sys.stderr)
-        sys.exit(130)
+        main()
     except EOFError:
-        print("\nKeine Eingabe - Dodo schläft weiter.", file=sys.stderr)
-        sys.exit(0)
+        print("\nKeine Eingabe, Dodo schläft weiter. 🦤")
+    except KeyboardInterrupt:
+        print("\nAbgebrochen. Dodo watschelt weg. 🦤")
