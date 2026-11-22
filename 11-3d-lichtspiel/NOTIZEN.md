@@ -838,3 +838,30 @@ Render-Funktion komplettiert: Ray-Marching mit volumetrischem Scattering, Boden-
 Frame 16  Licht: (1.8, 3.5, 5.2)
 Befehle: q=quit, p=params, +=blur, -=blur, n=neue Bäume, Enter=weiter
 ```
+
+## Teil 27 (22.11.2026 03:54, Nachtschicht)
+Renderfunktion fertiggestellt, Schattenkarte, volumetrisches Scattering, Mist und Box‑Blur integriert; Hauptschleife mit Lichtanimation und nicht‑blockierendem Input hinzugefügt. (Versuch verworfen)
+
+```
+                                                 
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+Frame: 251  Licht: 5.00,-0.08,8.00
+[2J[H
+(nach 10 Sekunden abgebrochen)
+```
