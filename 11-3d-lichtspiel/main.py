@@ -1,7 +1,7 @@
 import math, sys, random, unicodedata, time, select
 
 class ShaderParams:
-    """Container für alle einstellbaren Shader-Parameter mit Defaults."""
+    """Container für alle einstellbaren Shader‑Parameter mit Defaults."""
     def __init__(self):
         self.penumbra_breite = 0.15
         self.umbra_dunkelheit = 0.05
@@ -178,117 +178,94 @@ def render(params: ShaderParams, bäume, licht_pos, width=40, height=12, frame=0
     world_w, world_h = 10.0, 10.0 * height / width
     max_dist = 15.0
     step_size = max_dist / max(1, params.march_steps)
-    
-    # Schattenkarte für Ground-Plane (einmal pro Frame)
+
+    # 1. Schattenkarte (nur Ground‑Plane) – für jedes Pixel prüfen, ob Licht durch Bäume blockiert
     shadow_map = [[1.0 for _ in range(width)] for _ in range(height)]
-    light_radius = 8.0
     for iy in range(height):
-        wy = (iy / (height - 1)) * world_h - world_h / 2
         for ix in range(width):
-            wx = (ix / (width - 1)) * world_w - world_w / 2
-            shadow_map[iy][ix] = schattenfaktor_für_punkt(wx, wy, lx, ly, light_radius, bäume, params)
-    
-    # Ray marching für jeden Pixel
+            # Weltkoordinaten des Pixels auf der Ground‑Plane
+            wx = (ix / (width - 1) - 0.5) * world_w
+            wy = (iy / (height - 1) - 0.5) * world_h
+            shadow_map[iy][ix] = schattenfaktor_für_punkt(wx, wy, lx, ly, radius=5.0, bäume=bäume, params=params)
+
+    # optional Blur, um weiche Schatten zu simulieren (kleiner Box‑Blur)
+    if params.blur_radius > 0:
+        gew = gauß_gewichte(params.blur_radius)
+        shadow_map = box_blur_1d(shadow_map, gew, horizontal=True)
+        shadow_map = box_blur_1d(shadow_map, gew, horizontal=False)
+
+    # 2. Ray‑march für jedes Pixel
     for iy in range(height):
-        wy = (iy / (height - 1)) * world_h - world_h / 2
         for ix in range(width):
-            wx = (ix / (width - 1)) * world_w - world_w / 2
-            # Ray direction from camera to ground point
-            dx, dy, dz = wx - cam_x, wy - cam_y, -cam_z
-            dist = math.sqrt(dx*dx + dy*dy + dz*dz)
-            if dist < 1e-6:
-                continue
-            dx, dy, dz = dx/dist, dy/dist, dz/dist
-            
-            transmittance = 1.0
-            radiance = 0.0
-            # March steps
-            for step in range(params.march_steps):
-                t = (step + 0.5) * step_size
-                if t > dist:
+            # Richtung vom Kamera‑Punkt zur Pixel‑Position auf Ground‑Plane
+            wx = (ix / (width - 1) - 0.5) * world_w
+            wy = (iy / (height - 1) - 0.5) * world_h
+            dir_x = wx - cam_x
+            dir_y = wy - cam_y
+            dir_z = -cam_z  # nach unten zur Plane z=0
+            length = math.sqrt(dir_x * dir_x + dir_y * dir_y + dir_z * dir_z)
+            dir_x, dir_y, dir_z = dir_x / length, dir_y / length, dir_z / length
+
+            dist = 0.0
+            intensity = params.ambient
+            while dist < max_dist:
+                # aktuelle Position im Raum
+                px = cam_x + dir_x * dist
+                py = cam_y + dir_y * dist
+                pz = cam_z + dir_z * dist
+                # einfache Dichtefunktion: nur Ground‑Plane (z=0) hat Material
+                if pz <= 0.0:
+                    # Abstand zum Licht für falloff
+                    lx_vec = lx - px
+                    ly_vec = ly - py
+                    lz_vec = lz - pz
+                    l_dist = math.sqrt(lx_vec * lx_vec + ly_vec * ly_vec + lz_vec * lz_vec)
+                    falloff = 1.0 / (params.falloff_start + (l_dist ** params.falloff_exponent))
+                    # Schattenfaktor aus vorgerenderter Karte
+                    sh = shadow_map[iy][ix]
+                    # simple volumetric term
+                    vol = params.volumetric_gain * math.exp(-params.absorption_coeff * l_dist)
+                    intensity += falloff * sh * vol
                     break
-                px = cam_x + dx * t
-                py = cam_y + dy * t
-                pz = cam_z + dz * t
-                # Mist density with height falloff
-                mist = params.mist_density * math.exp(-pz * params.mist_height_falloff)
-                # Light direction from sample to light
-                ldx, ldy, ldz = lx - px, ly - py, lz - pz
-                ldist = math.sqrt(ldx*ldx + ldy*ldy + ldz*ldz)
-                if ldist > 1e-6:
-                    ldx, ldy, ldz = ldx/ldist, ldy/ldist, ldz/ldist
-                    # Phase function
-                    cos_theta = dx*ldx + dy*ldy + dz*ldz
-                    phase = henyey_greenstein(cos_theta, params.phase_g)
-                    # Shadow approximation: use ground shadow map at projected point
-                    # Project sample onto ground along light direction
-                    if ldz < -1e-6:
-                        s = pz / -ldz
-                        gx = px + ldx * s
-                        gy = py + ldy * s
-                        # Map to shadow map coordinates
-                        ix_s = int((gx + world_w/2) / world_w * width)
-                        iy_s = int((gy + world_h/2) / world_h * height)
-                        if 0 <= ix_s < width and 0 <= iy_s < height:
-                            shadow = shadow_map[iy_s][ix_s]
-                        else:
-                            shadow = 1.0
-                    else:
-                        shadow = 1.0
-                    # Volumetric contribution
-                    radiance += params.scattering_coeff * phase * shadow * mist * transmittance * step_size
-                    transmittance *= math.exp(-params.absorption_coeff * mist * step_size)
-            # Ground contribution
-            shadow_ground = shadow_map[iy][ix]
-            ground_color = shadow_ground * (1.0 - params.ambient) + params.ambient
-            ground_color *= transmittance
-            total = ground_color + radiance * params.volumetric_gain
-            img[iy][ix] = total
-    
-    # Convert to ASCII
-    ascii_lines = []
-    for row in img:
-        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        ascii_lines.append(line)
-    return ascii_lines
+                dist += step_size
+            img[iy][ix] = intensity
+
+    # ASCII‑Umwandlung
+    lines = [''.join(intensitaet_zu_ascii(v, params.gamma) for v in row) for row in img]
+    return lines
+
+def beispiel_baeume():
+    # ein paar zufällige Bäume (x, y, radius) im World‑Space
+    random.seed(0)
+    return [(random.uniform(-4, 4), random.uniform(-4, 4), random.uniform(0.3, 0.8)) for _ in range(8)]
 
 def main():
     params = ShaderParams()
-    # Beispiel-Bäume: (x, y, radius)
-    bäume = [(-2.0, -2.0, 0.5), (3.0, 1.0, 0.7), (-4.0, 3.0, 0.4), (5.0, -3.0, 0.6)]
+    bäume = beispiel_baeume()
+    licht_pos = (2.0, 3.0, 8.0)
     frame = 0
-    print("3D-Lichtspiel – Drücke 'q' + Enter zum Beenden.")
-    try:
-        while True:
-            # Licht bewegt sich im Kreis
-            angle = frame * 0.05
-            lx = 5.0 * math.cos(angle)
-            ly = 5.0 * math.sin(angle)
-            lz = 8.0
-            licht_pos = (lx, ly, lz)
-            
-            lines = render(params, bäume, licht_pos, width=40, height=12, frame=frame)
-            # Clear screen und Cursor home
-            sys.stdout.write("\033[2J\033[H")
-            for line in lines:
-                sys.stdout.write(line + "\n")
-            sys.stdout.write(f"Frame: {frame}  Licht: {lx:.2f},{ly:.2f},{lz:.2f}\n")
-            sys.stdout.flush()
-            
-            # Non-blocking input check
-            if select.select([sys.stdin], [], [], 0)[0]:
-                try:
-                    inp = input()
-                    if inp.strip().lower() in ('q', 'quit', 'exit'):
-                        break
-                except EOFError:
-                    break
-            
-            frame += 1
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        pass
-    print("\nTschüss! Der Dodo wacht auf.")
+    width, height = 60, 20
+    print('Drücke <Enter> für nächsten Frame, EOF zum Beenden')
+    while True:
+        lines = render(params, bäume, licht_pos, width, height, frame)
+        for l in lines:
+            print(l)
+        print(f'-- Frame {frame} --')
+        frame += 1
+        # nicht‑blockierende Eingabe, maximal 20 Frames
+        if frame >= 20:
+            break
+        # warten auf Eingabe oder Timeout von 0.1 s
+        rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+        if rlist:
+            try:
+                _ = sys.stdin.readline()
+            except EOFError:
+                print('EOF erhalten, beende.')
+                break
+        # leichte Animation: Licht umkreist die Szene
+        angle = frame * 0.2
+        licht_pos = (5.0 * math.cos(angle), 5.0 * math.sin(angle), 8.0)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
