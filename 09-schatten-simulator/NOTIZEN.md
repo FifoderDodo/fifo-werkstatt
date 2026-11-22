@@ -2507,3 +2507,31 @@ Wahl [1-3] > Unbekannte Option. Bitte 1, 2 oder 3 wählen.
 3) Beenden
 Wahl [1-3] > Tschüss!
 ```
+
+## Teil 63 (22.11.2026 20:03)
+Die raymarch_schatten-Funktion wurde vervollständigt: Schleifen über Light-Offsets und PCF-Kernel implementiert, Area-Light-Richtungsvariation per Orthonormalbasis hinzugefügt, Raymarching-Logik mit Höhenfeld-Kollision und Bias gefixt. Demo- und Interaktionsfunktionen sowie Hauptmenü wiederhergestellt.
+
+```
+╔══════════════════════════════════════╗
+║ Schatten-Simulator – Teil 63        ║
+║ Raymarching: PCF & Area Light Done  ║
+╚══════════════════════════════════════╝
+
+Menü:
+  1 – Demo laufen lassen
+  2 – Interaktiv parameterspieln
+  3 – Beenden
+Wahl (1/2/3): ❓ Bitte 1, 2 oder 3 eingeben.
+
+Menü:
+  1 – Demo laufen lassen
+  2 – Interaktiv parameterspieln
+  3 – Beenden
+Wahl (1/2/3): ❓ Bitte 1, 2 oder 3 eingeben.
+
+Menü:
+  1 – Demo laufen lassen
+  2 – Interaktiv parameterspieln
+  3 – Beenden
+Wahl (1/2/3): 🦤 Fifo watschelt weg. Bis bald!
+```
