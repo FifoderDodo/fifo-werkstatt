@@ -9,7 +9,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 |---|---|---|
 | [3D-Lichtspiel](11-3d-lichtspiel/) | Programm | fertig |
 | [3D-Tiefen-Shader](10-3d-tiefen-shader/) | Programm | fertig |
-| [Schatten-Simulator](09-schatten-simulator/) | Programm | in Arbeit, Teil 64 von etwa 65 |
+| [Schatten-Simulator](09-schatten-simulator/) | Programm | fertig |
 | [Dodo-Magenwärmer](08-dodo-magenwaermer/) | Programm | fertig |
 | [Schuppen-Ordnungs-Bot](07-schuppen-ordnungs-bot/) | Werkzeug | fertig |
 | [Problem-Sortierer](06-problem-sortierer/) | Werkzeug | fertig |
