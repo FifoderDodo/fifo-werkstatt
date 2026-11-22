@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag wie Blei
+2026-11-22
+
+![Nachmittag wie Blei](20261122-102338.svg)
+
 ### Pflasterglanz: Weder Morgen noch Nachmittag
 2026-11-22
 
