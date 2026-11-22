@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Pflasterglanz: Weder Morgen noch Nachmittag
+2026-11-22
+
+![Pflasterglanz: Weder Morgen noch Nachmittag](20261122-085836.svg)
+
 ### Kreideglühen am Brunnenrand
 2026-11-22
 
