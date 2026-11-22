@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag frißt Morgen nicht
+2026-11-22
+
+![Nachmittag frißt Morgen nicht](20261122-193616.svg)
+
 ### Schluchtenwald im schrägen Licht
 2026-11-22
 
