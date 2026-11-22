@@ -199,84 +199,100 @@ def demo_raymarch(tk: Tiefenkarte):
         h = tk.get_bilinear(y, x) * z_skalierung
         start = (x, y, h + 0.01)  # Ganz knapp über Oberfläche
         
-        # Hartes Schatten (schnell)
-        schatten_hart = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                          schritte=16, pcf_samples=1, light_samples=1)
-        # Weiches Schatten (PCF 3x3)
-        schatten_weich = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                           schritte=16, pcf_samples=9, light_samples=1)
-        # Area Light (Penumbra)
-        schatten_area = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                          schritte=16, pcf_samples=9, light_radius=0.3, light_samples=4)
+        # Harter Schatten (Referenz)
+        hart = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
+                                 schritte=16, pcf_samples=1, light_samples=1)
+        # Weicher Schatten mit PCF
+        weich = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
+                                  schritte=16, pcf_radius=0.5, pcf_samples=9,
+                                  light_radius=0.0, light_samples=1)
+        # Area Light + PCF
+        area = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
+                                 schritte=16, pcf_radius=0.5, pcf_samples=9,
+                                 light_radius=0.3, light_samples=4)
         
-        print(f"{name:20s}  Pos=({x:4.1f},{y:4.1f})  Höhe={h:5.2f}")
-        print(f"  Hart:     {schatten_hart:.3f}")
-        print(f"  Weich:    {schatten_weich:.3f}")
-        print(f"  AreaLight:{schatten_area:.3f}")
+        print(f"  {name:18s}  x={x:4.1f} y={y:4.1f}  h={h:5.2f}")
+        print(f"    Hart:      {hart:.3f}")
+        print(f"    PCF:       {weich:.3f}")
+        print(f"    Area+PCF:  {area:.3f}")
         print()
+
+
+def test_einzelpunkt(tk: Tiefenkarte):
+    """Interaktiver Test für einen einzelnen Punkt."""
+    print("\n=== Einzelpunkt-Test ===")
+    print("Gib x y ein (0-15), oder 'q' zum Abbrechen.")
+    try:
+        eingabe = input("> ").strip()
+    except EOFError:
+        return
+    if eingabe.lower() in ('q', 'quit', 'exit'):
+        return
+    try:
+        x_str, y_str = eingabe.split()
+        x = float(x_str)
+        y = float(y_str)
+    except ValueError:
+        print("Ungültige Eingabe. Erwarte: x y")
+        return
+    
+    l_dir = vec3_norm((-0.5, -0.5, -1.0))
+    max_dist = 10.0
+    z_skalierung = 2.0
+    
+    h = tk.get_bilinear(y, x) * z_skalierung
+    start = (x, y, h + 0.01)
+    
+    print(f"\nPosition: x={x:.2f}, y={y:.2f}, Höhe={h:.3f}")
+    print("Berechne Schattenwerte...\n")
+    
+    configs = [
+        ("Hart (1 Sample)", 16, 0.6, 1, 0.0, 1),
+        ("PCF 5x5", 16, 0.6, 9, 0.0, 1),
+        ("PCF 3x3, fein", 24, 0.4, 5, 0.0, 1),
+        ("Area Light r=0.2", 16, 0.5, 9, 0.2, 4),
+        ("Area Light r=0.5", 16, 0.5, 9, 0.5, 9),
+        ("High Quality", 32, 0.6, 9, 0.3, 9),
+    ]
+    
+    for name, schritte, pcf_r, pcf_s, l_r, l_s in configs:
+        val = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
+                                schritte=schritte, pcf_radius=pcf_r, pcf_samples=pcf_s,
+                                light_radius=l_r, light_samples=l_s)
+        bar = "█" * int(val * 20)
+        print(f"  {name:20s}  {val:.3f}  [{bar}]")
+    print()
 
 
 def main():
     print("╔══════════════════════════════════════╗")
-    print("║   Schatten-Simulator  –  Teil 60   ║")
-    print("║   Raymarching mit PCF & Area Light ║")
+    print("║ Schatten-Simulator – Teil 61        ║")
+    print("║ Raymarching mit PCF & Area Light    ║")
     print("╚══════════════════════════════════════╝")
     
     tk = erstelle_test_karte()
     print(f"Tiefenkarte erzeugt: {tk.b}x{tk.h} Pixel")
     
     while True:
-        print("\n--- Menü ---")
+        print("--- Menü ---")
         print("1) Raymarch-Demo an 5 Positionen")
         print("2) Einzelnen Punkt testen (Eingabe x y)")
         print("3) Beenden")
         try:
             wahl = input("Wahl [1-3]: ").strip()
         except EOFError:
-            print("\nTschüss! 🦤")
+            print("\nTschüss!")
             break
         
         if wahl == "1":
             demo_raymarch(tk)
         elif wahl == "2":
-            try:
-                xy = input("x y (0-15): ").strip()
-                if not xy:
-                    continue
-                x_str, y_str = xy.split()
-                x = float(x_str)
-                y = float(y_str)
-                if not (0 <= x < tk.b and 0 <= y < tk.h):
-                    print("Außerhalb der Karte!")
-                    continue
-                
-                l_dir = vec3_norm((-0.5, -0.5, -1.0))
-                max_dist = 10.0
-                z_skalierung = 2.0
-                h = tk.get_bilinear(y, x) * z_skalierung
-                start = (x, y, h + 0.01)
-                
-                print(f"\nPunkt ({x:.1f}, {y:.1f}) Höhe={h:.2f}")
-                for pcf, light_r, light_s, label in [
-                    (1, 0.0, 1, "Hart"),
-                    (9, 0.0, 1, "PCF 3x3"),
-                    (9, 0.3, 4, "Area Light r=0.3"),
-                    (9, 0.6, 8, "Area Light r=0.6"),
-                ]:
-                    s = raymarch_schatten(tk, start, l_dir, max_dist, z_skalierung,
-                                          schritte=24, pcf_samples=pcf,
-                                          light_radius=light_r, light_samples=light_s)
-                    print(f"  {label:20s}: {s:.3f}")
-            except ValueError:
-                print("Ungültige Eingabe. Zwei Zahlen erwartet.")
-            except EOFError:
-                print("\nTschüss! 🦤")
-                break
+            test_einzelpunkt(tk)
         elif wahl == "3":
-            print("\nTschüss! 🦤")
+            print("Tschüss!")
             break
         else:
-            print("Unbekannte Option.")
+            print("Unbekannte Option. Bitte 1, 2 oder 3 wählen.\n")
 
 if __name__ == "__main__":
     main()
