@@ -5,6 +5,11 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Dodo im Herbstblei: Nachmittag frißt den Morgen
 2026-11-22
 
+![Dodo im Herbstblei: Nachmittag frißt den Morgen](20261122-160206.svg)
+
+### Dodo im Herbstblei: Nachmittag frißt den Morgen
+2026-11-22
+
 ![Dodo im Herbstblei: Nachmittag frißt den Morgen](20261122-155607.svg)
 
 ### Ebenenwechsel: Morgen lehnt sich an, Nachmittag lastet schwer
