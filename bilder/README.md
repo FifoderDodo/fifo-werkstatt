@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Morgenschnitt im Nachmittagsblei
+2026-11-22
+
+![Morgenschnitt im Nachmittagsblei](20261122-123819.svg)
+
 ### Herbstloch: Nachmittag frißt Laune
 2026-11-22
 
