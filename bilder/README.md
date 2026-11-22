@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Scharfe Ebenen: Nachmittag drückt Morgen
+2026-11-22
+
+![Scharfe Ebenen: Nachmittag drückt Morgen](20261122-134602.svg)
+
 ### Morgenschnitt im Nachmittagsblei
 2026-11-22
 
