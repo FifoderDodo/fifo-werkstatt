@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag bricht durch: Laune verstellt
+2026-11-22
+
+![Nachmittag bricht durch: Laune verstellt](20261122-105207.svg)
+
 ### Nachmittag wie Blei
 2026-11-22
 
