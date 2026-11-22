@@ -1451,3 +1451,30 @@ est ---
                  ...++++++............                      
                  ...+++++..
 ```
+
+## Teil 47 (22.11.2026 15:32)
+Die main.py wurde vervollständigt: erstelle_szene liefert nun Bäume, Lichtposition und einen z-Buffer; render() nutzt die vorhandenen Shader-Funktionen für volumetrisches Licht, Schatten und Blur; main() bietet eine kleine Interaktionsschleife. Alles läuft mit Python-Standardbibliothek.
+
+```
+                      
+                                   ...+++++...                                  
+                                    ...+++...                                   
+                                    .........                                   
+                                      .....                                     
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+
+> Auf Wiedersehen!
+```
