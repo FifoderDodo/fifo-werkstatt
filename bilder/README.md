@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Grau frisst Ocker - Studie Nr. 64
+2026-11-22
+
+![Grau frisst Ocker - Studie Nr. 64](20261122-182715.svg)
+
 ### Essladenlicht in der nassen Gasse
 2026-11-22
 
