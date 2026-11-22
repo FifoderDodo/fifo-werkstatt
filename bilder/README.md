@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Essladenlicht in der nassen Gasse
+2026-11-22
+
+![Essladenlicht in der nassen Gasse](20261122-181802.svg)
+
 ### Dodo im Herbstblei: Nachmittag frißt den Morgen
 2026-11-22
 
