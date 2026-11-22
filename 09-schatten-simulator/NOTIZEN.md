@@ -2449,3 +2449,31 @@ Wahl [1-3]: Unbekannte Option.
 Wahl [1-3]: 
 Tschüss! 🦤
 ```
+
+## Teil 61 (22.11.2026 19:50)
+Die main.py vervollständigt: demo_raymarch-Funktion fertig gestellt (harter/weicher/Area-Schatten), test_einzelpunkt-Funktion für interaktive Tests hinzugefügt, Hauptmenü-Schleife mit EOFError-Behandlung implementiert. Alles läuft ohne externe Abhängigkeiten.
+
+```
+╔══════════════════════════════════════╗
+║ Schatten-Simulator – Teil 61        ║
+║ Raymarching mit PCF & Area Light    ║
+╚══════════════════════════════════════╝
+Tiefenkarte erzeugt: 16x16 Pixel
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: Unbekannte Option. Bitte 1, 2 oder 3 wählen.
+
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: Unbekannte Option. Bitte 1, 2 oder 3 wählen.
+
+--- Menü ---
+1) Raymarch-Demo an 5 Positionen
+2) Einzelnen Punkt testen (Eingabe x y)
+3) Beenden
+Wahl [1-3]: Tschüss!
+```
