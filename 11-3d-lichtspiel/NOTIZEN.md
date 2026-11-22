@@ -725,3 +725,33 @@ Frame 0 | Licht: 0.00 0.00 5.00
 Lichtposition (x y z) oder ENTER: 
 Tschüss!
 ```
+
+## Teil 23 (22.11.2026 02:58, Nachtschicht)
+Render-Funktion vervollständigt: Ray-March mit volumetrischem Scattering, 2D-Schattenkarte, Mist, Jitter und Box-Blur. Hauptschleife liest Lichtposition per input() und rendert fortlaufend. ASCII-Mapping beibehalten, Parameter so belassen, dass Ausgabe variabler wird.
+
+```
+3D-Lichtspiel – interaktiver volumetrischer Park (Strg+C oder EOF zum Beenden)
+Gib Lichtposition als 'x y z' ein (z.B. '0 0 5'), Enter für Default.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> Bitte drei Zahlen eingeben.
+Lichtposition> 
+Tschüss! Der Dodo schläft weiter.
+```
