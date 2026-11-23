@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Morgennebel am Brunnen
+2026-11-23
+
+![Morgennebel am Brunnen](20261123-164850.svg)
+
 ### Stimmungslicht im Park
 2026-11-23
 
