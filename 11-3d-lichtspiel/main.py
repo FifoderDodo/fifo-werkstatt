@@ -176,232 +176,217 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
             if 0.0 <= cz <= bh:
                 dist_xy = math.hypot(cx - bx, cy - by)
                 if dist_xy < br:
-                    # Penumbra: weicher Schattenübergang
-                    t = (dist_xy / br) / params.penumbra_breite
-                    t = max(0.0, min(1.0, t))
-                    shadow = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * t
-                    min_f = min(min_f, shadow)
+                    penetration = (br - dist_xy) / br
+                    penumbra = params.penumbra_breite
+                    f = max(params.umbra_dunkelheit, 1.0 - penetration / penumbra)
+                    if f < min_f:
+                        min_f = f
     return min_f
 
-def raymarch_pixel(sx, sy, params, light_pos, baeume, cam_pos, cam_dir, cam_up, cam_right, fov, aspect):
-    """Berechnet die Farbe eines Pixels durch Raymarching."""
-    # Strahlrichtung im Weltraum
-    px = (sx + 0.5) * 2.0 - 1.0  # -1 bis 1
-    py = (sy + 0.5) * 2.0 - 1.0
-    ray_dir = (
-        cam_dir[0] +
-        cam_right[0] * px * math.tan(fov * 0.5) * aspect +
-        cam_up[0] * py * math.tan(fov * 0.5)
-    ), (
-        cam_dir[1] +
-        cam_right[1] * px * math.tan(fov * 0.5) * aspect +
-        cam_up[1] * py * math.tan(fov * 0.5)
-    ), (
-        cam_dir[2] +
-        cam_right[2] * px * math.tan(fov * 0.5) * aspect +
-        cam_up[2] * py * math.tan(fov * 0.5)
-    )
-    # Normalisieren
-    rlen = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
-    ray_dir = (ray_dir[0]/rlen, ray_dir[1]/rlen, ray_dir[2]/rlen)
+def raymarch_pixel(px, py, w, h, params, light_pos, baeume, t):
+    """Berechnet die volumetrische Beleuchtung für einen Pixel."""
+    # Kamera-Setup
+    cam_pos = (0.0, -15.0, 3.0)
+    look_at = (0.0, 0.0, 1.5)
+    up = (0.0, 0.0, 1.0)
+    fov = math.radians(60.0)
+    aspect = w / h
+    # Bildschirmkoordinaten zu Ray-Richtung
+    ndc_x = (px + 0.5) / w * 2.0 - 1.0
+    ndc_y = 1.0 - (py + 0.5) / h * 2.0
+    # Kamera-Basisvektoren
+    forward = (look_at[0] - cam_pos[0], look_at[1] - cam_pos[1], look_at[2] - cam_pos[2])
+    f_len = math.sqrt(forward[0]**2 + forward[1]**2 + forward[2]**2)
+    forward = (forward[0]/f_len, forward[1]/f_len, forward[2]/f_len)
+    right = (forward[1]*up[2] - forward[2]*up[1],
+             forward[2]*up[0] - forward[0]*up[2],
+             forward[0]*up[1] - forward[1]*up[0])
+    r_len = math.sqrt(right[0]**2 + right[1]**2 + right[2]**2)
+    right = (right[0]/r_len, right[1]/r_len, right[2]/r_len)
+    up_vec = (right[1]*forward[2] - right[2]*forward[1],
+              right[2]*forward[0] - right[0]*forward[2],
+              right[0]*forward[1] - right[1]*forward[0])
+    # Ray-Richtung
+    half_h = math.tan(fov * 0.5)
+    half_w = half_h * aspect
+    dir_x = forward[0] + right[0] * ndc_x * half_w + up_vec[0] * ndc_y * half_h
+    dir_y = forward[1] + right[1] * ndc_x * half_w + up_vec[1] * ndc_y * half_h
+    dir_z = forward[2] + right[2] * ndc_x * half_w + up_vec[2] * ndc_y * half_h
+    d_len = math.sqrt(dir_x**2 + dir_y**2 + dir_z**2)
+    dir_x, dir_y, dir_z = dir_x/d_len, dir_y/d_len, dir_z/d_len
     
-    # Raymarching Parameter
+    # Raymarching
     max_dist = 30.0
-    step_size = max_dist / params.march_steps
+    steps = params.march_steps
     if params.adaptive_steps:
-        step_size *= params.min_step_factor
+        # Einfache adaptive Schrittweite basierend auf Distanz zum Licht
+        pass  # hier könnte man steps anpassen, aber wir nutzen festen Wert für Einfachheit
     
-    # Lichtvektor
-    lx, ly, lz = light_pos
-    light_vec = (lx - cam_pos[0], ly - cam_pos[1], lz - cam_pos[2])
-    light_dist = math.sqrt(light_vec[0]**2 + light_vec[1]**2 + light_vec[2]**2)
-    light_dir = (light_vec[0]/light_dist, light_vec[1]/light_dist, light_vec[2]/light_dist)
-    
-    # Farbe akkumulieren
-    color = [0.0, 0.0, 0.0]
-    transmittance = 1.0
-    
-    # Jitter für temporales Rauschen
+    # Jitter für Temporal Stability
     jitter = 0.0
     if params.jitter_enabled:
-        jitter = (random.random() - 0.5) * params.jitter_strength * step_size
+        random.seed(params.noise_seed + px * 1000 + py)
+        jitter = (random.random() - 0.5) * params.jitter_strength
     
-    for step in range(params.march_steps):
-        t = (step + 0.5) * step_size + jitter
-        if t > max_dist:
-            break
-        # Aktuelle Position
-        pos = (cam_pos[0] + ray_dir[0] * t,
-               cam_pos[1] + ray_dir[1] * t,
-               cam_pos[2] + ray_dir[2] * t)
+    step_size = max_dist / steps
+    pos = (cam_pos[0], cam_pos[1], cam_pos[2])
+    transmittance = 1.0
+    radiance = 0.0
+    light_color = kelvin_to_rgb_factor(params.color_temp)
+    
+    for i in range(steps):
+        # Position entlang des Rays
+        pos = (cam_pos[0] + dir_x * (i + jitter) * step_size,
+               cam_pos[1] + dir_y * (i + jitter) * step_size,
+               cam_pos[2] + dir_z * (i + jitter) * step_size)
         
         # Dichte an dieser Position
         density = mist_dichte(pos, params)
-        if density < params.early_exit_threshold:
+        if density <= 0.0:
             continue
         
         # Schattenfaktor
         shadow = schattenfaktor_3d(pos, light_pos, baeume, params)
         
+        # Lichtrichtung
+        lx, ly, lz = light_pos
+        vx, vy, vz = lx - pos[0], ly - pos[1], lz - pos[2]
+        dist_light = math.sqrt(vx*vx + vy*vy + vz*vz)
+        if dist_light < 0.01:
+            continue
+        lx, ly, lz = vx/dist_light, vy/dist_light, vz/dist_light
+        
         # Phase function (Henyey-Greenstein)
-        cos_theta = ray_dir[0]*light_dir[0] + ray_dir[1]*light_dir[1] + ray_dir[2]*light_dir[2]
+        cos_theta = dir_x * lx + dir_y * ly + dir_z * lz
         phase = henyey_greenstein(cos_theta, params.phase_g)
         
+        # Falloff
+        falloff = 1.0 / max(0.001, dist_light ** params.falloff_exponent)
+        
         # Streuung
-        scatter = density * params.scattering_coeff * phase * shadow
+        scatter = density * params.scattering_coeff * phase * falloff * shadow
         
         # Absorption
         absorption = density * params.absorption_coeff
         transmittance *= math.exp(-absorption * step_size)
         
-        # Lichtfarbe (Farbtemperatur)
-        light_color = kelvin_to_rgb_factor(params.color_temp)
-        
         # Akkumulation
-        for c in range(3):
-            color[c] += scatter * light_color[c] * transmittance * step_size * params.volumetric_gain
+        radiance += scatter * transmittance * step_size
         
-        # Adaptive step size: wenn Dichte hoch, kleinere Schritte
-        if params.adaptive_steps and density > 0.1:
-            step_size = max(step_size * params.min_step_factor, max_dist / params.march_steps * params.min_step_factor)
-        else:
-            step_size = min(step_size * params.max_step_factor, max_dist / params.march_steps * params.max_step_factor)
+        # Early exit
+        if transmittance < params.early_exit_threshold:
+            break
     
-    # Ambient light
-    for c in range(3):
-        color[c] += params.ambient
-    
-    return color
+    # Volumetric gain und Farbe
+    radiance *= params.volumetric_gain
+    # Einfaches Tonemapping später
+    return radiance
 
-def render_frame(params, light_pos, baeume, cam_pos, cam_dir, cam_up, cam_right, fov, aspect, width, height):
-    """Rendert ein ganzes Frame in einen Float-Puffer (RGB)."""
-    frame = [[[0.0, 0.0, 0.0] for _ in range(width)] for __ in range(height)]
-    for y in range(height):
-        for x in range(width):
-            col = raymarch_pixel(x, y, params, light_pos, baeume, cam_pos, cam_dir, cam_up, cam_right, fov, aspect)
-            frame[y][x] = col
-    return frame
-
-def bloom_pass(frame, params):
-    """Wendet einen einfachen Bloom-Effekt an: extrahiere helle Bereiche, blurre, addiere zurück."""
-    h, w = len(frame), len(frame[0])
-    # Extrahiere Helligkeit (Luminanz)
-    bright = [[0.0 for _ in range(w)] for __ in range(h)]
+def render_frame(w, h, params, light_pos, baeume, t):
+    """Rendert einen Frame in einen Float-Puffer."""
+    buffer = [[0.0 for _ in range(w)] for __ in range(h)]
     for y in range(h):
         for x in range(w):
-            r, g, b = frame[y][x]
-            lum = 0.2126*r + 0.7152*g + 0.0722*b
-            if lum > params.bloom_threshold:
-                bright[y][x] = (lum - params.bloom_threshold) * params.bloom_intensity
+            buffer[y][x] = raymarch_pixel(x, y, w, h, params, light_pos, baeume, t)
+    return buffer
+
+def bloom_pass(buffer, params):
+    """Wendet einen Bloom-Effekt an (Threshold + Blur + Add)."""
+    h, w = len(buffer), len(buffer[0])
+    # Threshold
+    bloom_src = [[0.0 for _ in range(w)] for __ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            val = buffer[y][x]
+            if val > params.bloom_threshold:
+                bloom_src[y][x] = (val - params.bloom_threshold) * params.bloom_intensity
     # Blur
     weights = gauß_gewichte(params.bloom_radius)
-    blur_h = box_blur_1d(bright, weights, horizontal=True)
+    blur_h = box_blur_1d(bloom_src, weights, horizontal=True)
     blur_v = box_blur_1d(blur_h, weights, horizontal=False)
-    # Add back
-    result = [[[0.0, 0.0, 0.0] for _ in range(w)] for __ in range(h)]
+    # Add to original
+    result = [[0.0 for _ in range(w)] for __ in range(h)]
     for y in range(h):
         for x in range(w):
-            add = blur_v[y][x]
-            r, g, b = frame[y][x]
-            result[y][x] = [r + add, g + add, b + add]
+            result[y][x] = buffer[y][x] + blur_v[y][x]
     return result
 
-def tonemap_and_ascii(frame, params):
-    """Wendet Tonemapping (Gamma, Vibrancy) an und wandelt in ASCII um."""
-    h, w = len(frame), len(frame[0])
-    ascii_lines = []
+def tonemap(buffer, params):
+    """Einfaches Tonemapping mit Gamma und Vibrancy."""
+    h, w = len(buffer), len(buffer[0])
+    result = [[0.0 for _ in range(w)] for __ in range(h)]
     for y in range(h):
-        line = []
         for x in range(w):
-            r, g, b = frame[y][x]
-            # Vibrancy: erhöhe Sättigung
-            max_c = max(r, g, b)
-            if max_c > 0:
-                r = r * params.vibrancy + (1 - params.vibrancy) * max_c
-                g = g * params.vibrancy + (1 - params.vibrancy) * max_c
-                b = b * params.vibrancy + (1 - params.vibrancy) * max_c
-            # Clamp
-            r = min(1.0, max(0.0, r))
-            g = min(1.0, max(0.0, g))
-            b = min(1.0, max(0.0, b))
-            # Luminanz für ASCII
-            lum = 0.2126*r + 0.7152*g + 0.0722*b
+            val = buffer[y][x]
+            # Reinhard-ähnlich
+            val = val / (1.0 + val)
             # Gamma
-            lum = lum ** params.gamma
-            line.append(intensitaet_zu_ascii(lum, gamma=1.0))
-        ascii_lines.append(''.join(line))
-    return '\n'.join(ascii_lines)
+            val = val ** params.gamma
+            # Vibrancy (einfache Sättigungserhöhung)
+            val = min(1.0, val * params.vibrancy)
+            result[y][x] = val
+    return result
+
+def buffer_to_ascii(buffer, params):
+    """Wandelt den Float-Puffer in ASCII-Art um."""
+    h, w = len(buffer), len(buffer[0])
+    lines = []
+    for y in range(h):
+        line = ''.join(intensitaet_zu_ascii(buffer[y][x], params.gamma) for x in range(w))
+        lines.append(line)
+    return '\n'.join(lines)
 
 def main():
-    print("3D-Lichtspiel - Volumetrisches Licht im herbstlichen Park")
-    print("Steuerung: WASD - Licht bewegen, Q/E - Höhe, +/- Parameter, R - Reset, X - Beenden")
-    
     params = ShaderParams()
-    
     # Szene: Bäume (x, y, radius, height)
     baeume = [
-        (-5.0, -3.0, 1.2, 4.0),
-        (4.0, 2.0, 1.0, 3.5),
-        (-2.0, 5.0, 0.8, 3.0),
-        (6.0, -4.0, 1.5, 5.0),
-        (0.0, 0.0, 0.5, 2.0),
-        (-7.0, 1.0, 1.0, 4.0),
-        (3.0, -6.0, 1.2, 3.5),
+        (-3.0, -2.0, 0.8, 4.0),
+        (4.0, -5.0, 1.0, 5.0),
+        (-6.0, 3.0, 0.7, 3.5),
+        (2.0, 6.0, 0.9, 4.5),
+        (0.0, -8.0, 1.2, 6.0),
     ]
+    light_pos = [0.0, 0.0, 5.0]  # wird animiert
     
-    # Kamera
-    cam_pos = (0.0, -10.0, 2.0)
-    cam_dir = (0.0, 1.0, -0.2)  # leicht nach unten
-    clen = math.sqrt(cam_dir[0]**2 + cam_dir[1]**2 + cam_dir[2]**2)
-    cam_dir = (cam_dir[0]/clen, cam_dir[1]/clen, cam_dir[2]/clen)
-    cam_up = (0.0, 0.0, 1.0)
-    # Right = cross(dir, up)
-    cam_right = (cam_dir[1]*cam_up[2] - cam_dir[2]*cam_up[1],
-                 cam_dir[2]*cam_up[0] - cam_dir[0]*cam_up[2],
-                 cam_dir[0]*cam_up[1] - cam_dir[1]*cam_up[0])
-    rlen = math.sqrt(cam_right[0]**2 + cam_right[1]**2 + cam_right[2]**2)
-    cam_right = (cam_right[0]/rlen, cam_right[1]/rlen, cam_right[2]/rlen)
-    # Recompute up to be orthogonal
-    cam_up = (cam_right[1]*cam_dir[2] - cam_right[2]*cam_dir[1],
-              cam_right[2]*cam_dir[0] - cam_right[0]*cam_dir[2],
-              cam_right[0]*cam_dir[1] - cam_right[1]*cam_dir[0])
+    # Ausgabegröße
+    w, h = 80, 40
     
-    fov = math.radians(60.0)
-    aspect = 2.0  # Breite/Höhe in Zeichen (ca. 80x40 -> 2.0)
-    width, height = 80, 40
+    print("3D-Lichtspiel – Volumetrisches Licht im herbstlichen Park")
+    print("Drücke Enter für nächsten Frame, 'q' zum Beenden.")
+    print("Steuerung: w/a/s/d = Licht bewegen, +/- = Zeitgeschwindigkeit")
     
-    # Lichtposition
-    light_pos = [0.0, 0.0, 5.0]
+    t = 0.0
+    dt = 0.1
+    frame = 0
+    max_frames = 20  # Sicherheitslimit für Eingaben
     
     try:
-        while True:
-            # Frame rendern
-            frame = render_frame(params, light_pos, baeume, cam_pos, cam_dir, cam_up, cam_right, fov, aspect, width, height)
-            # Bloom
-            frame = bloom_pass(frame, params)
-            # Tonemap & ASCII
-            ascii_art = tonemap_and_ascii(frame, params)
-            # Ausgabe
-            sys.stdout.write('\033[H\033[J')  # Clear screen (ANSI)
-            sys.stdout.write(ascii_art + '\n')
-            sys.stdout.write(f"Light: ({light_pos[0]:.1f}, {light_pos[1]:.1f}, {light_pos[2]:.1f})  Steps: {params.march_steps}  Gain: {params.volumetric_gain:.2f}\n")
-            sys.stdout.write("Befehl (WASD/QE/+/-/R/X): ")
+        while frame < max_frames:
+            # Light animation
+            light_pos[0] = math.sin(t * 0.5) * 6.0
+            light_pos[1] = math.cos(t * 0.3) * 6.0 - 10.0
+            light_pos[2] = 5.0 + math.sin(t * 0.2) * 1.0
+            
+            # Render
+            raw = render_frame(w, h, params, light_pos, baeume, t)
+            bloomed = bloom_pass(raw, params)
+            toned = tonemap(bloomed, params)
+            ascii_art = buffer_to_ascii(toned, params)
+            
+            # Clear screen (ANSI)
+            sys.stdout.write('\x1b[2J\x1b[H')
+            sys.stdout.write(ascii_art)
+            sys.stdout.write(f'\nFrame: {frame}  Zeit: {t:.2f}  Licht: ({light_pos[0]:.1f}, {light_pos[1]:.1f}, {light_pos[2]:.1f})\n')
             sys.stdout.flush()
             
+            # Input
             try:
                 cmd = input().strip().lower()
             except EOFError:
-                print("\nAuf Wiedersehen!")
                 break
             
-            if not cmd:
-                continue
-            if cmd == 'x':
-                print("Auf Wiedersehen!")
+            if cmd == 'q':
                 break
-            elif cmd == 'r':
-                params = ShaderParams()
-                light_pos = [0.0, 0.0, 5.0]
             elif cmd == 'w':
                 light_pos[1] += 0.5
             elif cmd == 's':
@@ -410,26 +395,19 @@ def main():
                 light_pos[0] -= 0.5
             elif cmd == 'd':
                 light_pos[0] += 0.5
-            elif cmd == 'q':
-                light_pos[2] += 0.5
-            elif cmd == 'e':
-                light_pos[2] = max(0.5, light_pos[2] - 0.5)
             elif cmd == '+':
-                params.volumetric_gain = min(5.0, params.volumetric_gain + 0.1)
+                dt *= 1.2
             elif cmd == '-':
-                params.volumetric_gain = max(0.1, params.volumetric_gain - 0.1)
-            elif cmd == 'b':
-                params.bloom_intensity = min(2.0, params.bloom_intensity + 0.05)
-            elif cmd == 'n':
-                params.bloom_intensity = max(0.0, params.bloom_intensity - 0.05)
-            elif cmd == 'm':
-                params.mist_density = min(1.0, params.mist_density + 0.02)
-            elif cmd == 'k':
-                params.mist_density = max(0.0, params.mist_density - 0.02)
-            else:
-                print(f"Unbekannter Befehl: {cmd}")
+                dt *= 0.8
+            elif cmd == '':
+                pass  # just next frame
+            
+            t += dt
+            frame += 1
     except KeyboardInterrupt:
-        print("\nAuf Wiedersehen!")
+        pass
+    
+    print("\nDodo schläft weiter. Gute Nacht!")
 
 if __name__ == "__main__":
     main()
