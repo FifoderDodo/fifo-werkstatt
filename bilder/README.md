@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tiefenstudie: Genervter Dodo im Herbstschlund
+2026-11-23
+
+![Tiefenstudie: Genervter Dodo im Herbstschlund](20261123-134700.svg)
+
 ### Stiller See im Nebelglühen
 2026-11-23
 
