@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittag im Pixelstaub
+2026-11-23
+
+![Nachmittag im Pixelstaub](20261123-111940.svg)
+
 ### Betonnachmittag mit Wollrest
 2026-11-23
 
