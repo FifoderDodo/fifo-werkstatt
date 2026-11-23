@@ -170,211 +170,255 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
                 penumbra = br * ratio + params.light_radius * (1.0 - ratio) * 0.4
                 if dist_achse < penumbra:
                     # Neue Light-Decay-Formel für weichere Penumbra und realistischere Tiefe
-                    t = dist_achse / max(1e-4, penumbra)
-                    faktor = params.umbra_dunkelheit + (t ** params.falloff_exponent) * (1.0 - params.umbra_dunkelheit)
-                    if faktor < min_f:
-                        min_f = faktor
+                    t = dist_achse / penumbra
+                    falloff = t ** params.falloff_exponent
+                    f = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * falloff
+                    min_f = min(min_f, f)
     return min_f
 
-def raymarch(origin, direction, light_pos, baeume, params, jitter=0.0):
-    """Volumetric ray marching mit Schatten und Streuung."""
-    steps = params.march_steps
-    max_dist = 12.0
-    step_size = max_dist / steps
-    r, g, b = 0.0, 0.0, 0.0
+def raymarch(origin, direction, light_pos, baeume, params):
+    ox, oy, oz = origin
+    dx, dy, dz = direction
+    step_dist = 0.3
+    max_dist = 30.0
+    accumulated = 0.0
     transmittance = 1.0
-    light_color = kelvin_to_rgb_factor(params.color_temp)
+    lx, ly, lz = light_pos
+    light_dir = (lx - ox, ly - oy, lz - oz)
+    light_dist = math.sqrt(light_dir[0]**2 + light_dir[1]**2 + light_dir[2]**2)
+    if light_dist > 0:
+        light_dir = (light_dir[0]/light_dist, light_dir[1]/light_dist, light_dir[2]/light_dist)
     
-    for i in range(steps):
-        t = (i + 0.5) * step_size + jitter
-        px = origin[0] + direction[0] * t
-        py = origin[1] + direction[1] * t
-        pz = origin[2] + direction[2] * t
+    for step in range(params.march_steps):
+        t = step * step_dist
+        px = ox + dx * t
+        py = oy + dy * t
+        pz = oz + dz * t
         
+        if pz < -0.5 or t > max_dist:
+            break
+            
         density = mist_dichte((px, py, pz), params)
-        if density <= 0.0:
+        if density <= 0.001:
             continue
-        
-        # Schattenfaktor an dieser Position
+            
+        # Schatten berechnen
         shadow = schattenfaktor_3d((px, py, pz), light_pos, baeume, params)
         
-        # Lichtvektor von Probe zur Lichtquelle
-        lx, ly, lz = light_pos
-        lvx, lvy, lvz = lx - px, ly - py, lz - pz
-        light_dist = math.sqrt(lvx*lvx + lvy*lvy + lvz*lvz)
-        if light_dist < 0.01:
-            continue
-        lvx, lvy, lvz = lvx/light_dist, lvy/light_dist, lvz/light_dist
-        
-        # Phase function (Henyey-Greenstein)
-        cos_theta = direction[0]*lvx + direction[1]*lvy + direction[2]*lvz
+        # Phase function
+        cos_theta = dx * light_dir[0] + dy * light_dir[1] + dz * light_dir[2]
         phase = henyey_greenstein(cos_theta, params.phase_g)
         
-        # Light decay mit falloff_start und exponent
-        decay = 1.0 / (1.0 + (light_dist * params.falloff_start) ** params.falloff_exponent)
+        # Scattering
+        scatter = density * params.scattering_coeff * phase * shadow
         
-        # Streuung
-        scatter = density * params.scattering_coeff * phase * decay * shadow
-        absorption = density * params.absorption_coeff
+        # Absorption
+        absorb = density * params.absorption_coeff
+        transmittance *= math.exp(-absorb * step_dist)
         
-        # Akkumulation
-        r += transmittance * scatter * light_color[0]
-        g += transmittance * scatter * light_color[1]
-        b += transmittance * scatter * light_color[2]
-        transmittance *= math.exp(-absorption * step_size)
-        if transmittance < 0.001:
+        accumulated += scatter * transmittance * step_dist
+        
+        if transmittance < 0.01:
             break
     
-    # Umgebungslicht
-    r += params.ambient * light_color[0]
-    g += params.ambient * light_color[1]
-    b += params.ambient * light_color[2]
-    
-    # Volumetric gain
-    r *= params.volumetric_gain
-    g *= params.volumetric_gain
-    b *= params.volumetric_gain
-    
-    # Vibrancy (Sättigung)
-    avg = (r + g + b) / 3.0
-    r = avg + (r - avg) * params.vibrancy
-    g = avg + (g - avg) * params.vibrancy
-    b = avg + (b - avg) * params.vibrancy
-    
-    return (r, g, b)
+    return accumulated
 
-def render_frame(params, frame_idx):
-    """Rendert einen Frame als ASCII-Art."""
-    width, height = 80, 40
+def render_frame(params, baeume, light_pos, cam_pos, cam_yaw, cam_pitch, width=80, height=40):
+    # Kamera-Basisvektoren
+    yaw = cam_yaw
+    pitch = cam_pitch
+    forward = (math.cos(pitch) * math.sin(yaw),
+               math.cos(pitch) * math.cos(yaw),
+               math.sin(pitch))
+    right = (math.cos(yaw), -math.sin(yaw), 0.0)
+    up = (0.0, 0.0, 1.0)
+    
+    fov = 1.0
     aspect = width / height
     
-    # Kameraposition und -richtung
-    cam_pos = (0.0, 0.0, 2.5)
-    cam_target = (0.0, 0.0, 0.0)
-    
-    # Lichtposition (bewegt sich langsam)
-    light_angle = frame_idx * 0.02
-    light_pos = (math.sin(light_angle) * 4.0, math.cos(light_angle) * 4.0, 3.0)
-    
-    # Bäume: (x, y, radius, height)
-    baeume = [
-        (-2.0, -1.5, 0.4, 1.8),
-        (1.8, 2.2, 0.35, 2.0),
-        (-3.5, 1.0, 0.5, 2.2),
-        (3.0, -2.0, 0.45, 1.9),
-        (0.0, 3.5, 0.4, 2.1),
-        (-1.0, -3.0, 0.3, 1.7),
-    ]
-    
-    # Framebuffer für RGB
-    frame_r = [[0.0]*width for _ in range(height)]
-    frame_g = [[0.0]*width for _ in range(height)]
-    frame_b = [[0.0]*width for _ in range(height)]
+    # Framebuffer
+    frame = [[0.0 for _ in range(width)] for __ in range(height)]
+    depth_buf = [[float('inf') for _ in range(width)] for __ in range(height)]
     
     for y in range(height):
         for x in range(width):
-            # Normalized device coordinates
-            nx = (x + 0.5) / width * 2.0 - 1.0
-            ny = (y + 0.5) / height * 2.0 - 1.0
-            nx *= aspect
+            # NDC-Koordinaten
+            ndc_x = (x + 0.5) / width * 2.0 - 1.0
+            ndc_y = 1.0 - (y + 0.5) / height * 2.0
             
-            # Ray direction
-            dx, dy, dz = nx, ny, -1.0
-            length = math.sqrt(dx*dx + dy*dy + dz*dz)
-            dx, dy, dz = dx/length, dy/length, dz/length
+            # Ray-Direktion
+            ray_x = forward[0] + right[0] * ndc_x * fov * aspect + up[0] * ndc_y * fov
+            ray_y = forward[1] + right[1] * ndc_x * fov * aspect + up[1] * ndc_y * fov
+            ray_z = forward[2] + right[2] * ndc_x * fov * aspect + up[2] * ndc_y * fov
             
-            # Jitter für Temporal AA
-            jitter = 0.0
-            if params.jitter_enabled:
-                jitter = (random.random() - 0.5) * params.jitter_strength / params.march_steps
+            ray_len = math.sqrt(ray_x**2 + ray_y**2 + ray_z**2)
+            ray_x, ray_y, ray_z = ray_x/ray_len, ray_y/ray_len, ray_z/ray_len
             
-            r, g, b = raymarch(cam_pos, (dx, dy, dz), light_pos, baeume, params, jitter)
-            frame_r[y][x] = r
-            frame_g[y][x] = g
-            frame_b[y][x] = b
+            # Volumetric Light
+            vol_light = raymarch(cam_pos, (ray_x, ray_y, ray_z), light_pos, baeume, params)
+            
+            # Boden-Schatten (einfacher Hit-Test)
+            ground_hit = 0.0
+            if ray_z < -0.01:
+                t_ground = -cam_pos[2] / ray_z
+                if t_ground > 0:
+                    gx = cam_pos[0] + ray_x * t_ground
+                    gy = cam_pos[1] + ray_y * t_ground
+                    shadow = schattenfaktor_3d((gx, gy, 0.0), light_pos, baeume, params)
+                    ground_hit = shadow * 0.3
+            
+            # Kombinieren
+            total = params.ambient + vol_light * params.volumetric_gain + ground_hit
+            frame[y][x] = min(1.0, total * params.vibrancy)
+            depth_buf[y][x] = t_ground if ray_z < -0.01 else 100.0
     
-    # Blur
+    # Blur für weichere Lichtkegel
     if params.blur_radius > 0:
         weights = gauß_gewichte(params.blur_radius)
-        frame_r = box_blur_1d(frame_r, weights, True)
-        frame_r = box_blur_1d(frame_r, weights, False)
-        frame_g = box_blur_1d(frame_g, weights, True)
-        frame_g = box_blur_1d(frame_g, weights, False)
-        frame_b = box_blur_1d(frame_b, weights, True)
-        frame_b = box_blur_1d(frame_b, weights, False)
+        frame = box_blur_1d(frame, weights, True)
+        frame = box_blur_1d(frame, weights, False)
     
-    # Tone mapping & Gamma
-    ascii_frame = []
+    # ASCII-Konvertierung
+    lines = []
     for y in range(height):
-        line = []
-        for x in range(width):
-            # Luminance
-            lum = 0.2126*frame_r[y][x] + 0.7152*frame_g[y][x] + 0.0722*frame_b[y][x]
-            # Gamma-Korrektur
-            lum = lum ** params.gamma
-            line.append(intensitaet_zu_ascii(lum, params.gamma))
-        ascii_frame.append(''.join(line))
+        line = ''.join(intensitaet_zu_ascii(frame[y][x], params.gamma) for x in range(width))
+        lines.append(line)
     
-    return ascii_frame
+    return '\n'.join(lines)
 
-def print_parameter_menu(params):
-    print("\n=== 3D-Lichtspiel Parameter ===")
+def parameter_menü(params):
+    print("\n=== Shader-Parameter ===")
     attrs = [a for a in dir(params) if not a.startswith('_') and not callable(getattr(params, a))]
     for i, a in enumerate(attrs):
-        print(f"  {i+1:2d}. {a}: {getattr(params, a)}")
-    print("  0. Weiter (nächster Frame)")
-    print("  q. Beenden")
+        print(f"  {i+1:2d}. {a} = {getattr(params, a)}")
+    print("  0. Zurück")
+    try:
+        choice = input("Wähle Parameter (Nummer) oder Enter zum Überspringen: ").strip()
+        if not choice:
+            return
+        idx = int(choice) - 1
+        if 0 <= idx < len(attrs):
+            attr = attrs[idx]
+            val = input(f"Neuer Wert für {attr} (aktuell: {getattr(params, attr)}): ").strip()
+            if val:
+                setattr(params, attr, float(val))
+                print(f"→ {attr} = {getattr(params, attr)}")
+    except (ValueError, EOFError):
+        pass
 
 def main():
+    print("╔══════════════════════════════════════════╗")
+    print("║     3D-Lichtspiel – Herbstlicher Park    ║")
+    print("║   Volumetric Light & Shadow Simulator    ║")
+    print("╚══════════════════════════════════════════╝")
+    
     params = ShaderParams()
-    frame = 0
-    try:
-        while True:
-            # Frame rendern
-            ascii_art = render_frame(params, frame)
-            # Clear screen (ANSI)
-            print("\033[2J\033[H", end='')
-            for line in ascii_art:
-                print(line)
-            print(f"\nFrame: {frame}  |  Lichtwinkel: {frame*0.02:.2f} rad")
+    
+    # Bäume: (x, y, radius, höhe)
+    random.seed(12345)
+    baeume = []
+    for _ in range(12):
+        bx = random.uniform(-10, 10)
+        by = random.uniform(-10, 10)
+        br = random.uniform(0.4, 0.9)
+        bh = random.uniform(3.0, 6.0)
+        baeume.append((bx, by, br, bh))
+    
+    # Lichtposition (über den Bäumen)
+    light_pos = (0.0, 0.0, 8.0)
+    
+    # Kamera
+    cam_pos = (0.0, -12.0, 1.8)
+    cam_yaw = 0.0
+    cam_pitch = -0.2
+    
+    width, height = 80, 35
+    
+    print(f"\nBäume: {len(baeume)} | Licht: {light_pos} | Kamera: {cam_pos}")
+    print("Steuerung: WASD=Bewegen, QE=Drehen, RF=Hoch/Runter, P=Parameter, Enter=Neu rendern, X=Beenden")
+    
+    frame_count = 0
+    last_render = ""
+    
+    while True:
+        try:
+            # Auto-Render beim Start
+            if frame_count == 0:
+                print("\n--- Rendering... ---")
+                start = time.time()
+                last_render = render_frame(params, baeume, light_pos, cam_pos, cam_yaw, cam_pitch, width, height)
+                elapsed = time.time() - start
+                print(last_render)
+                print(f"\n[Frame {frame_count}] Renderzeit: {elapsed:.2f}s | Yaw: {cam_yaw:.2f} Pitch: {cam_pitch:.2f}")
+                frame_count += 1
             
-            print_parameter_menu(params)
-            choice = input("Wahl: ").strip().lower()
-            if choice == 'q':
-                break
-            if choice == '' or choice == '0':
-                frame += 1
+            cmd = input("\n> ").strip().lower()
+            if not cmd:
+                # Neu rendern
+                print("\n--- Rendering... ---")
+                start = time.time()
+                last_render = render_frame(params, baeume, light_pos, cam_pos, cam_yaw, cam_pitch, width, height)
+                elapsed = time.time() - start
+                print(last_render)
+                print(f"\n[Frame {frame_count}] Renderzeit: {elapsed:.2f}s")
+                frame_count += 1
                 continue
-            try:
-                idx = int(choice) - 1
-                attrs = [a for a in dir(params) if not a.startswith('_') and not callable(getattr(params, a))]
-                if 0 <= idx < len(attrs):
-                    attr = attrs[idx]
-                    current = getattr(params, attr)
-                    new_val = input(f"Neuer Wert für {attr} (aktuell {current}): ").strip()
-                    if new_val:
-                        try:
-                            # Typ beibehalten
-                            if isinstance(current, int):
-                                setattr(params, attr, int(new_val))
-                            elif isinstance(current, float):
-                                setattr(params, attr, float(new_val))
-                            elif isinstance(current, bool):
-                                setattr(params, attr, new_val.lower() in ('true', '1', 'yes', 'ja'))
-                            else:
-                                setattr(params, attr, new_val)
-                        except ValueError:
-                            print("Ungültiger Wert.")
-                            time.sleep(0.5)
-                else:
-                    print("Ungültige Auswahl.")
-                    time.sleep(0.5)
-            except ValueError:
-                print("Bitte Zahl oder 'q' eingeben.")
-                time.sleep(0.5)
-            frame += 1
-    except (EOFError, KeyboardInterrupt):
-        print("\n\nTschüss! Der Dodo winkt zum Abschied. 🦤")
+            
+            if cmd == 'x' or cmd == 'q':
+                print("Tschüss! Der Dodo watschelt davon. 🦤")
+                break
+            elif cmd == 'p':
+                parameter_menü(params)
+                continue
+            elif cmd == 'w':
+                cam_pos = (cam_pos[0] + math.sin(cam_yaw) * 0.5,
+                           cam_pos[1] + math.cos(cam_yaw) * 0.5,
+                           cam_pos[2])
+            elif cmd == 's':
+                cam_pos = (cam_pos[0] - math.sin(cam_yaw) * 0.5,
+                           cam_pos[1] - math.cos(cam_yaw) * 0.5,
+                           cam_pos[2])
+            elif cmd == 'a':
+                cam_pos = (cam_pos[0] + math.cos(cam_yaw) * 0.5,
+                           cam_pos[1] - math.sin(cam_yaw) * 0.5,
+                           cam_pos[2])
+            elif cmd == 'd':
+                cam_pos = (cam_pos[0] - math.cos(cam_yaw) * 0.5,
+                           cam_pos[1] + math.sin(cam_yaw) * 0.5,
+                           cam_pos[2])
+            elif cmd == 'q':
+                cam_yaw -= 0.15
+            elif cmd == 'e':
+                cam_yaw += 0.15
+            elif cmd == 'r':
+                cam_pitch = min(1.4, cam_pitch + 0.1)
+            elif cmd == 'f':
+                cam_pitch = max(-1.4, cam_pitch - 0.1)
+            elif cmd == 'h':
+                print("Hilfe: W/A/S/D=Vorwärts/Links/Rückwärts/Rechts, Q/E=Yaw, R/F=Pitch, P=Parameter, Enter=Render, X=Exit")
+                continue
+            else:
+                print(f"Unbekannt: '{cmd}' (h für Hilfe)")
+                continue
+            
+            # Nach Bewegung neu rendern
+            print("\n--- Rendering... ---")
+            start = time.time()
+            last_render = render_frame(params, baeume, light_pos, cam_pos, cam_yaw, cam_pitch, width, height)
+            elapsed = time.time() - start
+            print(last_render)
+            print(f"\n[Frame {frame_count}] Renderzeit: {elapsed:.2f}s | Pos: ({cam_pos[0]:.1f}, {cam_pos[1]:.1f}, {cam_pos[2]:.1f})")
+            frame_count += 1
+            
+        except EOFError:
+            print("\nEingabe beendet. Der Dodo nickt müde. 🦤")
+            break
+        except KeyboardInterrupt:
+            print("\nAbbruch. Tschüss! 🦤")
+            break
+        except Exception as e:
+            print(f"Fehler: {e}")
+            continue
 
 if __name__ == "__main__":
     main()
