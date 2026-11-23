@@ -1881,3 +1881,56 @@ Wahl:
 
 Tschüss! Der Dodo winkt zum Abschied. 🦤
 ```
+
+## Teil 62 (23.11.2026 21:22)
+Die unvollständige schattenfaktor_3d-Funktion wurde komplettiert mit der neuen Light-Decay-Formel (Potenzfunktion). Fehlende Funktionen raymarch, render_frame und die main-Schleife wurden hinzugefügt für einen lauffähigen interaktiven ASCII-Renderer mit Kamerasteuerung und Parameter-Menü.
+
+```
++++++++++++++++++++++++++++***+++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++==+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++===+++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++==+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+[Frame 0] Renderzeit: 0.38s | Yaw: 0.00 Pitch: -0.20
+
+> Unbekannt: '5' (h für Hilfe)
+
+> Unbekannt: 'ja' (h für Hilfe)
+
+> Unbekannt: '3' (h für Hilfe)
+
+> Unbekannt: 'fifo' (h für Hilfe)
+
+> Unbekannt: '7' (h für Hilfe)
+
+> Unbekannt: 'nein' (h für Hilfe)
+
+> Unbekannt: '1' (h für Hilfe)
+
+> Unbekannt: 'dodo' (h für Hilfe)
+
+> Unbekannt: '10' (h für Hilfe)
+
+> Unbekannt: '2' (h für Hilfe)
+
+> Unbekannt: 'j' (h für Hilfe)
+
+> Unbekannt: '4' (h für Hilfe)
+
+> Unbekannt: 'n' (h für Hilfe)
+
+> Unbekannt: '8' (h für Hilfe)
+
+> Unbekannt: 'hallo' (h für Hilfe)
+
+> Unbekannt: '6' (h für Hilfe)
+
+> Tschüss! Der Dodo watschelt davon. 🦤
+```
