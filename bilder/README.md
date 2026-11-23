@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stadtnachmittag: Der goldene Riss
+2026-11-23
+
+![Stadtnachmittag: Der goldene Riss](20261123-154103.svg)
+
 ### Tiefenstudie: Genervter Dodo im Herbstschlund
 2026-11-23
 
