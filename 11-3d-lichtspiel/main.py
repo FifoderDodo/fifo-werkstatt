@@ -173,161 +173,57 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
                     min_f = min(min_f, faktor)
     return min_f
 
-def render_szene(params, width=64, height=28):
-    # Herbstbäume im Park: (x, y, stamm_radius, hoehe)
-    baeume = [
-        (-2.2, 3.5, 0.45, 3.2),
-        (0.4, 4.8, 0.60, 3.8),
-        (2.6, 3.2, 0.40, 2.9),
-        (-1.0, 6.0, 0.70, 4.2)
-    ]
-    light_pos = (2.2, 2.0, 3.5)
-    cam_pos = (0.0, -2.0, 1.2)
-    puffer = [[0.0 for _ in range(width)] for _ in range(height)]
-    depth_puffer = [[0.0 for _ in range(width)] for _ in range(height)]
+def raymarch(pos, dir, light_pos, baeume, params):
+    # Schrittweite basierend auf march_steps
+    step = 1.0 / params.march_steps
+    accum = 0.0
+    cur = list(pos)
+    for i in range(params.march_steps):
+        # Dichte und Gradient
+        dens = mist_dichte(tuple(cur), params)
+        grad = dichte_gradient(tuple(cur), params)
+        # Half‑Lambert‑Wrap für bessere Tiefe
+        ndotl = max(0.0, sum(g * d for g, d in zip(grad, dir)))
+        half_lambert = ndotl * 0.5 + 0.5
+        wrap = max(0.0, half_lambert - params.depth_shading_wrap)
+        # Lichtabschwächung
+        shade = schattenfaktor_3d(tuple(cur), light_pos, baeume, params)
+        # Volumetrische Addierung
+        accum += dens * wrap * shade * params.volumetric_gain * step
+        # Position vorwärts
+        cur[0] += dir[0] * step
+        cur[1] += dir[1] * step
+        cur[2] += dir[2] * step
+        if cur[2] < 0.0:  # unter Boden
+            break
+    return accum
 
-    # Kelvin Farbtönung als Multiplikator
-    rgb_factor = kelvin_to_rgb_factor(params.color_temp)
-    warmth = (rgb_factor[0] * 0.5 + rgb_factor[1] * 0.35 + rgb_factor[2] * 0.15) * params.vibrancy
-
-    t_start = 1.0
-    t_end = 8.0
-    step_size = (t_end - t_start) / params.march_steps
-
-    for y in range(height):
-        fy = (y / (height - 1) * 2.0 - 1.0) * 0.45
-        for x in range(width):
-            fx = (x / (width - 1) * 2.0 - 1.0) * 0.85
-            ray_dir = (fx, 1.0, -fy)
-            r_len = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
-            rd = (ray_dir[0] / r_len, ray_dir[1] / r_len, ray_dir[2] / r_len)
-
-            akkum_licht = 0.0
-            akkum_trans = 1.0
-            gesamt_tiefe = 0.0
-
-            for s in range(params.march_steps):
-                offset = (random.random() * 0.5) if params.jitter_enabled else 0.5
-                t = t_start + (s + offset * params.jitter_strength) * step_size
-                pos = (
-                    cam_pos[0] + rd[0] * t,
-                    cam_pos[1] + rd[1] * t,
-                    cam_pos[2] + rd[2] * t
-                )
-                dichte = mist_dichte(pos, params)
-                if dichte > 0.001:
-                    lx = light_pos[0] - pos[0]
-                    ly = light_pos[1] - pos[1]
-                    lz = light_pos[2] - pos[2]
-                    dist_l = math.sqrt(lx * lx + ly * ly + lz * lz)
-                    # Glatter Beleuchtungsvektor mit Depth-Smoothing gegen flache Bänder
-                    l_dir = (lx / dist_l, ly / dist_l, lz / dist_l)
-                    cos_theta = rd[0] * l_dir[0] + rd[1] * l_dir[1] + rd[2] * l_dir[2]
-                    phase = henyey_greenstein(cos_theta, params.phase_g)
-
-                    # Plastizität via geglättetem Normalen-Lichtvektor & Half-Lambert Wrap
-                    normale = dichte_gradient(pos, params)
-                    n_dot_l = normale[0] * l_dir[0] + normale[1] * l_dir[1] + normale[2] * l_dir[2]
-                    diffuse_wrap = (n_dot_l + params.depth_shading_wrap) / (1.0 + params.depth_shading_wrap)
-                    diffuse_plastik = max(0.05, diffuse_wrap)
-
-                    # Sanftes Highlight / Glanz
-                    h_vec = (l_dir[0] - rd[0], l_dir[1] - rd[1], l_dir[2] - rd[2])
-                    h_len = math.hypot(math.hypot(h_vec[0], h_vec[1]), h_vec[2])
-                    specular = 0.0
-                    if h_len > 1e-4:
-                        h_norm = (h_vec[0] / h_len, h_vec[1] / h_len, h_vec[2] / h_len)
-                        n_dot_h = max(0.0, normale[0] * h_norm[0] + normale[1] * h_norm[1] + normale[2] * h_norm[2])
-                        specular = (n_dot_h ** params.specular_power) * params.specular_intensity
-
-                    schatten = schattenfaktor_3d(pos, light_pos, baeume, params)
-                    dist_falloff = 1.0 / (1.0 + (dist_l / params.falloff_start) ** params.falloff_exponent)
-                    
-                    einfallend = (diffuse_plastik + specular) * dist_falloff * schatten * warmth
-                    streuung = dichte * params.scattering_coeff * phase * einfallend
-                    ausloeschung = math.exp(-dichte * (params.scattering_coeff + params.absorption_coeff) * step_size)
-                    
-                    akkum_licht += akkum_trans * streuung * step_size
-                    akkum_trans *= ausloeschung
-                    gesamt_tiefe += t * dichte * step_size
-                    if akkum_trans < 0.02:
-                        break
-            
-            endwert = akkum_licht * params.volumetric_gain + params.ambient
-            puffer[y][x] = endwert
-            depth_puffer[y][x] = gesamt_tiefe
-
-    # Bildweichzeichnung gegen Pixelrauschen
-    if params.blur_radius > 0:
-        gewichte = gauß_gewichte(params.blur_radius)
-        puffer = box_blur_1d(puffer, gewichte, horizontal=True)
-        puffer = box_blur_1d(puffer, gewichte, horizontal=False)
-
-    return puffer
-
-def zeige_bild(puffer, params):
-    zeilen = []
-    for row in puffer:
-        z = "".join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        zeilen.append(z)
-    return "\n".join(zeilen)
-
-def main():
+def render(width=80, height=30):
     params = ShaderParams()
-    print("--- 3D-Lichtspiel: Plastische Park-Dämmerung ---")
-    print("Rendering mit tiefengeglättetem Beleuchtungsvektor läuft...")
-    
-    start_z = time.time()
-    puffer = render_szene(params, width=62, height=22)
-    dauer = time.time() - start_z
-    
-    print(zeige_bild(puffer, params))
-    print(f"\n[Renderzeit: {dauer:.2f}s | Gamma: {params.gamma} | Farbtemperatur: {params.color_temp:.0f}K]")
-    
-    # Kleines interaktives Einstellmenü
-    optionen = [
-        ("depth_shading_wrap", "Wrap-Faktor für Plastizität", float),
-        ("mist_density", "Nebeldichte", float),
-        ("volumetric_gain", "Volumetrischer Gain", float),
-        ("specular_intensity", "Glanzlicht-Intensität", float),
-        ("blur_radius", "Weichzeichnungs-Radius", int),
-        ("gamma", "Gamma-Korrektur", float),
-    ]
-    
-    eingaben_rest = 5
-    while eingaben_rest > 0:
-        print("\nParameter anpassen:")
-        for i, (key, bez, _) in enumerate(optionen, 1):
-            print(f" {i}. {bez} ({key} = {getattr(params, key)})")
-        print(" 0. Neu rendern")
-        print(" q. Beenden")
-        
-        try:
-            auswahl = input("Auswahl > ").strip().lower()
-        except EOFError:
-            print("\nBeende Vorführung.")
-            break
-            
-        if auswahl in ('q', 'exit', 'ende'):
-            print("Auf Wiedersehen im herbstlichen Park!")
-            break
-        elif auswahl in ('0', 'r', 'rendern'):
-            p = render_szene(params, width=62, height=22)
-            print(zeige_bild(p, params))
-            eingaben_rest -= 1
-        else:
-            try:
-                idx = int(auswahl) - 1
-                if 0 <= idx < len(optionen):
-                    key, bez, cast_fn = optionen[idx]
-                    neu_raw = input(f"Neuer Wert für {bez} [{getattr(params, key)}]: ")
-                    setattr(params, key, cast_fn(neu_raw.strip()))
-                    print(f"{bez} gesetzt auf: {getattr(params, key)}")
-                    eingaben_rest -= 1
-                else:
-                    print("Ungültige Nummer.")
-            except (ValueError, IndexError):
-                print("Ungültige Eingabe.")
+    # Beispiel‑Lichtposition und Bäume (x, y, radius, height)
+    light_pos = (0.0, -5.0, 8.0)
+    baeume = [(-2.0, 2.0, 0.8, 3.0), (3.0, -1.0, 0.6, 2.5), (0.0, 0.0, 0.9, 4.0)]
+    # Kamera‑Richtung (orthogonal nach vorne)
+    cam_dir = (0.0, 0.0, -1.0)
+    # Bildpuffer
+    buffer = []
+    for y in range(height):
+        row = []
+        for x in range(width):
+            # Normalisiere Bildkoordinaten zu [-1,1]
+            nx = (x / (width - 1)) * 2.0 - 1.0
+            ny = (y / (height - 1)) * 2.0 - 1.0
+            # Startposition etwas über dem Boden
+            start = (nx * 5.0, ny * 5.0, 6.0)
+            col = raymarch(start, cam_dir, light_pos, baeume, params)
+            row.append(intensitaet_zu_ascii(col, params.gamma))
+        buffer.append(''.join(row))
+    for line in buffer:
+        print(line)
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    try:
+        render()
+    except EOFError:
+        print("Eingabe beendet – danke fürs Schauen!")
+        sys.exit(0)
