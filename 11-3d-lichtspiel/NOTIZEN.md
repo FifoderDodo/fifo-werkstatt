@@ -1679,3 +1679,10 @@ Gamma-Korrektur und Vibranz-Parameter in den Fragment-Shader (Raymarching-Loop) 
 [Enter=Neuer Frame, h=Hilfe, p=Parameter, q=Quit] 
 Tschüss! Der Dodo watschelt davon.
 ```
+
+## Teil 55 (23.11.2026 12:04)
+Normalen-Berechnung via Dichte-Gradient (zentrale Differenzen) im Raymarching-Loop hinzugefügt. Specular Highlights nutzen nun Blinn-Phong mit berechneten Normalen für plastische Tiefe. Neuer Parameter normal_eps steuert Schrittweite der Normalen-Abtastung. (Versuch verworfen)
+
+```
+(nach 10 Sekunden abgebrochen)
+```
