@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostige Ameise auf grauem Stein im Nebel – Studie 68
+2026-11-23
+
+![Frostige Ameise auf grauem Stein im Nebel – Studie 68](20261123-085623.svg)
+
 ### Eichhörnchen im Parkdenken – Studie 67
 2026-11-23
 
