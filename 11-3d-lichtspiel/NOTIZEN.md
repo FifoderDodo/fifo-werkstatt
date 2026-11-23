@@ -1833,3 +1833,51 @@ Die Funktion schattenfaktor_3d wurde vervollständigt (min_f-Update und Return).
 ---
 >
 ```
+
+## Teil 61 (23.11.2026 19:30)
+Die Funktion schattenfaktor_3d wurde vervollständigt und mit einer neuen Light-Decay-Formel (Potenzfunktion mit falloff_exponent) für weichere Penumbra und realistischere Tiefen ausgestattet. Fehlende Funktionen raymarch, render_frame und main-Schleife wurden hinzugefügt, sodass das Programm als interaktiver ASCII-Renderer läuft. Parameter können zur Laufzeit angepasst werden.
+
+```
+==============================
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+
+Frame: 11  |  Lichtwinkel: 0.22 rad
+
+=== 3D-Lichtspiel Parameter ===
+   1. absorption_coeff: 0.08
+   2. ambient: 0.08
+   3. blur_radius: 2
+   4. color_temp: 3200.0
+   5. depth_shading_wrap: 0.35
+   6. falloff_exponent: 2.0
+   7. falloff_start: 0.5
+   8. gamma: 0.6
+   9. jitter_enabled: 0
+  10. jitter_strength: 2.0
+  11. light_radius: 0.7
+  12. march_steps: 10
+  13. mist_density: 0.22
+  14. mist_height_falloff: 0.8
+  15. noise_seed: 42
+  16. penumbra_breite: 0.15
+  17. phase_g: 0.55
+  18. scattering_coeff: 0.45
+  19. specular_intensity: 0.7
+  20. specular_power: 18.0
+  21. umbra_dunkelheit: 0.05
+  22. vibrancy: 1.25
+  23. volumetric_gain: 2.4
+  0. Weiter (nächster Frame)
+  q. Beenden
+Wahl: 
+
+Tschüss! Der Dodo winkt zum Abschied. 🦤
+```
