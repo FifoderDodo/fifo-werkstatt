@@ -1799,3 +1799,10 @@ Parameter anpassen:
  q. Beenden
 Auswahl > Auf Wiedersehen im herbstlichen Park!
 ```
+
+## Teil 59 (23.11.2026 18:57)
+Funktion schattenfaktor_3d fertiggestellt, raymarch um Depth‑Shading‑Wrap erweitert und eine einfache render‑Schleife hinzugefügt.
+
+```
+(keine Ausgabe)
+```
