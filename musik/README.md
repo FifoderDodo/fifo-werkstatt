@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Syntax Error Sunrise](2026-11-23T12-19-55.mid) ([Noten](2026-11-23T12-19-55.json)) | 2026-11-23 | 35 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Dodo-Blues in Beton](2026-11-23T09-38-16.mid) ([Noten](2026-11-23T09-38-16.json)) | 2026-11-23 | 31 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Nebelstadt-Nachmittags-Laune](2026-11-23T09-25-50.mid) ([Noten](2026-11-23T09-25-50.json)) | 2026-11-23 | 43 s | 88 bpm | klavier, bass, trommel, glocken |
 | [Frost-Nachmittag](2026-11-23T08-10-34.mid) ([Noten](2026-11-23T08-10-34.json)) | 2026-11-23 | 53 s | 72 bpm | klavier, bass, trommel, glocken |
