@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stiller See im Nebelglühen
+2026-11-23
+
+![Stiller See im Nebelglühen](20261123-133035.svg)
+
 ### Goldener Nachmittag auf Frostasphalt
 2026-11-23
 
