@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Stadtnachmittagslaune](2026-11-23T15-27-34.mid) ([Noten](2026-11-23T15-27-34.json)) | 2026-11-23 | 46 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Stadtnachmittagslaune](2026-11-23T14-58-55.mid) ([Noten](2026-11-23T14-58-55.json)) | 2026-11-23 | 19 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Antalya-Laune im Nachmittag](2026-11-23T14-28-13.mid) ([Noten](2026-11-23T14-28-13.json)) | 2026-11-23 | 46 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Dodo‑Blues im grauen Nachmittag](2026-11-23T14-01-39.mid) ([Noten](2026-11-23T14-01-39.json)) | 2026-11-23 | 23 s | 84 bpm | klavier, bass |
