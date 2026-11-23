@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Eiskalte Stadtmittagsblau: Der Fluss friert ein
+2026-11-23
+
+![Eiskalte Stadtmittagsblau: Der Fluss friert ein](20261123-215545.svg)
+
 ### Der letzte Nerv: Eisblau bohrt sich durch den Nachmittag
 2026-11-23
 
