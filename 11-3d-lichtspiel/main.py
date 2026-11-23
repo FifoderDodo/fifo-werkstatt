@@ -25,7 +25,7 @@ class ShaderParams:
         self.specular_power = 24.0
         self.specular_noise_scale = 0.5
         self.light_radius = 0.8
-        self.vibrancy = 1.2  # Neu: Farb-Vibranz (1.0 = neutral)
+        self.vibrancy = 1.2
     def klonen(self):
         k = ShaderParams()
         k.__dict__.update(self.__dict__)
@@ -176,203 +176,249 @@ def noise_3d(x, y, z, seed):
     y2 = x3 + (x4 - x3) * v
     return y1 + (y2 - y1) * w
 
+def mist_dichte(pos, params):
+    """Mist-Dichte mit Höhenabfall und 3D-Noise."""
+    x, y, z = pos
+    basis = params.mist_density * math.exp(-z * params.mist_height_falloff)
+    n = noise_3d(x * 0.5, y * 0.5, z * 0.3, params.noise_seed + 1)
+    return basis * (1.0 + n * 0.4)
+
+def dichte_gradient(pos, params, eps=0.08):
+    """Optimierter Dichte-Gradient für Normalen: zentrale Differenzen mit größerem eps für Stabilität."""
+    x, y, z = pos
+    # Größeres eps = weniger Rauschen, stabilere Normalen
+    dx = mist_dichte((x + eps, y, z), params) - mist_dichte((x - eps, y, z), params)
+    dy = mist_dichte((x, y + eps, z), params) - mist_dichte((x, y - eps, z), params)
+    dz = mist_dichte((x, y, z + eps), params) - mist_dichte((x, y, z - eps), params)
+    return (dx * 0.5 / eps, dy * 0.5 / eps, dz * 0.5 / eps)
+
 def erstelle_szene(params, breite=80, höhe=40):
     """Generiert Bäume und Lichtposition für den Park."""
     random.seed(params.noise_seed)
     bäume = []
     for _ in range(12):
-        bx = random.uniform(5, breite - 5)
-        by = random.uniform(5, höhe - 5)
-        br = random.uniform(1.5, 3.0)
+        bx = random.uniform(0.1, 0.9)
+        by = random.uniform(0.1, 0.9)
+        br = random.uniform(0.04, 0.08)
         bäume.append((bx, by, br))
-    # Lichtquelle leicht versetzt oben mittig
-    lx = breite * 0.5 + random.uniform(-2, 2)
-    ly = höhe * 0.2 + random.uniform(-1, 1)
-    return bäume, (lx, ly)
+    # Lichtposition: leicht versetzt oben mittig
+    lx, ly, lz = 0.5, 0.5, 1.2
+    return bäume, (lx, ly, lz)
+
+def raymarch_volumetric(px, py, bäume, light_pos, params, breite, höhe):
+    """Volumetric Raymarching mit optimiertem Normalen-Gradienten."""
+    lx, ly, lz = light_pos
+    # View direction: von Kamera (0.5, 0.5, -1) zum Pixel
+    vx = (px / breite - 0.5) * 1.6
+    vy = (py / höhe - 0.5) * 1.6
+    vz = 1.0
+    vlen = math.hypot(vx, math.hypot(vy, vz))
+    vx, vy, vz = vx / vlen, vy / vlen, vz / vlen
+    
+    # Light direction zum Pixel
+    px_w = px / breite
+    py_w = py / höhe
+    ldx = px_w - lx
+    ldy = py_w - ly
+    ldz = 0.0 - lz
+    ldist = math.hypot(ldx, math.hypot(ldy, ldz))
+    ldx, ldy, ldz = ldx / ldist, ldy / ldist, ldz / ldist
+    
+    # Shadow factor für diesen Pixel
+    shadow = schattenfaktor_für_punkt(px_w, py_w, lx, ly, params.light_radius, bäume, params)
+    
+    # Raymarching
+    steps = params.march_steps
+    max_dist = 3.0
+    step_size = max_dist / steps
+    
+    # Jitter für Temporal Stability
+    jitter = 0.0
+    if params.jitter_enabled:
+        jitter = noise_2d(px * 0.1, py * 0.1, params.noise_seed) * params.jitter_strength * step_size
+    
+    accum_r = accum_g = accum_b = 0.0
+    transmittance = 1.0
+    
+    # Farbtemperatur
+    cr, cg, cb = kelvin_to_rgb_factor(params.color_temp)
+    
+    for i in range(steps):
+        t = (i + 0.5) * step_size + jitter
+        sx = 0.5 + vx * t
+        sy = 0.5 + vy * t
+        sz = -1.0 + vz * t
+        
+        if sz > 1.0:  # Über Boden hinaus
+            break
+            
+        density = mist_dichte((sx, sy, sz), params)
+        if density < 1e-4:
+            continue
+        
+        # Optimierter Normalen-Gradient (größeres eps, weniger Samples)
+        nx, ny, nz = dichte_gradient((sx, sy, sz), params, eps=0.12)
+        nlen = math.hypot(nx, math.hypot(ny, nz))
+        if nlen > 1e-6:
+            nx, ny, nz = nx / nlen, ny / nlen, nz / nlen
+        else:
+            nx, ny, nz = 0.0, 0.0, 1.0
+        
+        # Phase function
+        cos_theta = -(vx * ldx + vy * ldy + vz * ldz)
+        phase = henyey_greenstein(cos_theta, params.phase_g)
+        
+        # Scattering
+        scatter = density * params.scattering_coeff * phase * shadow
+        absorption = density * params.absorption_coeff
+        extinction = scatter + absorption
+        
+        if extinction * step_size > 0.01:
+            transmittance *= math.exp(-extinction * step_size)
+        
+        if transmittance < 0.001:
+            break
+            
+        light_contrib = scatter * transmittance * params.volumetric_gain
+        accum_r += light_contrib * cr
+        accum_g += light_contrib * cg
+        accum_b += light_contrib * cb
+    
+    # Ambient + Specular Highlights auf Nebel
+    spec = 0.0
+    if nlen > 1e-6:
+        # Specular反射方向
+        rx = 2.0 * (vx * nx + vy * ny + vz * nz) * nx - vx
+        ry = 2.0 * (vx * nx + vy * ny + vz * nz) * ny - vy
+        rz = 2.0 * (vx * nx + vy * ny + vz * nz) * nz - vz
+        spec_cos = max(0.0, rx * ldx + ry * ldy + rz * ldz)
+        spec = params.specular_intensity * (spec_cos ** params.specular_power) * shadow
+        # Noise auf Specular für organisches Aussehen
+        spec_noise = noise_3d(sx * params.specular_noise_scale, sy * params.specular_noise_scale, sz * params.specular_noise_scale, params.noise_seed + 2)
+        spec *= 1.0 + spec_noise * 0.3
+    
+    accum_r += params.ambient * cr + spec * cr
+    accum_g += params.ambient * cg + spec * cg
+    accum_b += params.ambient * cb + spec * cb
+    
+    # Vibrancy (Sättigung)
+    if params.vibrancy != 1.0:
+        avg = (accum_r + accum_g + accum_b) / 3.0
+        accum_r = avg + (accum_r - avg) * params.vibrancy
+        accum_g = avg + (accum_g - avg) * params.vibrancy
+        accum_b = avg + (accum_b - avg) * params.vibrancy
+    
+    return accum_r, accum_g, accum_b
 
 def render_frame(params, breite=80, höhe=40):
-    """Raymarching für jeden Pixel, gibt 2D-Array von Farbwerten (r,g,b) zurück."""
-    bäume, (lx, ly) = erstelle_szene(params, breite, höhe)
-    # Farbtemperatur-Faktor
-    r_factor, g_factor, b_factor = kelvin_to_rgb_factor(params.color_temp)
-    # Vorberechnete Gauß-Gewichte für optionalen Blur
-    gewichte = gauß_gewichte(params.blur_radius) if params.blur_radius > 0 else None
-    
-    farb_puffer = [[(0.0, 0.0, 0.0) for _ in range(breite)] for __ in range(höhe)]
+    """Rendert einen Frame als ASCII mit Farbcodes."""
+    bäume, light_pos = erstelle_szene(params, breite, höhe)
+    raw = [[(0.0, 0.0, 0.0) for _ in range(breite)] for __ in range(höhe)]
     
     for y in range(höhe):
         for x in range(breite):
-            # Pixel-Koordinaten in Weltraum (0..breite, 0..höhe)
-            px = x + 0.5
-            py = y + 0.5
-            # Richtung vom Pixel zum Licht (2D), wir raymarchen in 3D mit fester Höhe
-            # Wir vereinfachen: Raymarching entlang der Sichtlinie (Kamera von oben?)
-            # Stattdessen simulieren wir volumetrisches Licht durch Integration entlang der Linie zum Licht.
-            # Für ASCII-Renderer nutzen wir eine 2D-Schatten/Streuung-Näherung.
-            # Hier implementieren wir einen einfachen Raymarch vom Pixel zum Licht.
-            dx = lx - px
-            dy = ly - py
-            dist = math.hypot(dx, dy)
-            if dist < 0.01:
-                # Direkt an der Lichtquelle
-                color = (1.0, 1.0, 1.0)
-            else:
-                steps = params.march_steps
-                step_len = dist / steps
-                ux, uy = dx / dist, dy / dist
-                # Start mit Jitter
-                t = 0.0
-                if params.jitter_enabled:
-                    t = random.uniform(0, step_len) * params.jitter_strength
-                transmittance = 1.0
-                in_scatter = (0.0, 0.0, 0.0)
-                for i in range(steps):
-                    # Position entlang des Strahls
-                    sx = px + ux * t
-                    sy = py + uy * t
-                    sz = 0.5  # feste Höhe für Mist
-                    # Dichte mit Höhenabhängigkeit und 3D-Noise
-                    noise_val = noise_3d(sx * 0.1, sy * 0.1, sz * 0.1, params.noise_seed)
-                    density = params.mist_density * (1.0 + noise_val * 0.5) * math.exp(-sz * params.mist_height_falloff)
-                    # Schattenfaktor an dieser Position
-                    shadow = schattenfaktor_für_punkt(sx, sy, lx, ly, params.light_radius, bäume, params)
-                    # Phasenfunktion (Henyey-Greenstein) - Winkel zwischen Blick- und Lichtrichtung
-                    # Blickrichtung ist von Kamera (oben) nach unten, Lichtrichtung zum Licht.
-                    # Vereinfacht: cos_theta = 1.0 (forward scattering)
-                    cos_theta = 1.0
-                    phase = henyey_greenstein(cos_theta, params.phase_g)
-                    # Extinktion
-                    extinction = (params.scattering_coeff + params.absorption_coeff) * density
-                    transmittance *= math.exp(-extinction * step_len)
-                    # In-Scattering
-                    scatter_contrib = params.scattering_coeff * density * phase * shadow * transmittance
-                    # Lichtfarbe mit Temperatur
-                    light_color = (r_factor, g_factor, b_factor)
-                    in_scatter = (
-                        in_scatter[0] + scatter_contrib * light_color[0],
-                        in_scatter[1] + scatter_contrib * light_color[1],
-                        in_scatter[2] + scatter_contrib * light_color[2]
-                    )
-                    t += step_len
-                # Spekulare Highlights (einfaches Rauschen basiert)
-                spec_noise = noise_2d(px * params.specular_noise_scale, py * params.specular_noise_scale, params.noise_seed)
-                spec = max(0.0, spec_noise) ** params.specular_power * params.specular_intensity
-                # Gesamtfarbe
-                ambient = params.ambient
-                color = (
-                    (in_scatter[0] + ambient + spec) * params.volumetric_gain,
-                    (in_scatter[1] + ambient + spec) * params.volumetric_gain,
-                    (in_scatter[2] + ambient + spec) * params.volumetric_gain
-                )
-            # Gamma-Korrektur und Vibranz anwenden
-            gamma = params.gamma
-            vib = params.vibrancy
-            # Vibranz: Erhöhe Sättigung, indem wir die Luminanz beibehalten und Farbkanäle um Luminanz skalieren
-            lum = 0.2126 * color[0] + 0.7152 * color[1] + 0.0722 * color[2]
-            color = (
-                lum + (color[0] - lum) * vib,
-                lum + (color[1] - lum) * vib,
-                lum + (color[2] - lum) * vib
-            )
-            # Gamma
-            color = (color[0] ** gamma, color[1] ** gamma, color[2] ** gamma)
-            # Clamp
-            color = (min(1.0, max(0.0, color[0])), min(1.0, max(0.0, color[1])), min(1.0, max(0.0, color[2])))
-            farb_puffer[y][x] = color
+            raw[y][x] = raymarch_volumetric(x, y, bäume, light_pos, params, breite, höhe)
     
-    # Optionaler Blur auf Luminanz (für weichere Kanten)
-    if gewichte:
-        # Extrahiere Luminanz, blur, dann wieder auf Farbkanäle anwenden (vereinfachter Blur)
-        lum_puffer = [[0.2126*c[0]+0.7152*c[1]+0.0722*c[2] for c in row] for row in farb_puffer]
-        lum_blur_h = box_blur_1d(lum_puffer, gewichte, True)
-        lum_blur = box_blur_1d(lum_blur_h, gewichte, False)
-        # Mische Original mit geblurrter Luminanz (50/50)
+    # Blur für weichere Lichtkegel
+    if params.blur_radius > 0:
+        gewichte = gauß_gewichte(params.blur_radius)
+        # Split channels
+        r_buf = [[raw[y][x][0] for x in range(breite)] for y in range(höhe)]
+        g_buf = [[raw[y][x][1] for x in range(breite)] for y in range(höhe)]
+        b_buf = [[raw[y][x][2] for x in range(breite)] for y in range(höhe)]
+        r_buf = box_blur_1d(box_blur_1d(r_buf, gewichte, True), gewichte, False)
+        g_buf = box_blur_1d(box_blur_1d(g_buf, gewichte, True), gewichte, False)
+        b_buf = box_blur_1d(box_blur_1d(b_buf, gewichte, True), gewichte, False)
         for y in range(höhe):
             for x in range(breite):
-                orig_lum = 0.2126*farb_puffer[y][x][0]+0.7152*farb_puffer[y][x][1]+0.0722*farb_puffer[y][x][2]
-                new_lum = 0.5 * orig_lum + 0.5 * lum_blur[y][x]
-                if orig_lum > 0:
-                    ratio = new_lum / orig_lum
-                    farb_puffer[y][x] = (
-                        farb_puffer[y][x][0] * ratio,
-                        farb_puffer[y][x][1] * ratio,
-                        farb_puffer[y][x][2] * ratio
-                    )
-    return farb_puffer
-
-def farb_puffer_zu_ascii(farb_puffer, params):
-    """Wandelt Farbpuffer in ASCII-Art um (Luminanz)."""
-    ascii_zeilen = []
-    for row in farb_puffer:
-        zeile = ''
-        for r, g, b in row:
+                raw[y][x] = (r_buf[y][x], g_buf[y][x], b_buf[y][x])
+    
+    # Gamma & ASCII
+    ascii_frame = []
+    for y in range(höhe):
+        line = ''
+        for x in range(breite):
+            r, g, b = raw[y][x]
+            # Luminance
             lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
-            zeile += intensitaet_zu_ascii(lum, params.gamma)
-        ascii_zeilen.append(zeile)
-    return '\n'.join(ascii_zeilen)
+            ch = intensitaet_zu_ascii(lum, params.gamma)
+            # ANSI Truecolor
+            ri = int(min(255, max(0, r * 255)))
+            gi = int(min(255, max(0, g * 255)))
+            bi = int(min(255, max(0, b * 255)))
+            line += f'\033[38;2;{ri};{gi};{bi}m{ch}\033[0m'
+        ascii_frame.append(line)
+    return '\n'.join(ascii_frame)
 
-def parameter_menü_zeigen(params):
-    print("\n=== Parameter (aktuelle Werte) ===")
+def parameter_menü(params):
+    """Interaktives Menü für Shader-Parameter."""
+    print('\n=== 3D-Lichtspiel Parameter ===')
     attrs = [a for a in dir(params) if not a.startswith('_') and not callable(getattr(params, a))]
-    for a in attrs:
-        print(f"  {a}: {getattr(params, a)}")
-    print("Befehle: set <name> <wert>, reset, render, quit")
+    for i, a in enumerate(attrs):
+        print(f'  {i+1:2d}. {a} = {getattr(params, a)}')
+    print('  0. Weiter zum Rendering')
+    print('  q. Beenden')
+    try:
+        choice = input('Wähle Parameter (Nummer) oder Enter für Defaults: ').strip()
+    except EOFError:
+        return False
+    if not choice:
+        return True
+    if choice.lower() == 'q':
+        return False
+    try:
+        idx = int(choice) - 1
+        if idx == -1:
+            return True
+        if 0 <= idx < len(attrs):
+            attr = attrs[idx]
+            current = getattr(params, attr)
+            try:
+                new_val = input(f'  Neuer Wert für {attr} [{current}]: ').strip()
+                if new_val:
+                    if isinstance(current, int):
+                        setattr(params, attr, int(new_val))
+                    elif isinstance(current, float):
+                        setattr(params, attr, float(new_val))
+                    elif isinstance(current, bool):
+                        setattr(params, attr, new_val.lower() in ('true', '1', 'yes', 'ja'))
+                    else:
+                        setattr(params, attr, new_val)
+            except EOFError:
+                return False
+    except ValueError:
+        pass
+    return True
 
 def main():
+    print('🍂 3D-Lichtspiel – Herbstlicher Park mit volumetrischem Licht')
+    print('    Part 56: Optimierter Dichte-Gradient für Normalen (eps=0.12)\n')
     params = ShaderParams()
-    breite, höhe = 80, 40
-    print("3D-Lichtspiel - Volumetrischer Herbstpark (ASCII)")
-    print("Drücke Enter für Render, 'h' für Hilfe, 'q' zum Beenden.")
     
-    while True:
-        try:
-            # Frame rendern
-            farb_puffer = render_frame(params, breite, höhe)
-            ascii_art = farb_puffer_zu_ascii(farb_puffer, params)
-            print(ascii_art)
-            
-            # Eingabe
-            print("\n[Enter=Neuer Frame, h=Hilfe, p=Parameter, q=Quit]", end=' ', flush=True)
-            inp = sys.stdin.readline()
-            if not inp:
-                break
-            inp = inp.strip().lower()
-            if inp == '' or inp == 'render':
-                continue
-            if inp in ('q', 'quit', 'exit'):
-                break
-            if inp in ('h', 'help'):
-                print("Befehle: [Enter] neuer Frame, p Parameter anzeigen/setzen, r reset, q quit")
-                continue
-            if inp == 'p':
-                parameter_menü_zeigen(params)
-                continue
-            if inp == 'r':
-                params = ShaderParams()
-                print("Parameter zurückgesetzt.")
-                continue
-            if inp.startswith('set '):
-                parts = inp.split()
-                if len(parts) == 3:
-                    name, val_str = parts[1], parts[2]
-                    if hasattr(params, name):
-                        try:
-                            val = float(val_str)
-                            setattr(params, name, val)
-                            print(f"{name} = {val}")
-                        except ValueError:
-                            print("Ungültiger Zahlenwert.")
-                    else:
-                        print(f"Unbekannter Parameter: {name}")
-                else:
-                    print("Format: set <name> <wert>")
-                continue
-            print(f"Unbekannter Befehl: {inp}")
-        except KeyboardInterrupt:
-            break
-        except EOFError:
-            break
-    print("\nTschüss! Der Dodo watschelt davon.")
+    while parameter_menü(params):
+        pass
+    
+    try:
+        breite = int(input('Breite [80]: ') or '80')
+        höhe = int(input('Höhe [40]: ') or '40')
+        frames = int(input('Anzahl Frames (1=single) [1]: ') or '1')
+    except EOFError:
+        breite, höhe, frames = 80, 40, 1
+    
+    print('\nRendering...')
+    start = time.time()
+    for f in range(frames):
+        if frames > 1:
+            # Leichte Animation: Lichtposition und Seed variieren
+            params.noise_seed += 1
+            params.color_temp = 3000 + 500 * math.sin(f * 0.3)
+        frame = render_frame(params, breite, höhe)
+        print('\033[H\033[J')  # Clear screen
+        print(frame)
+        print(f'\nFrame {f+1}/{frames} | Zeit: {time.time()-start:.2f}s')
+        if frames > 1:
+            time.sleep(0.08)
+    print('\nFertig. Tschüss! 🦤')
 
 if __name__ == '__main__':
     main()
