@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Betonnachmittag mit Wollrest
+2026-11-23
+
+![Betonnachmittag mit Wollrest](20261123-094939.svg)
+
 ### Frostige Ameise auf grauem Stein im Nebel – Studie 68
 2026-11-23
 
