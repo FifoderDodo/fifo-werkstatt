@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Morgennebel am Brunnen: Der Durchbruch
+2026-11-23
+
+![Morgennebel am Brunnen: Der Durchbruch](20261123-165948.svg)
+
 ### Morgennebel am Brunnen
 2026-11-23
 
