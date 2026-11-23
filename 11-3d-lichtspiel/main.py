@@ -174,234 +174,273 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
             cy = py + uy * proj
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
-                dist_xy = math.sqrt((cx - bx) ** 2 + (cy - by) ** 2)
+                dist_xy = math.hypot(cx - bx, cy - by)
                 if dist_xy < br:
-                    # harter Schatten mit Penumbra
-                    rand = br - dist_xy
-                    penumbra = params.penumbra_breite * br
-                    if rand < penumbra:
-                        f = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * (rand / penumbra)
-                    else:
-                        f = params.umbra_dunkelheit
-                    min_f = min(min_f, f)
+                    # Penumbra basierend auf Distanz zum Stammesrand
+                    r_ratio = dist_xy / br
+                    f = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * (r_ratio ** 2)
+                    if f < min_f:
+                        min_f = f
     return min_f
 
-def raymarch_pixel(px, py, cam_pos, cam_dir, light_pos, baeume, params, t):
-    """Raymarching für einen Pixel. Gibt Intensität zurück."""
+def raymarch_pixel(px, py, pz, vx, vy, vz, light_pos, baeume, params):
+    """Raymarching für einen Pixel, gibt (r,g,b) zurück."""
     # Startpunkt etwas vor der Kamera
-    ox, oy, oz = cam_pos
-    dx, dy, dz = cam_dir
-    # Jitter für Temporal AA
-    if params.jitter_enabled:
-        jitter = (random.random() - 0.5) * 2.0 * params.jitter_strength
-        ox += jitter * 0.01
-        oy += jitter * 0.01
-    # Adaptive Step-Größe
+    ox, oy, oz = px, py, pz
+    dx, dy, dz = vx, vy, vz
+    # Lichtrichtung für Phase Function
+    lx, ly, lz = light_pos
+    # Länge des View-Rays (bis zum Boden oder max)
     max_dist = 30.0
-    steps = params.march_steps
+    step = max_dist / params.march_steps
     if params.adaptive_steps:
-        # Grobe Schätzung: weniger Steps bei dichterem Nebel
-        avg_density = mist_dichte((ox, oy, oz), params)
-        steps = int(steps * (params.min_step_factor + (1.0 - avg_density) * (params.max_step_factor - params.min_step_factor)))
-        steps = max(4, min(params.march_steps * 2, steps))
-    step_size = max_dist / steps
-    accumulated = 0.0
+        step *= params.min_step_factor
+    
     transmittance = 1.0
-    for i in range(steps):
-        # Position entlang des Strahls
-        dist = i * step_size
-        x = ox + dx * dist
-        y = oy + dy * dist
-        z = oz + dz * dist
-        if z < -0.5:  # unter Boden
+    in_scatter = (0.0, 0.0, 0.0)
+    dist_traveled = 0.0
+    
+    # Farbtemperatur des Lichts
+    light_color = kelvin_to_rgb_factor(params.color_temp)
+    
+    for i in range(params.march_steps):
+        if params.adaptive_steps and transmittance < params.early_exit_threshold:
             break
-        density = mist_dichte((x, y, z), params)
-        if density < 1e-4:
-            continue
-        # Schattenfaktor
-        shadow = schattenfaktor_3d((x, y, z), light_pos, baeume, params)
-        # Streuung (Henyey-Greenstein)
-        # Lichtrichtung vom Sample zum Licht
-        lx, ly, lz = light_pos
-        vx, vy, vz = lx - x, ly - y, lz - z
-        dist_light = math.sqrt(vx * vx + vy * vy + vz * vz)
-        if dist_light < 0.01:
-            continue
-        lx, ly, lz = vx / dist_light, vy / dist_light, vz / dist_light
-        cos_theta = dx * lx + dy * ly + dz * lz
-        phase = henyey_greenstein(cos_theta, params.phase_g)
-        # Falloff
-        falloff = 1.0 / (1.0 + (dist_light * params.falloff_start) ** params.falloff_exponent)
-        # Volumetrischer Beitrag
-        contrib = density * phase * falloff * shadow * params.scattering_coeff
-        # Absorption
-        transmittance *= math.exp(-density * params.absorption_coeff * step_size)
-        accumulated += contrib * transmittance * step_size
-        # Early Exit
-        if transmittance < params.early_exit_threshold:
-            break
-    # Ambient + Volumetric Gain
-    accumulated = (accumulated * params.volumetric_gain + params.ambient) * transmittance
-    # Specular Highlights (einfache Approximation)
-    # Wir nutzen den Gradient der Dichte als Normalen-Annäherung
-    grad = dichte_gradient((ox + dx * max_dist * 0.5, oy + dy * max_dist * 0.5, oz + dz * max_dist * 0.5), params)
-    gx, gy, gz = grad
-    spec = max(0.0, dx * gx + dy * gy + dz * gz) ** params.specular_power
-    accumulated += spec * params.specular_intensity
-    return accumulated
+        # Position entlang des Rays
+        sx = ox + dx * dist_traveled
+        sy = oy + dy * dist_traveled
+        sz = oz + dz * dist_traveled
+        
+        # Dichte an dieser Stelle
+        density = mist_dichte((sx, sy, sz), params)
+        if density > 0.0:
+            # Schattenfaktor
+            shadow = schattenfaktor_3d((sx, sy, sz), light_pos, baeume, params)
+            # Lichtrichtung von Sample zu Licht
+            lvx = lx - sx
+            lvy = ly - sy
+            lvz = lz - sz
+            ld = math.sqrt(lvx*lvx + lvy*lvy + lvz*lvz)
+            if ld > 1e-5:
+                lvx, lvy, lvz = lvx/ld, lvy/ld, lvz/ld
+                # Phase Function (Henyey-Greenstein)
+                cos_theta = dx*lvx + dy*lvy + dz*lvz
+                phase = henyey_greenstein(cos_theta, params.phase_g)
+                # Falloff
+                falloff = 1.0 / (ld*ld + 0.01)
+                if ld > params.falloff_start:
+                    falloff *= (params.falloff_start / ld) ** params.falloff_exponent
+                # Streuung
+                scatter = density * params.scattering_coeff * phase * falloff * shadow
+                # Absorption
+                absorb = density * params.absorption_coeff
+                transmittance *= math.exp(-absorb * step)
+                # In-Scattering addieren
+                in_scatter = (
+                    in_scatter[0] + light_color[0] * scatter * transmittance * step,
+                    in_scatter[1] + light_color[1] * scatter * transmittance * step,
+                    in_scatter[2] + light_color[2] * scatter * transmittance * step
+                )
+        dist_traveled += step
+        if params.adaptive_steps:
+            # Schrittweite anpassen basierend auf Dichte
+            step = max(step * params.max_step_factor, max_dist * params.min_step_factor)
+    
+    # Volumetric Gain
+    in_scatter = (in_scatter[0] * params.volumetric_gain,
+                  in_scatter[1] * params.volumetric_gain,
+                  in_scatter[2] * params.volumetric_gain)
+    # Ambient
+    in_scatter = (in_scatter[0] + params.ambient * light_color[0],
+                  in_scatter[1] + params.ambient * light_color[1],
+                  in_scatter[2] + params.ambient * light_color[2])
+    return in_scatter
 
-def render_frame(w, h, cam_pos, cam_dir, light_pos, baeume, params, t):
-    """Rendert einen Frame in einen Float-Puffer."""
-    buffer = [[0.0 for _ in range(w)] for __ in range(h)]
-    # Einfache Perspektive: FOV ~ 90 Grad
-    fov = math.pi / 2.0
-    aspect = w / h
-    for y in range(h):
-        for x in range(w):
-            # Normalisierte Koordinaten -1..1
-            nx = (x + 0.5) / w * 2.0 - 1.0
-            ny = (y + 0.5) / h * 2.0 - 1.0
-            nx *= aspect
+def render_frame(width, height, params, baeume, light_pos, cam_pos, cam_dir, fov=60.0):
+    """Rendert einen Frame in einen Float-RGB-Puffer."""
+    aspect = width / height
+    fov_rad = math.radians(fov)
+    # Kamera-Basisvektoren
+    forward = cam_dir
+    right = (forward[2], 0.0, -forward[0])  # vereinfacht, annahme: forward.y == 0
+    rlen = math.sqrt(right[0]*right[0] + right[2]*right[2])
+    if rlen < 1e-5:
+        right = (1.0, 0.0, 0.0)
+    else:
+        right = (right[0]/rlen, 0.0, right[2]/rlen)
+    up = (0.0, 1.0, 0.0)
+    
+    buffer = [[(0.0,0.0,0.0) for _ in range(width)] for __ in range(height)]
+    
+    for y in range(height):
+        for x in range(width):
+            # NDC Koordinaten
+            ndc_x = (x + 0.5) / width * 2.0 - 1.0
+            ndc_y = 1.0 - (y + 0.5) / height * 2.0
             # Ray Direction
-            dx = nx * math.tan(fov * 0.5)
-            dy = ny * math.tan(fov * 0.5)
-            dz = -1.0  # Blickrichtung -Z
-            length = math.sqrt(dx * dx + dy * dy + dz * dz)
-            dx, dy, dz = dx / length, dy / length, dz / length
-            val = raymarch_pixel(x, y, cam_pos, (dx, dy, dz), light_pos, baeume, params, t)
-            buffer[y][x] = val
+            ray_x = right[0] * ndc_x * aspect * math.tan(fov_rad/2) + forward[0] * ndc_y * math.tan(fov_rad/2) + forward[0]
+            ray_y = ndc_y * math.tan(fov_rad/2) + forward[1]
+            ray_z = right[2] * ndc_x * aspect * math.tan(fov_rad/2) + forward[2] * ndc_y * math.tan(fov_rad/2) + forward[2]
+            rlen = math.sqrt(ray_x*ray_x + ray_y*ray_y + ray_z*ray_z)
+            ray_x, ray_y, ray_z = ray_x/rlen, ray_y/rlen, ray_z/rlen
+            
+            # Jitter für Temporal AA
+            if params.jitter_enabled:
+                jitter = params.jitter_strength * (random.random() - 0.5)
+                ray_x += jitter
+                ray_y += jitter
+                ray_z += jitter
+                rlen = math.sqrt(ray_x*ray_x + ray_y*ray_y + ray_z*ray_z)
+                ray_x, ray_y, ray_z = ray_x/rlen, ray_y/rlen, ray_z/rlen
+            
+            color = raymarch_pixel(cam_pos[0], cam_pos[1], cam_pos[2],
+                                   ray_x, ray_y, ray_z,
+                                   light_pos, baeume, params)
+            buffer[y][x] = color
     return buffer
 
 def bloom_pass(buffer, params):
-    """Extrahiert helle Bereiche, blurt sie und addiert sie zurück."""
+    """Einfacher Bloom: Threshold -> Blur -> Add."""
     h, w = len(buffer), len(buffer[0])
-    # Threshold
-    bloom_src = [[0.0 for _ in range(w)] for __ in range(h)]
+    # Luminanz extrahieren
+    lum = [[0.0]*w for _ in range(h)]
     for y in range(h):
         for x in range(w):
-            val = buffer[y][x]
-            if val > params.bloom_threshold:
-                bloom_src[y][x] = (val - params.bloom_threshold) * params.bloom_intensity
-    # Gaussian Blur (separable)
+            r,g,b = buffer[y][x]
+            lum[y][x] = 0.2126*r + 0.7152*g + 0.0722*b
+    # Threshold
+    for y in range(h):
+        for x in range(w):
+            if lum[y][x] < params.bloom_threshold:
+                lum[y][x] = 0.0
+            else:
+                lum[y][x] = (lum[y][x] - params.bloom_threshold) * params.bloom_intensity
+    # Blur
     weights = gauß_gewichte(params.bloom_radius)
-    bloom_blur = box_blur_1d(bloom_src, weights, horizontal=True)
-    bloom_blur = box_blur_1d(bloom_blur, weights, horizontal=False)
+    lum = box_blur_1d(lum, weights, True)
+    lum = box_blur_1d(lum, weights, False)
     # Add back
     for y in range(h):
         for x in range(w):
-            buffer[y][x] += bloom_blur[y][x]
+            r,g,b = buffer[y][x]
+            l = lum[y][x]
+            buffer[y][x] = (r + l, g + l, b + l)
     return buffer
 
-def apply_tonemap(buffer, params):
-    """Gamma, Vibrancy, Farbtemperatur (hier nur Helligkeit)."""
+def tonemap(buffer, params):
+    """Reinhard Tonemapping + Gamma + Vibrancy."""
     h, w = len(buffer), len(buffer[0])
-    r_factor, g_factor, b_factor = kelvin_to_rgb_factor(params.color_temp)
-    # Da ASCII monochrom: mische zu Luminanz
-    lum_factor = 0.2126 * r_factor + 0.7152 * g_factor + 0.0722 * b_factor
     for y in range(h):
         for x in range(w):
-            val = buffer[y][x]
-            # Vibrancy: einfache Sättigungserhöhung (hier nur Kontrast)
-            val = val * params.vibrancy
+            r,g,b = buffer[y][x]
+            # Vibrancy: Sättigung erhöhen
+            avg = (r+g+b)/3.0
+            r = avg + (r - avg) * params.vibrancy
+            g = avg + (g - avg) * params.vibrancy
+            b = avg + (b - avg) * params.vibrancy
+            # Reinhard
+            r = r / (1.0 + r)
+            g = g / (1.0 + g)
+            b = b / (1.0 + b)
             # Gamma
-            val = val ** params.gamma
-            # Farbtemperatur als Helligkeitsmodulation
-            val *= lum_factor
-            buffer[y][x] = min(1.0, max(0.0, val))
+            r = r ** params.gamma
+            g = g ** params.gamma
+            b = b ** params.gamma
+            buffer[y][x] = (r,g,b)
     return buffer
 
 def buffer_to_ascii(buffer, params):
-    h, w = len(buffer), len(buffer[0])
+    """Konvertiert RGB-Buffer in ASCII-Zeilen."""
     lines = []
-    for y in range(h):
-        line = ''.join(intensitaet_zu_ascii(buffer[y][x], params.gamma) for x in range(w))
+    for row in buffer:
+        line = ''
+        for r,g,b in row:
+            # Luminanz
+            lum = 0.2126*r + 0.7152*g + 0.0722*b
+            line += intensitaet_zu_ascii(lum, params.gamma)
         lines.append(line)
-    return '\n'.join(lines)
+    return lines
 
 def main():
-    print("🦤 Fifo's 3D-Lichtspiel – Herbstpark Edition")
-    print("Drücke Enter für nächsten Frame, 'q' zum Beenden, oder ändere Parameter (z.B. 'mist_density 0.3').")
-    print("Verfügbar: " + ', '.join([k for k in ShaderParams().__dict__.keys() if not k.startswith('_')]))
-    
-    params = ShaderParams()
-    w, h = 80, 40
-    
-    # Szene: Bäume als (x, y, radius, height)
     random.seed(12345)
-    baeume = []
-    for _ in range(12):
-        bx = random.uniform(-10, 10)
-        by = random.uniform(-10, 10)
-        br = random.uniform(0.4, 1.0)
-        bh = random.uniform(2.0, 5.0)
-        baeume.append((bx, by, br, bh))
+    params = ShaderParams()
     
-    cam_pos = (0.0, -8.0, 1.8)
-    light_angle = 0.0
+    # Szene: Bäume (x, y, radius, height)
+    baeume = [
+        (-3.0, -2.0, 0.5, 4.0),
+        (4.0, 3.0, 0.7, 5.0),
+        (-5.0, 5.0, 0.6, 3.5),
+        (2.0, -4.0, 0.4, 3.0),
+        (0.0, 6.0, 0.8, 6.0),
+        (-7.0, -1.0, 0.5, 4.5),
+    ]
+    light_pos = (0.0, 0.0, 8.0)
+    cam_pos = (0.0, -10.0, 2.0)
+    cam_dir = (0.0, 1.0, -0.2)  # leicht nach unten
+    clen = math.sqrt(cam_dir[0]**2 + cam_dir[1]**2 + cam_dir[2]**2)
+    cam_dir = (cam_dir[0]/clen, cam_dir[1]/clen, cam_dir[2]/clen)
+    
+    width, height = 80, 40
+    
+    print("3D-Lichtspiel – Volumetrisches Licht im herbstlichen Park")
+    print("Drücke Enter für nächsten Frame, 'q' zum Beenden.")
+    print("Parameter: [p] Penumbra, [u] Umbra, [g] Gain, [m] Mist, [b] Bloom")
+    
     frame = 0
-    max_inputs = 20
-    inputs_used = 0
-    
     try:
-        while inputs_used < max_inputs:
-            t = time.time()
-            # Kamera leicht schweben
-            cam_x = cam_pos[0] + math.sin(t * 0.1) * 0.3
-            cam_y = cam_pos[1] + math.cos(t * 0.07) * 0.2
-            cam_z = cam_pos[2] + math.sin(t * 0.05) * 0.1
-            current_cam = (cam_x, cam_y, cam_z)
-            # Licht umherwandern
-            light_r = 6.0
-            light_angle += 0.015
-            light_pos = (math.sin(light_angle) * light_r,
-                         math.cos(light_angle) * light_r,
-                         4.0 + math.sin(t * 0.2) * 0.5)
-            # Blickrichtung: zum Licht hin (leicht versetzt)
-            dx = light_pos[0] - current_cam[0]
-            dy = light_pos[1] - current_cam[1]
-            dz = light_pos[2] - current_cam[2]
-            dist = math.sqrt(dx*dx + dy*dy + dz*dz)
-            cam_dir = (dx/dist, dy/dist, dz/dist)
+        while True:
+            # Leichtes Wackeln der Lichtquelle
+            light_pos = (math.sin(frame*0.07)*1.5, math.cos(frame*0.05)*1.5, 8.0)
             
-            buffer = render_frame(w, h, current_cam, cam_dir, light_pos, baeume, params, t)
+            buffer = render_frame(width, height, params, baeume, light_pos, cam_pos, cam_dir)
             buffer = bloom_pass(buffer, params)
-            buffer = apply_tonemap(buffer, params)
-            ascii_art = buffer_to_ascii(buffer, params)
+            buffer = tonemap(buffer, params)
+            ascii_lines = buffer_to_ascii(buffer, params)
             
-            print(f'\nFrame {frame} | Licht: ({light_pos[0]:.1f},{light_pos[1]:.1f},{light_pos[2]:.1f}) | Cam: ({current_cam[0]:.1f},{current_cam[1]:.1f},{current_cam[2]:.1f})')
-            print(ascii_art)
+            # Clear screen (ANSI)
+            print("\033[H\033[J", end='')
+            for line in ascii_lines:
+                print(line)
+            print(f"Frame: {frame}  Licht: ({light_pos[0]:.1f},{light_pos[1]:.1f},{light_pos[2]:.1f})")
+            print("Befehle: [Enter] weiter, [q] quit, [p/u/g/m/b] Parameter ändern")
             
-            try:
-                inp = input('> ').strip()
-            except EOFError:
-                print('\n🦤 Tschüss, der Dodo schläft weiter.')
+            inp = input().strip().lower()
+            if inp == 'q':
                 break
-            
-            if not inp:
-                frame += 1
-                continue
-            if _norm(inp) in ('q', 'quit', 'exit'):
-                print('🦤 Gute Nacht!')
-                break
-            # Parameter setzen
-            parts = inp.split()
-            if len(parts) == 2:
-                key, val_str = parts[0], parts[1]
-                if hasattr(params, key):
-                    try:
-                        val = float(val_str)
-                        setattr(params, key, val)
-                        print(f'✅ {key} = {val}')
-                    except ValueError:
-                        print(f'❌ Ungültiger Wert für {key}')
-                else:
-                    print(f'❌ Unbekannter Parameter: {key}')
-            else:
-                print('❓ Befehl nicht verstanden. Format: <param> <wert> oder Enter für nächsten Frame.')
-            inputs_used += 1
+            elif inp == 'p':
+                try:
+                    val = float(input("Penumbra-Breite (0.05-0.5): "))
+                    params.penumbra_breite = max(0.05, min(0.5, val))
+                except:
+                    pass
+            elif inp == 'u':
+                try:
+                    val = float(input("Umbra-Dunkelheit (0.0-0.5): "))
+                    params.umbra_dunkelheit = max(0.0, min(0.5, val))
+                except:
+                    pass
+            elif inp == 'g':
+                try:
+                    val = float(input("Volumetric Gain (0.5-5.0): "))
+                    params.volumetric_gain = max(0.5, min(5.0, val))
+                except:
+                    pass
+            elif inp == 'm':
+                try:
+                    val = float(input("Mist-Dichte (0.05-0.5): "))
+                    params.mist_density = max(0.05, min(0.5, val))
+                except:
+                    pass
+            elif inp == 'b':
+                try:
+                    val = float(input("Bloom-Intensity (0.0-1.0): "))
+                    params.bloom_intensity = max(0.0, min(1.0, val))
+                except:
+                    pass
             frame += 1
-    except KeyboardInterrupt:
-        print('\n🦤 Aufgewacht!')
+    except EOFError:
+        pass
+    print("\nDodo schläft weiter... Gute Nacht!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
