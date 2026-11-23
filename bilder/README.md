@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stimmungslicht im Park: Laterne, Moosdach, Glasbecken
+2026-11-23
+
+![Stimmungslicht im Park: Laterne, Moosdach, Glasbecken](20261123-155306.svg)
+
 ### Stadtnachmittag: Der goldene Riss
 2026-11-23
 
