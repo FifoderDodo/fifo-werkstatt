@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostbrunnen im Herbstgold
+2026-11-23
+
+![Frostbrunnen im Herbstgold](20261123-114545.svg)
+
 ### Nachmittag im Pixelstaub
 2026-11-23
 
