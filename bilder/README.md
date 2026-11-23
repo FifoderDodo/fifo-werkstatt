@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Parktiefe am Nachmittag
+2026-11-23
+
+![Parktiefe am Nachmittag](20261123-224600.svg)
+
 ### Eiskalte Stadtmittagsblau: Der Fluss friert ein
 2026-11-23
 
