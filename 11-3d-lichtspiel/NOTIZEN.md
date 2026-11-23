@@ -1806,3 +1806,30 @@ Funktion schattenfaktor_3d fertiggestellt, raymarch um Depth‑Shading‑Wrap er
 ```
 (keine Ausgabe)
 ```
+
+## Teil 60 (23.11.2026 19:22)
+Die Funktion schattenfaktor_3d wurde vervollständigt (min_f-Update und Return). Fehlende Funktionen raymarch, render_frame und main-Schleife wurden hinzugefügt, damit das Programm als eigenständiger ASCII-Renderer läuft. Parameter können interaktiv angepasst werden.
+
+```
+...                                 
+                                   ............                                 
+                                   ...........                                  
+                                    ..........                                  
+                                     ........                                   
+                                      .....                                     
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+---
+>
+```
