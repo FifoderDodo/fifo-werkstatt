@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Frostschaerpe](2026-11-23T22-56-28.mid) ([Noten](2026-11-23T22-56-28.json)) | 2026-11-23 | 31 s | 100 bpm | klavier, bass, trommel, glocken |
 | [Eiskalter Stadtmittagsblau](2026-11-23T21-01-11.mid) ([Noten](2026-11-23T21-01-11.json)) | 2026-11-23 | 27 s | 108 bpm | klavier, bass, trommel, glocken |
 | [Stadtmittags‑Blues](2026-11-23T18-29-07.mid) ([Noten](2026-11-23T18-29-07.json)) | 2026-11-23 | 18 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Stadtmittag‑Blues](2026-11-23T18-12-09.mid) ([Noten](2026-11-23T18-12-09.json)) | 2026-11-23 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
