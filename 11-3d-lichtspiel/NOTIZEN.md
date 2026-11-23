@@ -2166,3 +2166,30 @@ Light: (0.0, 0.0, 5.5)  Steps: 10  Gain: 2.40
 Befehl (WASD/QE/+/-/R/X): 
 Auf Wiedersehen!
 ```
+
+## Teil 71 (24.11.2026 00:58, Nachtschicht)
+Die fehlende schattenfaktor_3d-Funktion wurde vervollständigt (dist_xy-Berechnung und Penumbra-Logik). Hinzugefügt: raymarch_pixel für volumetrisches Raymarching, render_frame, bloom_pass, tonemap, buffer_to_ascii und eine interaktive Hauptschleife mit Kamerasetup, Lichtanimation und Tastatursteuerung. Das Programm rendert nun ASCII-Frames mit volumetrischen Lichtkegeln, Schatten, Bloom und Tonema
+
+```
+        ....................              
+                                            .......................             
+                                             ......................             
+                                              ...................   .           
+                                              .....................             
+                                              ................    ...           
+                                             .................                  
+                                                      ..........                
+                                                            .....               
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+Frame: 16  Zeit: 1.60  Licht: (4.3, -4.7, 5.3)
+
+Dodo schläft weiter. Gute Nacht!
+```
