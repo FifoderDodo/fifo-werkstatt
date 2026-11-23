@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Goldener Nachmittag auf Frostasphalt
+2026-11-23
+
+![Goldener Nachmittag auf Frostasphalt](20261123-130435.svg)
+
 ### Kobaltschacht am Nachmittag
 2026-11-23
 
