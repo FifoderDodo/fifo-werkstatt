@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Kobaltschacht am Nachmittag
+2026-11-23
+
+![Kobaltschacht am Nachmittag](20261123-122611.svg)
+
 ### Frostbrunnen im Herbstgold
 2026-11-23
 
