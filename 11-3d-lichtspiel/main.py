@@ -176,132 +176,77 @@ def noise_3d(x, y, z, seed):
     return y1 + (y2 - y1) * w
 
 def erstelle_szene(params, breite=80, höhe=40):
-    """Generiert Bäume, Lichtposition und z-Buffer für den Park."""
+    """Generiert Bäume und Lichtposition für den Park."""
     random.seed(params.noise_seed)
     bäume = []
     for _ in range(12):
-        bx = random.uniform(10, breite - 10)
+        bx = random.uniform(5, breite - 5)
         by = random.uniform(5, höhe - 5)
-        br = random.uniform(0.5, 2.0)
+        br = random.uniform(2.0, 5.0)
         bäume.append((bx, by, br))
-    # Lichtposition etwas links oben
-    light_x = random.uniform(15, breite - 15)
-    light_y = random.uniform(5, höhe // 2)
-    # Einfacher z-Buffer: flacher Boden, Bäume als hohe Säulen
-    z_buffer = [[0.0 for _ in range(breite)] for __ in range(höhe)]
-    for y in range(höhe):
-        for x in range(breite):
-            z_buffer[y][x] = 0.0  # Bodenhöhe
-    return bäume, (light_x, light_y), z_buffer
+    licht_x = breite / 2.0
+    licht_y = 5.0
+    return bäume, licht_x, licht_y
 
-def render_frame(params, breite, höhe, bäume, light_pos, z_buffer):
-    """Rendert ein Frame mit volumetrischem Licht und Schatten."""
-    lx, ly = light_pos
-    # Farbfaktoren für Lichttemperatur
-    rf, gf, bf = kelvin_to_rgb_factor(params.color_temp)
-    # Vorberechnung: Gauß-Gewichte für Blur
-    gewichte = gauß_gewichte(params.blur_radius)
-    # Rohes Licht-Buffer (nur Intensität)
-    raw = [[0.0 for _ in range(breite)] for __ in range(höhe)]
-    # Für jeden Pixel: Raymarching vom Boden zum Licht (vereinfacht)
+def rendere_frame(params, breite=60, höhe=25):
+    bäume, licht_x, licht_y = erstelle_szene(params, breite, höhe)
+    puffer = [[0.0 for _ in range(breite)] for __ in range(höhe)]
+    
+    # Raymarching durch das volumetrische Lichtfeld
     for y in range(höhe):
         for x in range(breite):
-            # Weltkoordinaten des Pixels (Boden)
-            px, py = float(x), float(y)
-            # Schattenfaktor vom Licht zu diesem Punkt
-            shadow = schattenfaktor_für_punkt(px, py, lx, ly, params.light_radius, bäume, params)
-            # Distanz zum Licht
-            dx, dy = lx - px, ly - py
+            # Strahl vom Licht zur aktuellen Pixelkoordinate
+            dx = x - licht_x
+            dy = y - licht_y
             dist = math.hypot(dx, dy)
             if dist < 0.01:
-                dist = 0.01
-            # Falloff
-            falloff = 1.0 / (1.0 + (dist * params.falloff_start) ** params.falloff_exponent)
-            # Volumetrisches Streulicht (einfaches Raymarching entlang der Blickrichtung?)
-            # Wir approximieren: Streulicht proportional zu Schatten * Falloff * Mist-Dichte
-            mist = params.mist_density * math.exp(-py * params.mist_height_falloff / höhe)
-            volumetric = shadow * falloff * mist * params.volumetric_gain
-            # Spekularer Glanz auf dem Boden (Noise-basiert)
-            spec = 0.0
-            if params.specular_intensity > 0:
-                n = noise_2d(px * params.specular_noise_scale, py * params.specular_noise_scale, params.noise_seed)
-                spec = max(0.0, n) ** params.specular_power * params.specular_intensity
-            # Gesamtintensität
-            intensity = params.ambient + volumetric + spec
-            raw[y][x] = intensity
-    # Blur horizontal + vertikal für weiche Lichtkegel
-    blurred = box_blur_1d(raw, gewichte, True)
-    blurred = box_blur_1d(blurred, gewichte, False)
-    # Gamma-Korrektur und ASCII-Umwandlung
-    frame = []
+                continue
+            ux, uy = dx / dist, dy / dist
+            
+            s_accum = 0.0
+            steps = params.march_steps
+            step_size = dist / steps
+            
+            for s in range(steps):
+                t = s * step_size
+                qx = licht_x + ux * t
+                qy = licht_y + uy * t
+                
+                # Dämpfung und Nebelberechnung
+                falloff = 1.0 / (1.0 + params.falloff_exponent * (t - params.falloff_start) ** 2) if t > params.falloff_start else 1.0
+                falloff = max(0.0, falloff)
+                
+                # Schatten einbeziehen
+                schatten = schattenfaktor_für_punkt(licht_x, licht_y, qx, qy, params.light_radius, bäume, params)
+                
+                # Noise für Nebelstrukturen
+                nval = noise_3d(qx * 0.1, qy * 0.1, t * 0.05, params.noise_seed)
+                nebel = params.mist_density * (1.0 + nval * params.jitter_strength)
+                
+                s_accum += falloff * schatten * nebel * step_size
+            
+            puffer[y][x] = s_accum * params.volumetric_gain
+            
+    if params.blur_radius > 0:
+        gewichte = gauß_gewichte(params.blur_radius)
+        puffer = box_blur_1d(puffer, gewichte, horizontal=True)
+        puffer = box_blur_1d(puffer, gewichte, horizontal=False)
+        
+    ausgabe = []
     for y in range(höhe):
-        line = []
-        for x in range(breite):
-            val = blurred[y][x]
-            # Farbkanäle getrennt? Wir nutzen nur Intensität für ASCII.
-            ch = intensitaet_zu_ascii(val, params.gamma)
-            line.append(ch)
-        frame.append(''.join(line))
-    return frame
+        zeile = "".join(intensitaet_zu_ascii(puffer[y][x], params.gamma) for x in range(breite))
+        ausgabe.append(zeile)
+    return "\n".join(ausgabe)
 
-def main():
+def hauptschleife():
     params = ShaderParams()
-    breite, höhe = 80, 40
-    bäume, light_pos, z_buffer = erstelle_szene(params, breite, höhe)
-    frame_count = 0
-    start_time = time.time()
-    print("3D-Lichtspiel – Drücke Enter für nächsten Frame, 'q' zum Beenden.")
-    try:
-        while True:
-            # Eingabe prüfen (non-blocking)
-            ready, _, _ = select.select([sys.stdin], [], [], 0.0)
-            if ready:
-                line = sys.stdin.readline()
-                if not line:
-                    break
-                cmd = _norm(line)
-                if cmd in ('q', 'quit', 'exit'):
-                    break
-                # Einfache Parameteränderungen
-                if cmd.startswith('r'):  # Radius
-                    try:
-                        val = float(cmd.split()[1])
-                        params.light_radius = max(0.1, min(5.0, val))
-                    except:
-                        pass
-                elif cmd.startswith('m'):  # March steps
-                    try:
-                        val = int(cmd.split()[1])
-                        params.march_steps = max(4, min(64, val))
-                    except:
-                        pass
-                elif cmd.startswith('s'):  # Seed
-                    try:
-                        val = int(cmd.split()[1])
-                        params.noise_seed = val
-                        bäume, light_pos, z_buffer = erstelle_szene(params, breite, höhe)
-                    except:
-                        pass
-            # Frame rendern
-            frame_start = time.time()
-            frame = render_frame(params, breite, höhe, bäume, light_pos, z_buffer)
-            frame_time = (time.time() - frame_start) * 1000
-            # Ausgabe
-            sys.stdout.write('\033[H\033[J')  # Clear screen
-            for line in frame:
-                print(line)
-            print(f"Frame: {frame_count}  Zeit: {frame_time:.1f}ms  Licht: ({light_pos[0]:.1f},{light_pos[1]:.1f})")
-            sys.stdout.flush()
-            frame_count += 1
-            # Begrenzen auf 30 Frames für Test
-            if frame_count >= 30:
-                break
-    except EOFError:
-        pass
-    except KeyboardInterrupt:
-        pass
-    finally:
-        print("\nBis bald im herbstlichen Park!")
+    print("Fifo startet das 3D-Lichtspiel im herbstlichen Park...")
+    for frame in range(5):
+        print(f"--- Frame {frame+1} ---")
+        bild = rendere_frame(params, 50, 20)
+        print(bild)
+        time.sleep(0.1)
+    print("Simulation erfolgreich durchgelaufen!")
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    hauptschleife()
