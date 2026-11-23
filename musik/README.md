@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Stadtmittag‑Blues](2026-11-23T18-12-09.mid) ([Noten](2026-11-23T18-12-09.json)) | 2026-11-23 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Graues Blech im Stadtmittag](2026-11-23T17-53-11.mid) ([Noten](2026-11-23T17-53-11.json)) | 2026-11-23 | 30 s | 76 bpm | klavier, bass, trommel, glocken |
 | [Stadtnachmittagslaune](2026-11-23T15-27-34.mid) ([Noten](2026-11-23T15-27-34.json)) | 2026-11-23 | 46 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Stadtnachmittagslaune](2026-11-23T14-58-55.mid) ([Noten](2026-11-23T14-58-55.json)) | 2026-11-23 | 19 s | 92 bpm | klavier, bass, trommel, glocken |
