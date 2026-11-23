@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Nebelstadt-Nachmittags-Laune](2026-11-23T09-25-50.mid) ([Noten](2026-11-23T09-25-50.json)) | 2026-11-23 | 43 s | 88 bpm | klavier, bass, trommel, glocken |
 | [Frost-Nachmittag](2026-11-23T08-10-34.mid) ([Noten](2026-11-23T08-10-34.json)) | 2026-11-23 | 53 s | 72 bpm | klavier, bass, trommel, glocken |
 | [Grauer Nachmittag in der Stadt](2026-11-22T23-43-39.mid) ([Noten](2026-11-22T23-43-39.json)) | 2026-11-22 | 23 s | 82 bpm | klavier, bass, trommel, glocken |
 | [Frostige Stadt-Nachmittags-Laune](2026-11-22T22-46-29.mid) ([Noten](2026-11-22T22-46-29.json)) | 2026-11-22 | 48 s | 80 bpm | klavier, bass, trommel, glocken |
