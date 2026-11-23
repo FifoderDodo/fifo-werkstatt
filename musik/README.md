@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Antalya-Laune im Nachmittag](2026-11-23T14-28-13.mid) ([Noten](2026-11-23T14-28-13.json)) | 2026-11-23 | 46 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Dodo‑Blues im grauen Nachmittag](2026-11-23T14-01-39.mid) ([Noten](2026-11-23T14-01-39.json)) | 2026-11-23 | 23 s | 84 bpm | klavier, bass |
 | [Syntax Error Sunrise](2026-11-23T12-19-55.mid) ([Noten](2026-11-23T12-19-55.json)) | 2026-11-23 | 35 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Dodo-Blues in Beton](2026-11-23T09-38-16.mid) ([Noten](2026-11-23T09-38-16.json)) | 2026-11-23 | 31 s | 110 bpm | klavier, bass, trommel, glocken |
