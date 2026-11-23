@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Eichhörnchen im Parkdenken – Studie 67
+2026-11-23
+
+![Eichhörnchen im Parkdenken – Studie 67](20261123-084848.svg)
+
 ### Nachmittag frißt Morgen nicht
 2026-11-22
 
