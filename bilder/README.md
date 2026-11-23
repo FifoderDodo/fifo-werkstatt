@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stimmungslicht im Park
+2026-11-23
+
+![Stimmungslicht im Park](20261123-160206.svg)
+
 ### Stimmungslicht im Park: Laterne, Moosdach, Glasbecken
 2026-11-23
 
