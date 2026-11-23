@@ -19,7 +19,7 @@ class ShaderParams:
         self.jitter_strength = 0.12
         self.phase_g = 0.6
         self.noise_seed = 42
-        self.march_steps = 24
+        self.march_steps = 16  # reduziert für Performance
         self.jitter_enabled = True
         self.specular_intensity = 0.6
         self.specular_power = 24.0
@@ -182,136 +182,126 @@ def erstelle_szene(params, breite=80, höhe=40):
     for _ in range(12):
         bx = random.uniform(10, breite - 10)
         by = random.uniform(5, höhe - 5)
-        br = random.uniform(1.5, 3.0)
+        br = random.uniform(0.5, 2.0)
         bäume.append((bx, by, br))
-    light_x = breite / 2.0
-    light_y = höhe / 2.0
+    # Lichtposition etwas links oben
+    light_x = random.uniform(15, breite - 15)
+    light_y = random.uniform(5, höhe // 2)
+    # Einfacher z-Buffer: flacher Boden, Bäume als hohe Säulen
     z_buffer = [[0.0 for _ in range(breite)] for __ in range(höhe)]
     for y in range(höhe):
         for x in range(breite):
-            z_buffer[y][x] = noise_2d(x * 0.1, y * 0.1, params.noise_seed) * 0.5
+            z_buffer[y][x] = 0.0  # Bodenhöhe
     return bäume, (light_x, light_y), z_buffer
 
-def render_frame(params, bäume, light_pos, z_buffer, breite=80, höhe=40, frame_time=0.0):
-    """Berechnet einen Frame mit volumetrischem Licht und Schatten."""
+def render_frame(params, breite, höhe, bäume, light_pos, z_buffer):
+    """Rendert ein Frame mit volumetrischem Licht und Schatten."""
     lx, ly = light_pos
-    # Light-Orbit für Animation
-    orbit_radius = min(breite, höhe) * 0.35
-    lx = breite / 2.0 + math.sin(frame_time * 0.7) * orbit_radius
-    ly = höhe / 2.0 + math.cos(frame_time * 0.5) * orbit_radius
-    light_pos = (lx, ly)
-    
-    # Direkte Beleuchtung pro Pixel
-    direct = [[0.0 for _ in range(breite)] for __ in range(höhe)]
+    # Farbfaktoren für Lichttemperatur
+    rf, gf, bf = kelvin_to_rgb_factor(params.color_temp)
+    # Vorberechnung: Gauß-Gewichte für Blur
+    gewichte = gauß_gewichte(params.blur_radius)
+    # Rohes Licht-Buffer (nur Intensität)
+    raw = [[0.0 for _ in range(breite)] for __ in range(höhe)]
+    # Für jeden Pixel: Raymarching vom Boden zum Licht (vereinfacht)
     for y in range(höhe):
         for x in range(breite):
-            dx = x - lx
-            dy = y - ly
+            # Weltkoordinaten des Pixels (Boden)
+            px, py = float(x), float(y)
+            # Schattenfaktor vom Licht zu diesem Punkt
+            shadow = schattenfaktor_für_punkt(px, py, lx, ly, params.light_radius, bäume, params)
+            # Distanz zum Licht
+            dx, dy = lx - px, ly - py
             dist = math.hypot(dx, dy)
             if dist < 0.01:
-                direct[y][x] = 1.0
-                continue
-            shadow = schattenfaktor_für_punkt(x, y, lx, ly, params.light_radius, bäume, params)
+                dist = 0.01
+            # Falloff
             falloff = 1.0 / (1.0 + (dist * params.falloff_start) ** params.falloff_exponent)
-            direct[y][x] = falloff * shadow
-    
-    # Volumetrisches Streulicht (einfaches Raymarching entlang der Blickrichtung -z)
-    vol = [[0.0 for _ in range(breite)] for __ in range(höhe)]
-    for y in range(höhe):
-        for x in range(breite):
-            # Blickstrahl von Kamera (weit weg) zum Pixel (x,y,0)
-            # Wir marschieren von der Kamera zum Pixel und accumulieren Streulicht
-            # Vereinfacht: wir nehmen die direkte Beleuchtung am Pixel und streuen sie in der Nähe
-            pass  # Wird unten durch Blur approximiert
-    
-    # Streulicht durch mehrfaches Blur der direkten Beleuchtung simulieren
-    gewichte = gauß_gewichte(params.blur_radius)
-    scatter = direct
-    for _ in range(2):
-        scatter = box_blur_1d(scatter, gewichte, True)
-        scatter = box_blur_1d(scatter, gewichte, False)
-    
-    # Nebel-Rauschen hinzufügen
-    for y in range(höhe):
-        for x in range(breite):
-            mist = noise_3d(x * 0.05, y * 0.05, frame_time * 0.2, params.noise_seed)
-            mist = (mist + 1.0) * 0.5 * params.mist_density
-            height_factor = 1.0 - (y / höhe) * params.mist_height_falloff
-            scatter[y][x] += mist * height_factor
-    
-    # Kombinieren: direct + volumetric_gain * scatter
-    combined = [[0.0 for _ in range(breite)] for __ in range(höhe)]
-    for y in range(höhe):
-        for x in range(breite):
-            combined[y][x] = direct[y][x] + params.volumetric_gain * scatter[y][x]
-            combined[y][x] = min(1.0, combined[y][x] + params.ambient)
-    
-    # Farbtemperatur anwenden (einfache Intensitäts-Modulation)
-    r_factor, g_factor, b_factor = kelvin_to_rgb_factor(params.color_temp)
-    # Wir nutzen nur die Grün-Komponente als Luminanz-Näherung für ASCII
-    
-    # Gamma-Korrektur und ASCII-Umsetzung
-    ascii_frame = []
+            # Volumetrisches Streulicht (einfaches Raymarching entlang der Blickrichtung?)
+            # Wir approximieren: Streulicht proportional zu Schatten * Falloff * Mist-Dichte
+            mist = params.mist_density * math.exp(-py * params.mist_height_falloff / höhe)
+            volumetric = shadow * falloff * mist * params.volumetric_gain
+            # Spekularer Glanz auf dem Boden (Noise-basiert)
+            spec = 0.0
+            if params.specular_intensity > 0:
+                n = noise_2d(px * params.specular_noise_scale, py * params.specular_noise_scale, params.noise_seed)
+                spec = max(0.0, n) ** params.specular_power * params.specular_intensity
+            # Gesamtintensität
+            intensity = params.ambient + volumetric + spec
+            raw[y][x] = intensity
+    # Blur horizontal + vertikal für weiche Lichtkegel
+    blurred = box_blur_1d(raw, gewichte, True)
+    blurred = box_blur_1d(blurred, gewichte, False)
+    # Gamma-Korrektur und ASCII-Umwandlung
+    frame = []
     for y in range(höhe):
         line = []
         for x in range(breite):
-            val = combined[y][x] ** params.gamma
-            line.append(intensitaet_zu_ascii(val, params.gamma))
-        ascii_frame.append(''.join(line))
-    return ascii_frame, light_pos
+            val = blurred[y][x]
+            # Farbkanäle getrennt? Wir nutzen nur Intensität für ASCII.
+            ch = intensitaet_zu_ascii(val, params.gamma)
+            line.append(ch)
+        frame.append(''.join(line))
+    return frame
 
 def main():
-    print("Dodos 3D-Lichtspiel im herbstlichen Park startet...")
     params = ShaderParams()
     breite, höhe = 80, 40
     bäume, light_pos, z_buffer = erstelle_szene(params, breite, höhe)
-    frame_time = 0.0
-    max_frames = 120
     frame_count = 0
-    
-    # Nicht-blockierende Eingabe für Interaktion
-    while frame_count < max_frames:
-        # Prüfen auf Tastendruck (Timeout 0)
-        ready, _, _ = select.select([sys.stdin], [], [], 0)
-        if ready:
-            try:
-                key = sys.stdin.readline()
-                if not key:
+    start_time = time.time()
+    print("3D-Lichtspiel – Drücke Enter für nächsten Frame, 'q' zum Beenden.")
+    try:
+        while True:
+            # Eingabe prüfen (non-blocking)
+            ready, _, _ = select.select([sys.stdin], [], [], 0.0)
+            if ready:
+                line = sys.stdin.readline()
+                if not line:
                     break
-                key = _norm(key)
-                if key in ('q', 'quit', 'exit'):
+                cmd = _norm(line)
+                if cmd in ('q', 'quit', 'exit'):
                     break
-                elif key in ('h', 'help', '?'):
-                    print("Tasten: q=quit, +=blur++, -=blur--, g=gamma+, G=gamma-")
-                elif key == '+':
-                    params.blur_radius = min(10, params.blur_radius + 1)
-                elif key == '-':
-                    params.blur_radius = max(0, params.blur_radius - 1)
-                elif key == 'g':
-                    params.gamma = min(1.5, params.gamma + 0.05)
-                elif key == 'G':
-                    params.gamma = max(0.1, params.gamma - 0.05)
-            except EOFError:
+                # Einfache Parameteränderungen
+                if cmd.startswith('r'):  # Radius
+                    try:
+                        val = float(cmd.split()[1])
+                        params.light_radius = max(0.1, min(5.0, val))
+                    except:
+                        pass
+                elif cmd.startswith('m'):  # March steps
+                    try:
+                        val = int(cmd.split()[1])
+                        params.march_steps = max(4, min(64, val))
+                    except:
+                        pass
+                elif cmd.startswith('s'):  # Seed
+                    try:
+                        val = int(cmd.split()[1])
+                        params.noise_seed = val
+                        bäume, light_pos, z_buffer = erstelle_szene(params, breite, höhe)
+                    except:
+                        pass
+            # Frame rendern
+            frame_start = time.time()
+            frame = render_frame(params, breite, höhe, bäume, light_pos, z_buffer)
+            frame_time = (time.time() - frame_start) * 1000
+            # Ausgabe
+            sys.stdout.write('\033[H\033[J')  # Clear screen
+            for line in frame:
+                print(line)
+            print(f"Frame: {frame_count}  Zeit: {frame_time:.1f}ms  Licht: ({light_pos[0]:.1f},{light_pos[1]:.1f})")
+            sys.stdout.flush()
+            frame_count += 1
+            # Begrenzen auf 30 Frames für Test
+            if frame_count >= 30:
                 break
-        
-        frame, light_pos = render_frame(params, bäume, light_pos, z_buffer, breite, höhe, frame_time)
-        # Bildschirm löschen und Frame zeichnen
-        sys.stdout.write("\033[H\033[J")  # ANSI clear screen
-        for line in frame:
-            sys.stdout.write(line + "\n")
-        sys.stdout.write(f"Frame {frame_count+1}/{max_frames} | Blur={params.blur_radius} Gamma={params.gamma:.2f} | Drücke 'q' zum Beenden\n")
-        sys.stdout.flush()
-        frame_time += 0.08
-        frame_count += 1
-        time.sleep(0.05)
-    
-    print("\nDodo watschelt davon. Tschüss!")
+    except EOFError:
+        pass
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("\nBis bald im herbstlichen Park!")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nAbbruch – Dodo fliegt weg (so gut er kann).")
-    except Exception as e:
-        print(f"Fehler: {e}")
-        sys.exit(1)
+    main()
