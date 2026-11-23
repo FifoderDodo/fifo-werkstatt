@@ -4,7 +4,7 @@ Ein interaktiver Simulator für volumetrisches Licht und Schatten im herbstliche
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 56 von etwa 58
+Stand: in Arbeit, Teil 57 von etwa 61
 
 ## Ausprobieren
 
@@ -15,11 +15,67 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-5;10;5m.[0m[38;2;15;10;5m.[0m[38;2;15;10;5m.[0m[38;2;15;10;5m.[0m[38;2;16;10;5m.[0m[38;2;16;10;5m.[0m[38;2;16;10;5m.[0m[38;2;16;11;6m.[0m[38;2;17;11;6m.[0m[38;2;17;11;6m.[0m[38;2;17;11;6m.[0m[38;2;18;11;6m.[0m[38;2;18;12;6m.[0m[38;2;18;12;6m.[0m[38;2;19;12;6m.[0m[38;2;19;12;6m.[0m[38;2;19;13;7m.[0m[38;2;20;13;7m.[0m[38;2;20;13;7m.[0m[38;2;21;14;7m.[0m[38;2;21;14;7m.[0m[38;2;22;14;7m.[0m[38;2;23;15;8m.[0m[38;2;23;15;8m.[0m[38;2;24;15;8m.[0m[38;2;24;16;8m.[0m[38;2;25;16;8m.[0m[38;2;25;16;9m.[0m[38;2;26;17;9m.[0m[38;2;26;17;9m.[0m[38;2;27;17;9m.[0m[38;2;27;18;9m.[0m[38;2;28;18;9m.[0m[38;2;28;18;10m.[0m[38;2;28;18;10m.[0m[38;2;28;18;10m.[0m[38;2;28;18;10m.[0m[38;2;28;18;10m.[0m[38;2;28;18;10m.[0m[38;2;28;18;10m.[0m[38;2;28;18;9m.[0m[38;2;27;17;9m.[0m[38;2;26;17;9m.[0m[38;2;26;17;9m.[0m[38;2;25;16;9m.[0m[38;2;24;16;8m.[0m[38;2;23;15;8m.[0m[38;2;23;15;8m.[0m[38;2;22;14;8m.[0m[38;2;22;14;7m.[0m[38;2;21;14;7m.[0m[38;2;20;13;7m.[0m[38;2;20;13;7m.[0m[38;2;19;13;7m.[0m[38;2;19;12;6m.[0m[38;2;19;12;6m.[0m[38;2;18;12;6m.[0m[38;2;18;11;6m.[0m[38;2;17;11;6m.[0m[38;2;17;11;6m.[0m[38;2;17;11;6m.[0m[38;2;17;11;6m.[0m[38;2;16;10;5m.[0m[38;2;16;10;5m.[0m[38;2;16;10;5m.[0m[38;2;16;10;5m.[0m[38;2;15;10;5m.[0m[38;2;15;10;5m.[0m[38;2;15;10;5m.[0m[38;2;15;10;5m.[0m[38;2;14;9;5m.[0m[38;2;12;8;4m.[0m[38;2;9;6;3m.[0m
-
-Frame 1/1 | Zeit: 1.55s
-
-Fertig. Tschüss! 🦤
+eit = 0.05
+  22. vibrancy = 1.2
+  23. volumetric_gain = 2.5
+  0. Rendern
+  q. Beenden
+> Neuer Wert für jitter_strength (aktuell 0.12): 
+--- 3D-Lichtspiel Parameter ---
+   1. absorption_coeff = 0.08
+   2. ambient = 0.05
+   3. blur_radius = 3
+   4. color_temp = 3000.0
+   5. falloff_exponent = 2.0
+   6. falloff_start = 0.5
+   7. gamma = 0.55
+   8. jitter_enabled = True
+   9. jitter_strength = 0.0
+  10. light_radius = 2.0
+  11. march_steps = 12
+  12. mist_density = 0.22
+  13. mist_height_falloff = 0.8
+  14. noise_seed = 42
+  15. penumbra_breite = 0.15
+  16. phase_g = 0.6
+  17. scattering_coeff = 0.45
+  18. specular_intensity = 0.6
+  19. specular_noise_scale = 0.5
+  20. specular_power = 24.0
+  21. umbra_dunkelheit = 0.05
+  22. vibrancy = 1.2
+  23. volumetric_gain = 2.5
+  0. Rendern
+  q. Beenden
+> 
+--- 3D-Lichtspiel Parameter ---
+   1. absorption_coeff = 0.08
+   2. ambient = 0.05
+   3. blur_radius = 3
+   4. color_temp = 3000.0
+   5. falloff_exponent = 2.0
+   6. falloff_start = 0.5
+   7. gamma = 0.55
+   8. jitter_enabled = True
+   9. jitter_strength = 0.0
+  10. light_radius = 2.0
+  11. march_steps = 12
+  12. mist_density = 0.22
+  13. mist_height_falloff = 0.8
+  14. noise_seed = 42
+  15. penumbra_breite = 0.15
+  16. phase_g = 0.6
+  17. scattering_coeff = 0.45
+  18. specular_intensity = 0.6
+  19. specular_noise_scale = 0.5
+  20. specular_power = 24.0
+  21. umbra_dunkelheit = 0.05
+  22. vibrancy = 1.2
+  23. volumetric_gain = 2.5
+  0. Rendern
+  q. Beenden
+> 
+EOF – Programm wird beendet.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
