@@ -170,60 +170,149 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
                 penumbra = br * ratio + params.light_radius * (1.0 - ratio) * 0.4
                 if dist_achse < penumbra:
                     faktor = params.umbra_dunkelheit + (dist_achse / max(1e-4, penumbra)) * (1.0 - params.umbra_dunkelheit)
-                    min_f = min(min_f, faktor)
+                    if faktor < min_f:
+                        min_f = faktor
     return min_f
 
-def raymarch(pos, dir, light_pos, baeume, params):
-    # Schrittweite basierend auf march_steps
-    step = 1.0 / params.march_steps
-    accum = 0.0
-    cur = list(pos)
-    for i in range(params.march_steps):
-        # Dichte und Gradient
-        dens = mist_dichte(tuple(cur), params)
-        grad = dichte_gradient(tuple(cur), params)
-        # Half‑Lambert‑Wrap für bessere Tiefe
-        ndotl = max(0.0, sum(g * d for g, d in zip(grad, dir)))
-        half_lambert = ndotl * 0.5 + 0.5
-        wrap = max(0.0, half_lambert - params.depth_shading_wrap)
-        # Lichtabschwächung
-        shade = schattenfaktor_3d(tuple(cur), light_pos, baeume, params)
-        # Volumetrische Addierung
-        accum += dens * wrap * shade * params.volumetric_gain * step
-        # Position vorwärts
-        cur[0] += dir[0] * step
-        cur[1] += dir[1] * step
-        cur[2] += dir[2] * step
-        if cur[2] < 0.0:  # unter Boden
+def raymarch(origin, direction, light_pos, baeume, params):
+    """Einfaches Volumen-Raymarching mit Schatten und Phasenfunktion."""
+    steps = params.march_steps
+    step_len = 0.5
+    transmittance = 1.0
+    radiance = 0.0
+    pos = list(origin)
+    dir_norm = math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2)
+    dx, dy, dz = direction[0]/dir_norm, direction[1]/dir_norm, direction[2]/dir_norm
+    
+    for i in range(steps):
+        # Jitter für weichere Kanten
+        if params.jitter_enabled:
+            jitter = (random.random() - 0.5) * params.jitter_strength * step_len
+        else:
+            jitter = 0.0
+        
+        pos[0] += dx * step_len
+        pos[1] += dy * step_len
+        pos[2] += dz * step_len
+        
+        density = mist_dichte(pos, params)
+        if density <= 0.0:
+            continue
+        
+        # Schattenfaktor an dieser Position
+        shadow = schattenfaktor_3d(pos, light_pos, baeume, params)
+        
+        # Lichtvektor von Probe zur Lichtquelle
+        lx, ly, lz = light_pos
+        vx, vy, vz = lx - pos[0], ly - pos[1], lz - pos[2]
+        dist_light = math.sqrt(vx*vx + vy*vy + vz*vz)
+        if dist_light < 1e-4:
+            continue
+        lx, ly, lz = vx/dist_light, vy/dist_light, vz/dist_light
+        
+        # Phasenfunktion (Henyey-Greenstein)
+        cos_theta = dx*lx + dy*ly + dz*lz
+        phase = henyey_greenstein(cos_theta, params.phase_g)
+        
+        # Falloff
+        falloff = 1.0 / max(1e-4, dist_light**params.falloff_exponent)
+        if dist_light < params.falloff_start:
+            falloff *= (dist_light / params.falloff_start)
+        
+        # Absorption und Scattering
+        extinction = (params.scattering_coeff + params.absorption_coeff) * density * step_len
+        transmittance *= math.exp(-extinction)
+        
+        scatter = params.scattering_coeff * density * phase * falloff * shadow * step_len
+        radiance += transmittance * scatter * params.volumetric_gain
+        
+        if transmittance < 0.01:
             break
-    return accum
+    
+    # Ambient und Depth-Shading-Wrap
+    radiance += params.ambient * (1.0 - transmittance)
+    wrap = params.depth_shading_wrap
+    radiance = radiance * (1.0 + wrap) / (radiance + wrap)
+    
+    # Farbtemperatur anwenden
+    r_mult, g_mult, b_mult = kelvin_to_rgb_factor(params.color_temp)
+    radiance_r = radiance * r_mult
+    radiance_g = radiance * g_mult
+    radiance_b = radiance * b_mult
+    
+    # Vibrancy
+    avg = (radiance_r + radiance_g + radiance_b) / 3.0
+    radiance_r = avg + (radiance_r - avg) * params.vibrancy
+    radiance_g = avg + (radiance_g - avg) * params.vibrancy
+    radiance_b = avg + (radiance_b - avg) * params.vibrancy
+    
+    return (radiance_r, radiance_g, radiance_b)
 
-def render(width=80, height=30):
-    params = ShaderParams()
-    # Beispiel‑Lichtposition und Bäume (x, y, radius, height)
-    light_pos = (0.0, -5.0, 8.0)
-    baeume = [(-2.0, 2.0, 0.8, 3.0), (3.0, -1.0, 0.6, 2.5), (0.0, 0.0, 0.9, 4.0)]
-    # Kamera‑Richtung (orthogonal nach vorne)
-    cam_dir = (0.0, 0.0, -1.0)
-    # Bildpuffer
-    buffer = []
+def render_frame(params, width=80, height=40):
+    """Rendert einen Frame in ASCII."""
+    # Szene definieren
+    light_pos = (0.0, 0.0, 5.0)
+    baeume = [
+        (-3.0, -2.0, 0.8, 4.0),
+        (2.5, 1.5, 0.6, 3.5),
+        (-1.0, 3.0, 0.7, 3.0),
+        (4.0, -3.0, 0.9, 4.5),
+    ]
+    
+    # Kamera: Blickrichtung -Z, Bildschirm in XY-Ebene
+    frame = []
+    aspect = width / height
+    fov = 1.2
+    
     for y in range(height):
         row = []
+        sy = (y / height - 0.5) * fov
         for x in range(width):
-            # Normalisiere Bildkoordinaten zu [-1,1]
-            nx = (x / (width - 1)) * 2.0 - 1.0
-            ny = (y / (height - 1)) * 2.0 - 1.0
-            # Startposition etwas über dem Boden
-            start = (nx * 5.0, ny * 5.0, 6.0)
-            col = raymarch(start, cam_dir, light_pos, baeume, params)
-            row.append(intensitaet_zu_ascii(col, params.gamma))
-        buffer.append(''.join(row))
-    for line in buffer:
-        print(line)
+            sx = (x / width - 0.5) * fov * aspect
+            # Ray direction
+            dir_vec = (sx, sy, -1.0)
+            origin = (0.0, 0.0, 6.0)
+            r, g, b = raymarch(origin, dir_vec, light_pos, baeume, params)
+            # Luminanz für ASCII
+            lum = 0.2126*r + 0.7152*g + 0.0722*b
+            row.append(intensitaet_zu_ascii(lum, params.gamma))
+        frame.append(''.join(row))
+    return frame
+
+def main():
+    params = ShaderParams()
+    print("3D-Lichtspiel – Interaktiver Simulator (Teil 60)")
+    print("Befehle: [enter]=neu rendern, q=quit, p=Parameter ändern")
+    
+    while True:
+        try:
+            frame = render_frame(params)
+            print('\n'.join(frame))
+            print("---")
+            cmd = input("> ").strip().lower()
+            if cmd == 'q':
+                break
+            elif cmd == 'p':
+                print("Verfügbare Parameter:")
+                for k, v in params.__dict__.items():
+                    print(f"  {k} = {v}")
+                name = input("Parameter name: ").strip()
+                if name in params.__dict__:
+                    val = float(input(f"Neuer Wert für {name}: "))
+                    params.__dict__[name] = val
+                    print(f"{name} = {val}")
+                else:
+                    print("Unbekannter Parameter.")
+            # sonst einfach neu rendern
+        except EOFError:
+            print("\nEOF – Tschüss!")
+            break
+        except KeyboardInterrupt:
+            print("\nAbbruch – Tschüss!")
+            break
+        except Exception as e:
+            print(f"Fehler: {e}")
+            break
 
 if __name__ == "__main__":
-    try:
-        render()
-    except EOFError:
-        print("Eingabe beendet – danke fürs Schauen!")
-        sys.exit(0)
+    main()
