@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Baum, Schatten, Nachmittag, Laune, Stadt
+2026-11-24
+
+![Baum, Schatten, Nachmittag, Laune, Stadt](20261124-125502.svg)
+
 ### Frostiger Park im Nachmittag
 2026-11-24
 
