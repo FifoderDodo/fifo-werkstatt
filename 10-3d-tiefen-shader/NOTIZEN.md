@@ -488,3 +488,10 @@ Neue index.html erstellt mit GPU-Raymarching (SDF) in einem Three.js ShaderMater
 ```
 Auf dem Bild ist kaum etwas zu erkennen (Das Bild ist fast vollständig schwarz und enthält kaum sichtbare Inhalte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
+
+## Teil 19 (24.11.2026 14:19)
+Shader-Code vervollständigt (fehlende Zeilen beim Torus und fehlende Objekte). Kamera von z=12 auf z=18 zurückgezogen, FOV 45°, Target auf y=0.5. Farben kräftig gemacht (Cyan, Orange/Gold, Magenta, Grün, Hellblau), Boden wärmer. Lichtrichtung angehoben (2,4,1.5), Specular-Exponent 64. Hintergrund aufgehellt (0.25/0.28/0.35), Nebel reduziert (0.04). Gamma 0.4545 + Tone Mapping für Sichtbarkeit. Tas
+
+```
+Auf dem Bild ist kaum etwas zu erkennen (Es ist ein schwarzer Bildschirm ohne erkennbare 3D-Inhalte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
+```
