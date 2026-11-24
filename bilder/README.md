@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Rote Pflasterameise: Nachmittagsdrama in 3D
+2026-11-24
+
+![Rote Pflasterameise: Nachmittagsdrama in 3D](20261124-135920.svg)
+
 ### Ameise im Nachmittagsgrau: Stadt im Blick
 2026-11-24
 
