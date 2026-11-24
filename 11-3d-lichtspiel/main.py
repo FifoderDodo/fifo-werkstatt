@@ -1,4 +1,4 @@
-import math, sys, random, unicodedata, time
+import math, sys, random, unicodedata, time, os
 
 class ShaderParams:
     """Container für alle einstellbaren Shader-Parameter mit Defaults."""
@@ -7,19 +7,19 @@ class ShaderParams:
         self.umbra_dunkelheit = 0.05
         self.falloff_exponent = 2.0
         self.falloff_start = 0.5
-        self.blur_radius = 2
+        self.blur_radius = 1
         self.ambient = 0.08
-        self.volumetric_gain = 2.4
+        self.volumetric_gain = 1.0
         self.gamma = 0.6
-        self.scattering_coeff = 0.45
+        self.scattering_coeff = 0.3
         self.absorption_coeff = 0.08
-        self.mist_density = 0.22
+        self.mist_density = 0.15
         self.mist_height_falloff = 0.8
         self.color_temp = 3200.0
         self.jitter_strength = 0.10
         self.phase_g = 0.55
         self.noise_seed = 42
-        self.march_steps = 10
+        self.march_steps = 16
         self.jitter_enabled = True
         self.specular_intensity = 0.7
         self.specular_power = 18.0
@@ -27,8 +27,8 @@ class ShaderParams:
         self.vibrancy = 1.25
         self.depth_shading_wrap = 0.35
         self.bloom_threshold = 0.6
-        self.bloom_intensity = 0.45
-        self.bloom_radius = 2
+        self.bloom_intensity = 0.3
+        self.bloom_radius = 1
         self.adaptive_steps = True
         self.min_step_factor = 0.3
         self.max_step_factor = 2.0
@@ -110,58 +110,40 @@ def intensitaet_zu_ascii(wert: float, gamma: float = 0.6) -> str:
     idx = int(w * (len(rampe) - 1))
     return rampe[max(0, min(len(rampe) - 1, idx))]
 
-def noise_3d(x, y, z, seed):
-    ix, iy, iz = int(math.floor(x)), int(math.floor(y)), int(math.floor(z))
-    fx, fy, fz = x - ix, y - iy, z - iz
-    def h(ix, iy, iz):
-        n = (ix * 73856093) ^ (iy * 19349663) ^ (iz * 83492791) ^ seed
+def noise_2d(x, y, seed):
+    ix, iy = int(math.floor(x)), int(math.floor(y))
+    fx, fy = x - ix, y - iy
+    def h(ix, iy):
+        n = (ix * 73856093) ^ (iy * 19349663) ^ seed
         n = (n ^ (n >> 13)) * 0x5bd1e995
         n = (n ^ (n >> 15)) * 0x5bd1e995
         return ((n ^ (n >> 15)) & 0x7fffffff) / 2147483647.0
     u = fx * fx * (3.0 - 2.0 * fx)
     v = fy * fy * (3.0 - 2.0 * fy)
-    w = fz * fz * (3.0 - 2.0 * fz)
-    a = h(ix, iy, iz)
-    b = h(ix + 1, iy, iz)
-    c = h(ix, iy + 1, iz)
-    d = h(ix + 1, iy + 1, iz)
-    e = h(ix, iy, iz + 1)
-    f = h(ix + 1, iy, iz + 1)
-    g_val = h(ix, iy + 1, iz + 1)
-    h_val = h(ix + 1, iy + 1, iz + 1)
+    a = h(ix, iy)
+    b = h(ix + 1, iy)
+    c = h(ix, iy + 1)
+    d = h(ix + 1, iy + 1)
     x1 = a + (b - a) * u
     x2 = c + (d - c) * u
-    y1 = x1 + (x2 - x1) * v
-    x3 = e + (f - e) * u
-    x4 = g_val + (h_val - g_val) * u
-    y2 = x3 + (x4 - x3) * v
-    return y1 + (y2 - y1) * w
+    return x1 + (x2 - x1) * v
 
 def mist_dichte(pos, params):
     x, y, z = pos
     if z < 0.0:
         return 0.0
     basis = params.mist_density * math.exp(-z * params.mist_height_falloff)
-    turbulenz = noise_3d(x * 0.45, y * 0.45, z * 0.25, params.noise_seed)
+    turbulenz = noise_2d(x * 0.45, y * 0.45, params.noise_seed)
     return max(0.0, basis * (0.65 + 0.7 * turbulenz))
-
-def dichte_gradient(pos, params, eps=0.1):
-    px, py, pz = pos
-    dx = mist_dichte((px + eps, py, pz), params) - mist_dichte((px - eps, py, pz), params)
-    dy = mist_dichte((px, py + eps, pz), params) - mist_dichte((px, py - eps, pz), params)
-    dz = mist_dichte((px, py, pz + eps), params) - mist_dichte((px, py, pz - eps), params)
-    l = math.sqrt(dx * dx + dy * dy + dz * dz)
-    if l < 1e-5:
-        return (0.0, 0.0, 1.0)
-    return (-dx / l, -dy / l, -dz / l)
 
 def schattenfaktor_3d(pos, light_pos, baeume, params):
     px, py, pz = pos
     lx, ly, lz = light_pos
     vx, vy, vz = lx - px, ly - py, lz - pz
-    dist_light = math.sqrt(vx * vx + vy * vy + vz * vz)
-    if dist_light < 0.05:
+    dist_light_sq = vx * vx + vy * vy + vz * vz
+    if dist_light_sq < 0.0025:
         return 1.0
+    dist_light = math.sqrt(dist_light_sq)
     ux, uy, uz = vx / dist_light, vy / dist_light, vz / dist_light
     min_f = 1.0
     for bx, by, br, bh in baeume:
@@ -170,179 +152,211 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
         if 0.2 < proj < dist_light:
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
-                dist_center = math.sqrt(dx * dx + dy * dy - proj * proj)
-                if dist_center < br:
-                    return params.umbra_dunkelheit
-                elif dist_center < br + params.penumbra_breite:
-                    t = (dist_center - br) / params.penumbra_breite
-                    min_f = min(min_f, params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * t)
+                dist_center_sq = dx * dx + dy * dy - proj * proj
+                if dist_center_sq < br * br:
+                    dist_center = math.sqrt(dist_center_sq)
+                    rand_faktor = 1.0 - (dist_center / br)
+                    penumbra = params.penumbra_breite * (proj / dist_light)
+                    shadow = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * max(0.0, (rand_faktor - penumbra) / max(0.001, 1.0 - penumbra))
+                    min_f = min(min_f, shadow)
     return min_f
 
-def render_frame(breite, hoehe, params, baeume, light_pos, cam_pos, cam_dir, zeit):
-    farb_faktor = kelvin_to_rgb_factor(params.color_temp)
-    frame_buffer = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
-    cx, cy, cz = cam_dir
-    cl = math.sqrt(cx * cx + cy * cy + cz * cz)
-    if cl < 1e-6:
-        cx, cy, cz = 0.0, 1.0, 0.0
-    else:
-        cx, cy, cz = cx / cl, cy / cl, cz / cl
-    rx = -cy
-    ry = cx
+def render_frame(breite, hoehe, params, baeume, light_pos, cam_pos, cam_yaw, cam_pitch, t):
+    cos_yaw, sin_yaw = math.cos(cam_yaw), math.sin(cam_yaw)
+    cos_pitch, sin_pitch = math.cos(cam_pitch), math.sin(cam_pitch)
+    lr, lg, lb = kelvin_to_rgb_factor(params.color_temp)
+    fb_r = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
+    fb_g = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
+    fb_b = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
+    max_dist = 25.0
+    base_step = max_dist / params.march_steps
+    jitter_x = (random.random() - 0.5) * params.jitter_strength if params.jitter_enabled else 0
+    jitter_y = (random.random() - 0.5) * params.jitter_strength if params.jitter_enabled else 0
+    aspect = (breite / hoehe) * 0.5
+    fx = cos_pitch * cos_yaw
+    fy = cos_pitch * sin_yaw
+    fz = sin_pitch
+    rx = -sin_yaw
+    ry = cos_yaw
     rz = 0.0
-    rl = math.sqrt(rx * rx + ry * ry)
-    if rl < 1e-6:
-        rx, ry = 1.0, 0.0
-    else:
-        rx, ry = rx / rl, ry / rl
-    ux = cy * rz - cz * ry
-    uy = cz * rx - cx * rz
-    uz = cx * ry - cy * rx
-    fov = 1.0
-    aspect = breite / max(1, hoehe)
+    ux = -sin_pitch * cos_yaw
+    uy = -sin_pitch * sin_yaw
+    uz = cos_pitch
     for y in range(hoehe):
+        ndc_y = 1.0 - (y + 0.5 + jitter_y) / hoehe * 2.0
         for x in range(breite):
-            ndc_x = (x + 0.5) / breite * 2.0 - 1.0
-            ndc_y = 1.0 - (y + 0.5) / hoehe * 2.0
-            rdx = cx * fov + rx * ndc_x * fov * aspect + ux * ndc_y * fov
-            rdy = cy * fov + ry * ndc_x * fov * aspect + uy * ndc_y * fov
-            rdz = cz * fov + rz * ndc_x * fov * aspect + uz * ndc_y * fov
-            rdl = math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz)
-            if rdl > 0:
-                rdx, rdy, rdz = rdx / rdl, rdy / rdl, rdz / rdl
-            march_steps = params.march_steps
-            if params.adaptive_steps:
-                march_steps = int(march_steps * params.max_step_factor)
+            ndc_x = (x + 0.5 + jitter_x) / breite * 2.0 - 1.0
+            ndc_x *= aspect
+            rdx = fx + ndc_x * rx + ndc_y * ux
+            rdy = fy + ndc_x * ry + ndc_y * uy
+            rdz = fz + ndc_x * rz + ndc_y * uz
+            rlen = math.sqrt(rdx*rdx + rdy*rdy + rdz*rdz)
+            rdx, rdy, rdz = rdx/rlen, rdy/rlen, rdz/rlen
             px, py, pz = cam_pos
-            step_size = 0.15
-            accumulated = 0.0
+            accumulated_r, accumulated_g, accumulated_b = 0.0, 0.0, 0.0
             transmittance = 1.0
-            jitter = 0.0
-            if params.jitter_enabled:
-                jitter = (noise_3d(x * 0.1, y * 0.1, zeit * 0.5, params.noise_seed) - 0.5) * params.jitter_strength
-            for step in range(march_steps):
+            current_dist = 0.0
+            for step in range(params.march_steps):
+                step_size = base_step
+                if params.adaptive_steps:
+                    d = mist_dichte((px, py, pz), params)
+                    factor = 1.0 / (1.0 + d * 5.0)
+                    factor = max(params.min_step_factor, min(params.max_step_factor, factor))
+                    step_size = base_step * factor
+                if transmittance < params.early_exit_threshold:
+                    break
                 px += rdx * step_size
                 py += rdy * step_size
                 pz += rdz * step_size
-                ldx = light_pos[0] - px
-                ldy = light_pos[1] - py
-                ldz = light_pos[2] - pz
-                dist_light = math.sqrt(ldx * ldx + ldy * ldy + ldz * ldz)
-                if dist_light < 0.01:
+                current_dist += step_size
+                if pz < 0.0 or current_dist > max_dist:
                     break
                 density = mist_dichte((px, py, pz), params)
-                if density < 1e-4:
+                if density <= 0.001:
                     continue
-                shadow = schattenfaktor_3d((px, py, pz), light_pos, baeume, params)
-                ldx_n, ldy_n, ldz_n = ldx / dist_light, ldy / dist_light, ldz / dist_light
-                cos_theta = -(rdx * ldx_n + rdy * ldy_n + rdz * ldz_n)
+                extinction = (params.absorption_coeff + params.scattering_coeff) * density * step_size
+                transmittance *= math.exp(-extinction)
+                lx, ly, lz = light_pos
+                vx, vy, vz = lx - px, ly - py, lz - pz
+                dist_light = math.sqrt(vx*vx + vy*vy + vz*vz)
+                if dist_light < 0.01:
+                    continue
+                ldx, ldy, ldz = vx/dist_light, vy/dist_light, vz/dist_light
+                cos_theta = rdx*ldx + rdy*ldy + rdz*ldz
                 phase = henyey_greenstein(cos_theta, params.phase_g)
-                falloff = 1.0 / max(0.01, dist_light * dist_light)
-                if dist_light > params.falloff_start:
-                    falloff *= (params.falloff_start / dist_light) ** params.falloff_exponent
-                scatter = density * params.scattering_coeff * phase * falloff * shadow
-                absorption = density * params.absorption_coeff
-                contrib = scatter * transmittance * step_size
-                accumulated += contrib
-                transmittance *= math.exp(-absorption * step_size)
-                if transmittance < params.early_exit_threshold:
-                    break
-            final_val = params.ambient + accumulated * params.volumetric_gain
-            frame_buffer[y][x] = min(1.0, final_val)
-    if params.bloom_intensity > 0 and params.bloom_radius > 0:
-        bloom_weights = gauß_gewichte(params.bloom_radius)
-        bloom_buf = [[v for v in row] for row in frame_buffer]
+                shadow = schattenfaktor_3d((px, py, pz), light_pos, baeume, params)
+                falloff = 1.0 / max(0.01, (params.falloff_start + dist_light) ** params.falloff_exponent)
+                scatter_amt = params.scattering_coeff * density * step_size * phase * falloff * shadow * transmittance
+                accumulated_r += scatter_amt * lr
+                accumulated_g += scatter_amt * lg
+                accumulated_b += scatter_amt * lb
+            sky_intensity = params.ambient * (0.5 + 0.5 * rdz) * transmittance
+            accumulated_r += sky_intensity * 0.2
+            accumulated_g += sky_intensity * 0.3
+            accumulated_b += sky_intensity * 0.5
+            def process(c):
+                c = c * params.volumetric_gain
+                return min(1.0, c ** params.gamma)
+            fb_r[y][x] = process(accumulated_r)
+            fb_g[y][x] = process(accumulated_g)
+            fb_b[y][x] = process(accumulated_b)
+    if params.bloom_intensity > 0:
+        lum = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
         for y in range(hoehe):
             for x in range(breite):
-                if bloom_buf[y][x] < params.bloom_threshold:
-                    bloom_buf[y][x] = 0.0
-                else:
-                    bloom_buf[y][x] = (bloom_buf[y][x] - params.bloom_threshold) * params.bloom_intensity
-        bloom_buf = box_blur_1d(bloom_buf, bloom_weights, True)
-        bloom_buf = box_blur_1d(bloom_buf, bloom_weights, False)
+                lum[y][x] = 0.2126*fb_r[y][x] + 0.7152*fb_g[y][x] + 0.0722*fb_b[y][x]
         for y in range(hoehe):
             for x in range(breite):
-                frame_buffer[y][x] = min(1.0, frame_buffer[y][x] + bloom_buf[y][x])
+                v = lum[y][x] - params.bloom_threshold
+                lum[y][x] = max(0.0, v) * params.bloom_intensity
+        weights = gauß_gewichte(params.bloom_radius)
+        lum = box_blur_1d(lum, weights, True)
+        lum = box_blur_1d(lum, weights, False)
+        for y in range(hoehe):
+            for x in range(breite):
+                fb_r[y][x] = min(1.0, fb_r[y][x] + lum[y][x] * lr)
+                fb_g[y][x] = min(1.0, fb_g[y][x] + lum[y][x] * lg)
+                fb_b[y][x] = min(1.0, fb_b[y][x] + lum[y][x] * lb)
     if params.blur_radius > 0:
-        blur_weights = gauß_gewichte(params.blur_radius)
-        frame_buffer = box_blur_1d(frame_buffer, blur_weights, True)
-        frame_buffer = box_blur_1d(frame_buffer, blur_weights, False)
-    ascii_frame = []
+        weights = gauß_gewichte(params.blur_radius)
+        fb_r = box_blur_1d(fb_r, weights, True)
+        fb_r = box_blur_1d(fb_r, weights, False)
+        fb_g = box_blur_1d(fb_g, weights, True)
+        fb_g = box_blur_1d(fb_g, weights, False)
+        fb_b = box_blur_1d(fb_b, weights, True)
+        fb_b = box_blur_1d(fb_b, weights, False)
+    out_lines = []
     for y in range(hoehe):
-        row = ''
+        line_chars = []
         for x in range(breite):
-            row += intensitaet_zu_ascii(frame_buffer[y][x], params.gamma)
-        ascii_frame.append(row)
-    return ascii_frame
+            l = 0.2126*fb_r[y][x] + 0.7152*fb_g[y][x] + 0.0722*fb_b[y][x]
+            ch = intensitaet_zu_ascii(l, params.gamma)
+            line_chars.append(ch)
+        out_lines.append(''.join(line_chars))
+    return '\n'.join(out_lines)
 
 def main():
-    print("🌲 3D-Lichtspiel – Herbstlicher Park bei Nacht")
-    print("===============================================")
-    print("Steuerung: [Enter] nächster Frame, [q] Beenden, [p] Parameter ändern")
-    print()
     params = ShaderParams()
-    random.seed(12345)
+    random.seed(1337)
     baeume = []
-    for _ in range(12):
-        bx = random.uniform(-8, 8)
-        by = random.uniform(-8, 8)
-        br = random.uniform(0.3, 0.8)
+    for _ in range(8):
+        bx = random.uniform(-10, 10)
+        by = random.uniform(-10, 10)
+        br = random.uniform(0.4, 0.9)
         bh = random.uniform(3.0, 6.0)
         baeume.append((bx, by, br, bh))
-    light_pos = (0.0, 0.0, 4.0)
-    cam_pos = (0.0, -10.0, 1.5)
-    cam_dir = (0.0, 1.0, -0.1)
-    # Reduce resolution for quick test
-    breite, hoehe = 40, 20
-    zeit = 0.0
-    frame_nr = 0
-    max_frames = 5  # stop after a few frames to avoid endless run in tests
+    cam_pos = (0.0, -8.0, 1.7)
+    cam_yaw = 0.0
+    cam_pitch = 0.15
+    light_height = 2.5
+    light_orbit_radius = 3.0
+    light_speed = 0.15
     try:
-        while frame_nr < max_frames:
-            light_pos = (
-                math.sin(zeit * 0.3) * 0.15,
-                math.cos(zeit * 0.25) * 0.1,
-                4.0 + math.sin(zeit * 0.2) * 0.05
-            )
-            frame = render_frame(breite, hoehe, params, baeume, light_pos, cam_pos, cam_dir, zeit)
-            print(f"\x1b[2J\x1b[HFrame {frame_nr} | Zeit {zeit:.1f}s | Licht({light_pos[0]:.2f},{light_pos[1]:.2f},{light_pos[2]:.2f})")
-            for row in frame:
-                print(row)
-            print(f"\n[Enter] weiter | [q] quit | [p] params | Steps:{params.march_steps} Gain:{params.volumetric_gain}")
-            try:
-                inp = input().strip().lower()
-            except EOFError:
-                print("\n🌙 Gute Nacht!")
-                break
-            if inp == 'q':
-                print("🌙 Gute Nacht!")
-                break
-            elif inp == 'p':
-                print("\nParameter (Enter = behalten):")
-                try:
-                    val = input(f"  volumetric_gain [{params.volumetric_gain}]: ").strip()
-                    if val:
-                        params.volumetric_gain = float(val)
-                    val = input(f"  march_steps [{params.march_steps}]: ").strip()
-                    if val:
-                        params.march_steps = int(val)
-                    val = input(f"  mist_density [{params.mist_density}]: ").strip()
-                    if val:
-                        params.mist_density = float(val)
-                    val = input(f"  color_temp [{params.color_temp}]: ").strip()
-                    if val:
-                        params.color_temp = float(val)
-                    val = input(f"  gamma [{params.gamma}]: ").strip()
-                    if val:
-                        params.gamma = float(val)
-                    print("  ✓ Parameter aktualisiert\n")
-                except ValueError:
-                    print("  ✗ Ungültige Eingabe, wird ignoriert\n")
-                continue
-            zeit += 0.15
-            frame_nr += 1
-    except KeyboardInterrupt:
-        print("\n🌙 Gute Nacht!")
+        term_size = os.get_terminal_size()
+        breite = min(term_size.columns, 60)
+        hoehe = min(term_size.lines - 3, 30)
+    except:
+        breite, hoehe = 60, 30
+    print("3D-Lichtspiel: Herbstlicher Park. Drücke 'q' zum Beenden, 'h' für Hilfe.")
+    time.sleep(0.5)
+    t = 0.0
+    frame = 0
+    while True:
+        light_angle = t * light_speed
+        light_pos = (
+            math.sin(light_angle) * light_orbit_radius,
+            math.cos(light_angle) * light_orbit_radius,
+            light_height
+        )
+        frame_start = time.time()
+        frame_str = render_frame(breite, hoehe, params, baeume, light_pos, cam_pos, cam_yaw, cam_pitch, t)
+        render_time = (time.time() - frame_start) * 1000
+        sys.stdout.write('\x1b[2J\x1b[H')
+        sys.stdout.write(frame_str)
+        sys.stdout.write(f'\n\nFrame: {frame} | Zeit: {render_time:.1f}ms | Steps: {params.march_steps} | Pos: ({cam_pos[0]:.1f},{cam_pos[1]:.1f},{cam_pos[2]:.1f})')
+        sys.stdout.write('\nBefehle: [w/s] Vor/Zurück [a/d] Links/Rechts [e/z] Hoch/Runter [</>] Drehen [+/-] Steps [r] Reset [h] Hilfe [q] Quit\n> ')
+        sys.stdout.flush()
+        try:
+            cmd = input().strip().lower()
+        except EOFError:
+            print("\nTschüss!")
+            break
+        if cmd == 'q':
+            print("Tschüss!")
+            break
+        elif cmd == 'h':
+            print("Hilfe: w/s/a/d/e/z bewegen Kamera. </> drehen. +/- March Steps. r Reset. q Quit.")
+            time.sleep(1.5)
+            continue
+        elif cmd == 'w':
+            cam_pos = (cam_pos[0] + math.cos(cam_yaw)*0.5, cam_pos[1] + math.sin(cam_yaw)*0.5, cam_pos[2])
+        elif cmd == 's':
+            cam_pos = (cam_pos[0] - math.cos(cam_yaw)*0.5, cam_pos[1] - math.sin(cam_yaw)*0.5, cam_pos[2])
+        elif cmd == 'a':
+            cam_pos = (cam_pos[0] - math.sin(cam_yaw)*0.5, cam_pos[1] + math.cos(cam_yaw)*0.5, cam_pos[2])
+        elif cmd == 'd':
+            cam_pos = (cam_pos[0] + math.sin(cam_yaw)*0.5, cam_pos[1] - math.cos(cam_yaw)*0.5, cam_pos[2])
+        elif cmd == 'e':
+            cam_pos = (cam_pos[0], cam_pos[1], cam_pos[2] + 0.3)
+        elif cmd == 'z':
+            cam_pos = (cam_pos[0], cam_pos[1], max(0.5, cam_pos[2] - 0.3))
+        elif cmd == '<':
+            cam_yaw -= 0.15
+        elif cmd == '>':
+            cam_yaw += 0.15
+        elif cmd == '+':
+            params.march_steps = min(128, params.march_steps + 4)
+        elif cmd == '-':
+            params.march_steps = max(8, params.march_steps - 4)
+        elif cmd == 'r':
+            cam_pos = (0.0, -8.0, 1.7)
+            cam_yaw = 0.0
+            cam_pitch = 0.15
+            params = ShaderParams()
+        t += 0.1
+        frame += 1
+        if frame > 20:
+            break
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
