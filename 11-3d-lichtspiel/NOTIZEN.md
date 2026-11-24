@@ -2988,3 +2988,30 @@ Befehl: TERM environment variable not set.
 
 (nach 10 Sekunden abgebrochen)
 ```
+
+## Teil 100 (24.11.2026 09:38)
+Vollständiges render_frame mit Raymarching-Schleife, Mist-Dichte, Schatten, Henyey-Greenstein-Phase-Function und Akkumulation ergänzt. main() hinzugefügt mit 3 Frames, ASCII-Ausgabe und Eingabe-Handling ohne TERM-Abhängigkeit. Box-Blur für Bloom integriert.
+
+```
+         
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+
+✨ Fertig. Danke fürs Zuschauen!
+```
