@@ -19,18 +19,16 @@ class ShaderParams:
         self.jitter_strength = 0.10
         self.phase_g = 0.55
         self.noise_seed = 42
-        self.march_steps = 8  # reduziert für Performance
+        self.march_steps = 8
         self.jitter_enabled = True
         self.specular_intensity = 0.7
         self.specular_power = 18.0
         self.light_radius = 0.7
         self.vibrancy = 1.25
         self.depth_shading_wrap = 0.35
-        # Neu: Bloom / Leuchteffekt
         self.bloom_threshold = 0.6
         self.bloom_intensity = 0.45
         self.bloom_radius = 3
-        # Neu: Raymarching-Optimierung
         self.adaptive_steps = True
         self.min_step_factor = 0.3
         self.max_step_factor = 2.0
@@ -172,103 +170,80 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
         if 0.2 < proj < dist_light:
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
+                # Abstand in XY-Ebene zum Baumstamm
                 dist_xy_sq = dx * dx + dy * dy - proj * proj
                 if dist_xy_sq < br * br:
-                    # Inside shadow cone
-                    dist_to_edge = br - math.sqrt(dist_xy_sq)
-                    penumbra = params.penumbra_breite
-                    if dist_to_edge < penumbra:
-                        f = dist_to_edge / penumbra
-                        min_f = min(min_f, params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * f)
-                    else:
-                        min_f = min(min_f, params.umbra_dunkelheit)
+                    # einfacher linearer Schattenabfall
+                    f = 1.0 - (proj / dist_light)
+                    min_f = min(min_f, f)
     return min_f
 
+def render_frame(width, height, params, light_pos, baeume):
+    buffer = [[0.0 for _ in range(width)] for _ in range(height)]
+    for y in range(height):
+        for x in range(width):
+            # Normalisierte Bildkoordinaten [-1,1]
+            nx = (x / (width - 1)) * 2.0 - 1.0
+            ny = (y / (height - 1)) * 2.0 - 1.0
+            # Kamera leicht über dem Boden
+            ray_origin = (0.0, 0.0, 1.5)
+            ray_dir = (nx, ny, -1.0)
+            # Normalisieren
+            rl = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
+            ray_dir = (ray_dir[0]/rl, ray_dir[1]/rl, ray_dir[2]/rl)
+            # Simple raymarch bis Boden (z=0)
+            t = 0.0
+            hit = False
+            for step in range(params.march_steps):
+                pos = (ray_origin[0] + ray_dir[0]*t,
+                       ray_origin[1] + ray_dir[1]*t,
+                       ray_origin[2] + ray_dir[2]*t)
+                if pos[2] <= 0.0:
+                    hit = True
+                    break
+                density = mist_dichte(pos, params)
+                if density > params.early_exit_threshold:
+                    hit = True
+                    break
+                t += max(0.05, 0.2 * (1.0 - density))
+            if hit:
+                # Grundbeleuchtung + Schatten + Nebel
+                base = params.ambient
+                shadow = schattenfaktor_3d(pos, light_pos, baeume, params)
+                mist = mist_dichte(pos, params)
+                intensity = base + (1.0 - base) * shadow * mist * params.volumetric_gain
+                buffer[y][x] = intensity
+            else:
+                buffer[y][x] = params.ambient
+    # Blur für weichen Look
+    gew = gauß_gewichte(params.blur_radius)
+    buffer = box_blur_1d(buffer, gew, horizontal=True)
+    buffer = box_blur_1d(buffer, gew, horizontal=False)
+    # ASCII Ausgabe
+    lines = []
+    for row in buffer:
+        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
+        lines.append(line)
+    return '\n'.join(lines)
+
 def main():
-    params = ShaderParams()
-    # Szene: Bäume als (x, y, radius, höhe)
-    baeume = [
-        (-3.0, -2.0, 0.5, 4.0),
-        (2.0, 1.0, 0.4, 3.5),
-        (-1.0, 3.0, 0.6, 5.0),
-        (4.0, -3.0, 0.3, 3.0),
-    ]
-    cam_pos = (0.0, -10.0, 2.0)
-    light_radius = 5.0
-    light_height = 4.0
-    frames = 30
-    width, height = 60, 30  # kleinere Auflösung für Geschwindigkeit
-    fov = math.pi / 3.0  # 60 Grad
-
-    # Eingaben lesen (max 20 Zeilen, EOFError abfangen)
-    inputs = []
     try:
-        for _ in range(20):
-            line = input()
-            inputs.append(line)
-    except EOFError:
-        pass
-    # Eingaben könnten Parameter ändern, hier ignorieren wir sie für Einfachheit
+        frames = int(input('Anzahl der Frames (0 für Einzelbild): '))
+    except (EOFError, ValueError):
+        frames = 1
+    width, height = 80, 30
+    params = ShaderParams()
+    # Beispielbaum: (x,y, radius, höhe)
+    baeume = [(-0.5, 0.2, 0.1, 1.0), (0.3, -0.3, 0.12, 1.2), (0.0, 0.0, 0.15, 1.5)]
+    # Lichtposition bewegt sich leicht für Animation
+    for f in range(frames):
+        angle = f * 0.2
+        light_pos = (math.cos(angle) * 2.0, math.sin(angle) * 2.0, 2.5)
+        frame_txt = render_frame(width, height, params, light_pos, baeume)
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(frame_txt)
+        time.sleep(0.2)
+    print('Simulation beendet. Danke für das Ansehen!')
 
-    for frame in range(frames):
-        # Lichtposition animieren (Kreis)
-        angle = frame * 2.0 * math.pi / frames
-        light_pos = (light_radius * math.cos(angle),
-                     light_radius * math.sin(angle),
-                     light_height)
-
-        frame_lines = []
-        for y in range(height):
-            line_chars = []
-            for x in range(width):
-                # Strahlrichtung berechnen (Perspektive)
-                nx = (x + 0.5) / width * 2.0 - 1.0
-                ny = (y + 0.5) / height * 2.0 - 1.0
-                ray_dir = (nx * math.tan(fov/2.0),
-                           ny * math.tan(fov/2.0) * (height/width),
-                           -1.0)
-                rlen = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
-                ray_dir = (ray_dir[0]/rlen, ray_dir[1]/rlen, ray_dir[2]/rlen)
-
-                # Raymarching
-                total_intensity = 0.0
-                step_dist = 0.5
-                for step in range(params.march_steps):
-                    t = (step + 0.5) * step_dist
-                    px = cam_pos[0] + ray_dir[0] * t
-                    py = cam_pos[1] + ray_dir[1] * t
-                    pz = cam_pos[2] + ray_dir[2] * t
-                    if pz < 0.0:
-                        break
-                    density = mist_dichte((px, py, pz), params)
-                    if density <= 0.0:
-                        continue
-                    shadow = schattenfaktor_3d((px, py, pz), light_pos, baeume, params)
-                    lx, ly, lz = light_pos
-                    vx, vy, vz = lx - px, ly - py, lz - pz
-                    dist_light = math.sqrt(vx*vx + vy*vy + vz*vz)
-                    if dist_light < 0.01:
-                        continue
-                    ldx, ldy, ldz = vx/dist_light, vy/dist_light, vz/dist_light
-                    cos_theta = ray_dir[0]*ldx + ray_dir[1]*ldy + ray_dir[2]*ldz
-                    phase = henyey_greenstein(cos_theta, params.phase_g)
-                    falloff = 1.0 / (dist_light ** params.falloff_exponent)
-                    scatter = density * shadow * phase * falloff * params.scattering_coeff * params.volumetric_gain
-                    total_intensity += scatter * step_dist
-                    # Early exit wenn Sättigung
-                    if total_intensity > params.early_exit_threshold * 10:
-                        break
-                total_intensity += params.ambient
-                total_intensity = min(1.0, total_intensity ** params.gamma)
-                ch = intensitaet_zu_ascii(total_intensity, params.gamma)
-                line_chars.append(ch)
-            frame_lines.append(''.join(line_chars))
-        # Frame ausgeben (einfaches Clearing mit Newlines, kein ANSI für Kompatibilität)
-        print('\n' * 2)  # etwas Abstand zwischen Frames
-        print('\n'.join(frame_lines))
-        print(f"Frame {frame+1}/{frames}")
-        time.sleep(0.05)  # kleine Pause, um Ausgabe lesbar zu machen
-    print("\nFertig.")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
