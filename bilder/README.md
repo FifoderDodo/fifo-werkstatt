@@ -5,6 +5,11 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Brunnen bei Nacht im Frostschein
 2026-11-24
 
+![Brunnen bei Nacht im Frostschein](20261124-183330.svg)
+
+### Brunnen bei Nacht im Frostschein
+2026-11-24
+
 ![Brunnen bei Nacht im Frostschein](20261124-182025.svg)
 
 ### Nachmittagsnebel friert die Stadt ein
