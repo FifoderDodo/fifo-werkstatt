@@ -2,7 +2,7 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
 <meta charset="UTF-8">
-<title>Schatten-Simulator – Teil 66</title>
+<title>Schatten-Simulator – Teil 67</title>
 <style>
   body { margin:0; background:#1a1a2e; color:#eee; font-family:monospace; display:flex; flex-direction:column; align-items:center; height:100vh; overflow:hidden; }
   h1 { font-size:1.2rem; margin:0.5rem; }
@@ -16,7 +16,7 @@
 </style>
 </head>
 <body>
-<h1>Schatten-Simulator – Teil 66</h1>
+<h1>Schatten-Simulator – Teil 67</h1>
 <div id="ui">
   <button id="btnDemo" class="active">Demo-Sequenz</button>
   <button id="btnInteraktiv">Interaktiv</button>
@@ -52,7 +52,7 @@ const shaderMat = new THREE.ShaderMaterial({
     uLightPos: {value:new THREE.Vector3(3,5,3)},
     uSamples: {value:12},
     uBias: {value:0.015},
-    uCamPos: {value:new THREE.Vector3(0,8,20)},
+    uCamPos: {value:new THREE.Vector3(0,12,25)},
     uCamTarget: {value:new THREE.Vector3(0,0,0)},
     uResolution: {value:new THREE.Vector2(W,H)},
   },
@@ -134,11 +134,16 @@ const shaderMat = new THREE.ShaderMaterial({
     col = pow(col, vec3(0.9));
     gl_FragColor = vec4(col, 1.0);
   }
-`
+  `,
 });
 
 const quad = new THREE.Mesh(quadGeo, shaderMat);
 scene.add(quad);
+
+let demoMode = true;
+let sceneIdx = 0;
+const scenes = [0,1,2];
+let lastSwitch = 0;
 
 const btnDemo = document.getElementById('btnDemo');
 const btnInteraktiv = document.getElementById('btnInteraktiv');
@@ -149,57 +154,54 @@ const lz = document.getElementById('lz');
 const samples = document.getElementById('samples');
 const bias = document.getElementById('bias');
 
-let demoMode = true;
-let sceneIdx = 0;
-let demoTime = 0;
-
 btnDemo.onclick = () => { demoMode=true; btnDemo.classList.add('active'); btnInteraktiv.classList.remove('active'); };
 btnInteraktiv.onclick = () => { demoMode=false; btnInteraktiv.classList.add('active'); btnDemo.classList.remove('active'); };
-sceneSel.onchange = e => { sceneIdx = parseInt(e.target.value); shaderMat.uniforms.uScene.value = sceneIdx; };
-lx.oninput = e => shaderMat.uniforms.uLightPos.value.x = parseFloat(e.target.value);
-ly.oninput = e => shaderMat.uniforms.uLightPos.value.y = parseFloat(e.target.value);
-lz.oninput = e => shaderMat.uniforms.uLightPos.value.z = parseFloat(e.target.value);
-samples.oninput = e => shaderMat.uniforms.uSamples.value = parseInt(e.target.value);
-bias.oninput = e => shaderMat.uniforms.uBias.value = parseFloat(e.target.value);
+sceneSel.onchange = e => { sceneIdx = +e.target.value; shaderMat.uniforms.uScene.value = sceneIdx; };
+lx.oninput = e => shaderMat.uniforms.uLightPos.value.x = +e.target.value;
+ly.oninput = e => shaderMat.uniforms.uLightPos.value.y = +e.target.value;
+lz.oninput = e => shaderMat.uniforms.uLightPos.value.z = +e.target.value;
+samples.oninput = e => shaderMat.uniforms.uSamples.value = +e.target.value;
+bias.oninput = e => shaderMat.uniforms.uBias.value = +e.target.value;
 
-function renderASCII(){
-  const ctx = renderer.getContext();
-  const pixels = new Uint8Array(ASC_W*ASC_H*4);
-  const oldW = canvas.width, oldH = canvas.height;
-  canvas.width = ASC_W; canvas.height = ASC_H;
-  renderer.setSize(ASC_W, ASC_H, false);
-  renderer.render(scene, camera);
-  ctx.readPixels(0,0,ASC_W,ASC_H,ctx.RGBA,ctx.UNSIGNED_BYTE,pixels);
-  canvas.width = oldW; canvas.height = oldH;
-  renderer.setSize(oldW, oldH, false);
-  let str='';
-  for(let y=0;y<ASC_H;y++){
-    for(let x=0;x<ASC_W;x++){
-      const i=(y*ASC_W+x)*4;
-      const lum = (pixels[i]*0.299 + pixels[i+1]*0.587 + pixels[i+2]*0.114)/255;
-      str += rampInv[Math.floor(lum*(rampInv.length-1))];
-    }
-    str+='\n';
-  }
-  asciiEl.textContent = str;
-}
-
-function animate(t){
-  t *= 0.001;
+function animate(time){
+  const t = time * 0.001;
   shaderMat.uniforms.uTime.value = t;
   
+  if(demoMode && t - lastSwitch > 8){
+    sceneIdx = (sceneIdx + 1) % scenes.length;
+    shaderMat.uniforms.uScene.value = sceneIdx;
+    sceneSel.value = sceneIdx;
+    lastSwitch = t;
+  }
+  
+  // Kamera leicht animieren für Demo
   if(demoMode){
-    demoTime += 1/60;
-    if(demoTime > 8){ demoTime=0; sceneIdx=(sceneIdx+1)%3; sceneSel.value=sceneIdx; shaderMat.uniforms.uScene.value=sceneIdx; }
-    const r=8;
-    shaderMat.uniforms.uLightPos.value.set(Math.sin(demoTime)*r, 5+Math.sin(demoTime*0.7)*2, Math.cos(demoTime)*r);
-    lx.value = shaderMat.uniforms.uLightPos.value.x.toFixed(1);
-    ly.value = shaderMat.uniforms.uLightPos.value.y.toFixed(1);
-    lz.value = shaderMat.uniforms.uLightPos.value.z.toFixed(1);
+    const camRadius = 25;
+    const camHeight = 12;
+    shaderMat.uniforms.uCamPos.value.set(
+      Math.sin(t * 0.15) * camRadius,
+      camHeight,
+      Math.cos(t * 0.15) * camRadius
+    );
+    shaderMat.uniforms.uCamTarget.value.set(0, 0, 0);
   }
   
   renderer.render(scene, camera);
-  if(Math.floor(t*2)%2===0) renderASCII();
+  
+  // ASCII fallback
+  let ascii = '';
+  for(let y=0; y<ASC_H; y++){
+    for(let x=0; x<ASC_W; x++){
+      const uv = new THREE.Vector2((x/ASC_W)*2-1, 1-(y/ASC_H)*2);
+      const col = new THREE.Color().setHSL(0.5 + uv.x*0.2, 0.7, 0.5);
+      const hsl = col.getHSL();
+      const idx = Math.floor(hsl.l * (ramp.length-1));
+      ascii += ramp[idx];
+    }
+    ascii += '\n';
+  }
+  asciiEl.textContent = ascii;
+  
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
