@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Raureif-Eiche: Stadt-Nachmittag, Laune im Eimer
+2026-11-24
+
+![Raureif-Eiche: Stadt-Nachmittag, Laune im Eimer](20261124-153109.svg)
+
 ### Raureif auf knorriger Eiche: Stadt, Nachmittag, Laune
 2026-11-24
 
