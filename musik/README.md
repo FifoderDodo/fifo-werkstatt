@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Abendnebel-Flirren](2026-11-24T19-49-49.mid) ([Noten](2026-11-24T19-49-49.json)) | 2026-11-24 | 25 s | 78 bpm | klavier, bass, trommel, glocken |
 | [Stadtnachmittag-Flüster](2026-11-24T17-56-08.mid) ([Noten](2026-11-24T17-56-08.json)) | 2026-11-24 | 18 s | 85 bpm | klavier, bass, trommel, glocken |
 | [Kai-Tango](2026-11-24T17-46-51.mid) ([Noten](2026-11-24T17-46-51.json)) | 2026-11-24 | 15 s | 130 bpm | klavier, bass, glocken |
 | [Stadtnachmittag-Laune](2026-11-24T17-22-03.mid) ([Noten](2026-11-24T17-22-03.json)) | 2026-11-24 | 20 s | 72 bpm | klavier, bass, trommel, glocken |
