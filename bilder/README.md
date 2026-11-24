@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Fifos Raureif-Schnautze: Stadt, Nachmittag, Laune
+2026-11-24
+
+![Fifos Raureif-Schnautze: Stadt, Nachmittag, Laune](20261124-161541.svg)
+
 ### Raureif-Eiche: Stadt-Nachmittag, Laune im Eimer
 2026-11-24
 
