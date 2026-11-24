@@ -2,7 +2,7 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
     <meta charset="UTF-8">
-    <title>Fifos 3D-Tiefen-Shader Part 19</title>
+    <title>Fifos 3D-Tiefen-Shader Part 20</title>
     <style>
         body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #eee; overflow: hidden; }
         canvas { border: 2px solid #444; box-shadow: 0 0 30px #000; display: block; }
@@ -12,9 +12,9 @@
 <body>
     <canvas id="glcanvas" width="400" height="400"></canvas>
     <div id="info">
-        Fifo's Raymarch Lab Part 19<br>
+        Fifo's Raymarch Lab Part 20<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
-        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, Nebel, Kamera zurück
+        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, Nebel, Kamera fix
     </div>
 
     <script type="module">
@@ -43,7 +43,7 @@
                 u_resolution: { value: new THREE.Vector2(400, 400) },
                 u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
                 // Kamera-Parameter für Ray-Generierung im Vertex/Fragment
-                u_camPos: { value: new THREE.Vector3(0, 3, 25) },
+                u_camPos: { value: new THREE.Vector3(0, 3, 18) },
                 u_camTarget: { value: new THREE.Vector3(0, 0.5, 0) },
                 u_fov: { value: 45.0 },
             },
@@ -94,75 +94,82 @@
                 }
                 
                 // -----------------------------------------------------------
-                // Szene definieren (SDF)
+                // Szene definieren (SDF) - gibt auch Objekt-ID zurück
                 // -----------------------------------------------------------
-                float map(vec3 p, out int objId) {
+                float map(vec3 p, out int objId, out vec3 objCol) {
                     objId = -1;
+                    objCol = vec3(0.0);
                     float d = 1e9;
                     int id = -1;
+                    vec3 col = vec3(0.0);
                     
-                    // 1. Boden
+                    // 1. Boden - helleres Grau
                     float dPlane = sdPlane(p, vec3(0,1,0), 1.5); 
-                    d = dPlane; id = 0;
+                    if (dPlane < d) { d = dPlane; id = 0; col = vec3(0.55, 0.58, 0.62); }
                     
-                    // 2. Zentraler Twisting Box
+                    // 2. Zentraler Twisting Box - kräftiges Cyan
                     vec3 pBox = p - vec3(0.0, 0.5, 0.0);
                     float twist = u_time * 0.3;
                     pBox.xz = mat2(cos(twist), -sin(twist), sin(twist), cos(twist)) * pBox.xz;
                     float dBox = sdBox(pBox, vec3(0.8, 0.8, 0.8));
-                    if (dBox < d) { d = dBox; id = 1; }
+                    if (dBox < d) { d = dBox; id = 1; col = vec3(0.2, 0.95, 1.0); }
                     
-                    // 3. Schwebende Kugel (Pulsierend)
+                    // 3. Schwebende Kugel (Pulsierend) - kräftiges Orange
                     vec3 pSph = p - vec3(-2.5, 1.5 + sin(u_time*1.2)*0.5, -1.0);
                     float dSph = sdSphere(pSph, 0.6 + 0.2*sin(u_time*2.0));
-                    if (dSph < d) { d = dSph; id = 2; }
+                    if (dSph < d) { d = dSph; id = 2; col = vec3(1.0, 0.65, 0.2); }
                     
-                    // 4. Torus (Rotierend)
+                    // 4. Torus (Rotierend) - kräftiges Magenta
                     vec3 pTor = p - vec3(2.5, 1.0, 1.5);
                     float torAngle = u_time * 0.5;
                     pTor.xz = mat2(cos(torAngle), -sin(torAngle), sin(torAngle), cos(torAngle)) * pTor.xz;
                     pTor.xy = mat2(cos(torAngle*0.7), -sin(torAngle*0.7), sin(torAngle*0.7), cos(torAngle*0.7)) * pTor.xy;
-                    float dTor = sdTorus(pTor, vec2(0.6, 0.25));
-                    if (dTor < d) { d = dTor; id = 3; }
+                    float dTor = sdTorus(pTor, vec2(0.7, 0.25));
+                    if (dTor < d) { d = dTor; id = 3; col = vec3(1.0, 0.35, 0.95); }
                     
-                    // 5. Zylinder
-                    vec3 pCyl = p - vec3(-2.0, 0.8, 2.5);
-                    float dCyl = sdCylinder(pCyl, vec2(0.4, 1.2));
-                    if (dCyl < d) { d = dCyl; id = 4; }
+                    // 5. Zylinder - kräftiges Grün
+                    vec3 pCyl = p - vec3(-1.5, 0.8, 2.5);
+                    float dCyl = sdCylinder(pCyl, vec2(0.4, 1.0));
+                    if (dCyl < d) { d = dCyl; id = 4; col = vec3(0.35, 1.0, 0.45); }
                     
-                    // 6. Kleine Kugel rechts
+                    // 6. Kleine Kugel - kräftiges Gelb
                     vec3 pSph2 = p - vec3(1.8, 0.4, -2.0);
                     float dSph2 = sdSphere(pSph2, 0.4);
-                    if (dSph2 < d) { d = dSph2; id = 5; }
+                    if (dSph2 < d) { d = dSph2; id = 5; col = vec3(1.0, 1.0, 0.3); }
                     
                     objId = id;
+                    objCol = col;
                     return d;
                 }
                 
                 // -----------------------------------------------------------
-                // Normalen berechnen
+                // Normale berechnen
                 // -----------------------------------------------------------
                 vec3 calcNormal(vec3 p) {
                     vec2 e = vec2(0.001, 0.0);
+                    int dummyId;
+                    vec3 dummyCol;
                     return normalize(vec3(
-                        map(p + e.xyy, int(0)) - map(p - e.xyy, int(0)),
-                        map(p + e.yxy, int(0)) - map(p - e.yxy, int(0)),
-                        map(p + e.yyx, int(0)) - map(p - e.yyx, int(0))
+                        map(p + e.xyy, dummyId, dummyCol) - map(p - e.xyy, dummyId, dummyCol),
+                        map(p + e.yxy, dummyId, dummyCol) - map(p - e.yxy, dummyId, dummyCol),
+                        map(p + e.yyx, dummyId, dummyCol) - map(p - e.yyx, dummyId, dummyCol)
                     ));
                 }
                 
                 // -----------------------------------------------------------
                 // Weiche Schatten
                 // -----------------------------------------------------------
-                float softShadow(vec3 ro, vec3 rd, float mint, float maxt, float k) {
+                float softShadow(vec3 ro, vec3 rd, float mint, float k) {
                     float res = 1.0;
                     float t = mint;
-                    for(int i=0; i<32; i++) {
-                        float h = map(ro + rd * t, int(0));
-                        if(h < 0.001) return 0.0;
+                    int dummyId;
+                    vec3 dummyCol;
+                    for (int i = 0; i < 32; i++) {
+                        float h = map(ro + rd * t, dummyId, dummyCol);
+                        if (h < 0.001) return 0.0;
                         res = min(res, k * h / t);
                         t += h;
-                        if(t >= maxt) break;
+                        if (t > 20.0) break;
                     }
                     return clamp(res, 0.0, 1.0);
                 }
@@ -173,137 +180,121 @@
                 float calcAO(vec3 p, vec3 n) {
                     float ao = 0.0;
                     float sca = 1.0;
-                    for(int i=0; i<5; i++) {
-                        float hr = 0.01 + 0.12 * float(i) / 4.0;
-                        float dd = map(p + n * hr, int(0));
-                        ao += (hr - dd) * sca;
+                    int dummyId;
+                    vec3 dummyCol;
+                    for (int i = 0; i < 5; i++) {
+                        float h = 0.05 + 0.15 * float(i) / 4.0;
+                        float d = map(p + n * h, dummyId, dummyCol);
+                        ao += (h - d) * sca;
                         sca *= 0.5;
                     }
-                    return 1.0 - clamp(ao, 0.0, 1.0);
+                    return clamp(1.0 - 3.0 * ao, 0.0, 1.0);
                 }
                 
                 // -----------------------------------------------------------
-                // Farbzuweisung pro Objekt
+                // Hauptprogramm
                 // -----------------------------------------------------------
-                vec3 getColor(int id, vec3 p, vec3 n, vec3 rd, float ao, float shadow) {
-                    vec3 col = vec3(0.0);
-                    vec3 lightDir = normalize(vec3(2.0, 4.0, 1.5));
-                    vec3 viewDir = -rd;
+                void main() {
+                    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
                     
-                    // Fresnel
-                    float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
-                    
-                    // Diffuse
-                    float diff = max(dot(n, lightDir), 0.0);
-                    
-                    // Specular
-                    vec3 halfDir = normalize(lightDir + viewDir);
-                    float spec = pow(max(dot(n, halfDir), 0.0), 64.0);
-                    
-                    if(id == 0) { // Boden - heller, warmer Ton
-                        vec3 base = vec3(0.55, 0.52, 0.48);
-                        float checker = mod(floor(p.x*2.0) + floor(p.z*2.0), 2.0);
-                        base = mix(base, base * 0.85, checker);
-                        col = base * (0.5 + 0.5 * diff) * shadow * ao;
-                        col += vec3(0.2, 0.18, 0.16) * fresnel;
-                    }
-                    else if(id == 1) { // Twisting Box - kräftiges Cyan
-                        vec3 base = vec3(0.2, 0.9, 1.0);
-                        col = base * (0.4 + 0.6 * diff) * shadow * ao;
-                        col += vec3(0.9, 1.0, 1.0) * spec * shadow;
-                        col += vec3(0.1, 0.4, 0.45) * fresnel;
-                    }
-                    else if(id == 2) { // Pulsierende Kugel - warmes Orange/Gold
-                        vec3 base = vec3(1.0, 0.7, 0.2);
-                        col = base * (0.45 + 0.55 * diff) * shadow * ao;
-                        col += vec3(1.0, 0.95, 0.7) * spec * shadow;
-                        col += vec3(0.5, 0.3, 0.1) * fresnel;
-                    }
-                    else if(id == 3) { // Torus - kräftiges Magenta
-                        vec3 base = vec3(1.0, 0.3, 0.8);
-                        col = base * (0.4 + 0.6 * diff) * shadow * ao;
-                        col += vec3(1.0, 0.8, 1.0) * spec * shadow;
-                        col += vec3(0.45, 0.1, 0.35) * fresnel;
-                    }
-                    else if(id == 4) { // Zylinder - leuchtendes Grün
-                        vec3 base = vec3(0.3, 1.0, 0.45);
-                        col = base * (0.45 + 0.55 * diff) * shadow * ao;
-                        col += vec3(0.9, 1.0, 0.9) * spec * shadow;
-                        col += vec3(0.1, 0.45, 0.15) * fresnel;
-                    }
-                    else if(id == 5) { // Kleine Kugel - helles Blau
-                        vec3 base = vec3(0.4, 0.7, 1.0);
-                        col = base * (0.5 + 0.5 * diff) * shadow * ao;
-                        col += vec3(0.9, 0.95, 1.0) * spec * shadow;
-                        col += vec3(0.15, 0.25, 0.5) * fresnel;
-                    }
-                    return col;
-                }
-                
-                // -----------------------------------------------------------
-                // Haupt-Rendering
-                // -----------------------------------------------------------
-                void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-                    vec2 uv = (fragCoord - 0.5 * u_resolution) / u_resolution.y;
-                    
-                    // Kamera aus Uniforms
+                    // Kamera-Matrix bauen
                     vec3 ro = u_camPos;
                     vec3 ta = u_camTarget;
                     mat3 ca = lookAt(ro, ta, vec3(0,1,0));
                     
-                    // Ray Direction
+                    // Ray-Direction mit FOV (WICHTIG: +1.0 statt -1.0, da forward-Vektor in Blickrichtung zeigt)
                     float fov = radians(u_fov);
-                    vec3 rd = ca * normalize(vec3(uv * tan(fov * 0.5), -1.0));
+                    vec3 rd = ca * normalize(vec3(uv * tan(fov * 0.5), 1.0));
                     
                     // Raymarching
                     float t = 0.0;
                     int objId = -1;
-                    for(int i=0; i<MAX_STEPS; i++) {
+                    vec3 objCol = vec3(0.0);
+                    for (int i = 0; i < MAX_STEPS; i++) {
                         vec3 p = ro + rd * t;
-                        float d = map(p, objId);
-                        if(d < SURF_DIST) break;
+                        int id;
+                        vec3 col;
+                        float d = map(p, id, col);
+                        if (d < SURF_DIST) {
+                            objId = id;
+                            objCol = col;
+                            break;
+                        }
                         t += d;
-                        if(t >= MAX_DIST) break;
+                        if (t > MAX_DIST) break;
                     }
                     
-                    // Hintergrund - heller, freundlicher
-                    vec3 bgCol = vec3(0.4, 0.45, 0.55);
-                    bgCol += vec3(0.2, 0.18, 0.15) * smoothstep(-0.5, 0.5, rd.y); // Horizont
-                    bgCol += vec3(0.15, 0.2, 0.3) * pow(max(-rd.y, 0.0), 2.0); // Zenit
+                    // Hintergrund - heller, freundlicher Farbverlauf
+                    vec3 bgCol = mix(
+                        vec3(0.45, 0.55, 0.75),  // Horizont: helles Blau
+                        vec3(0.75, 0.85, 1.0),   // Zenit: sehr helles Blau
+                        rd.y * 0.5 + 0.5
+                    );
                     
-                    vec3 col = bgCol;
+                    // Nebel-Farbe
+                    vec3 fogCol = vec3(0.65, 0.75, 0.9);
                     
-                    if(t < MAX_DIST) {
+                    vec3 finalCol = bgCol;
+                    
+                    if (objId >= 0) {
                         vec3 p = ro + rd * t;
                         vec3 n = calcNormal(p);
                         
-                        // Schatten
-                        float shadow = softShadow(p + n * 0.01, normalize(vec3(2.0, 4.0, 1.5)), 0.01, 20.0, 32.0);
+                        // Lichtrichtung - mehrere Lichter für mehr Helligkeit
+                        vec3 lightDir1 = normalize(vec3(0.8, 1.5, 0.6));
+                        vec3 lightDir2 = normalize(vec3(-0.5, 1.0, -0.8));
+                        vec3 lightDir3 = normalize(vec3(0.0, 1.0, 0.0));
                         
-                        // AO
+                        // Weiche Schatten
+                        float shadow1 = softShadow(p + n * 0.01, lightDir1, 0.01, 32.0);
+                        float shadow2 = softShadow(p + n * 0.01, lightDir2, 0.01, 32.0);
+                        float shadow3 = softShadow(p + n * 0.01, lightDir3, 0.01, 32.0);
+                        float shadow = shadow1 * shadow2 * shadow3;
+                        
+                        // Diffuses Licht - stärker
+                        float diff1 = max(dot(n, lightDir1), 0.0);
+                        float diff2 = max(dot(n, lightDir2), 0.0) * 0.7;
+                        float diff3 = max(dot(n, lightDir3), 0.0) * 0.5;
+                        float diff = diff1 + diff2 + diff3;
+                        
+                        // Specular (Blinn-Phong)
+                        vec3 viewDir = -rd;
+                        vec3 halfDir1 = normalize(lightDir1 + viewDir);
+                        float spec1 = pow(max(dot(n, halfDir1), 0.0), 64.0);
+                        vec3 halfDir2 = normalize(lightDir2 + viewDir);
+                        float spec2 = pow(max(dot(n, halfDir2), 0.0), 32.0) * 0.5;
+                        float spec = spec1 + spec2;
+                        
+                        // Ambient Occlusion
                         float ao = calcAO(p, n);
                         
-                        // Objekt-Farbe
-                        col = getColor(objId, p, n, rd, ao, shadow);
+                        // Fresnel für Kanten-Glanz
+                        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
                         
-                        // Nebel - sehr subtil
-                        float fog = exp(-t * 0.015);
-                        col = mix(bgCol, col, fog);
+                        // Material-Farbe mischen
+                        vec3 matCol = objCol;
+                        
+                        // Beleuchtung zusammenbauen - HELLER!
+                        vec3 ambient = matCol * 0.5 * ao;
+                        vec3 diffuse = matCol * diff * shadow * 1.5;
+                        vec3 specular = vec3(1.0, 1.0, 1.0) * spec * shadow * 1.3;
+                        vec3 fresnelCol = vec3(1.0, 1.0, 1.0) * fresnel * 0.5;
+                        
+                        finalCol = ambient + diffuse + specular + fresnelCol;
+                        
+                        // Nebel - weniger dicht
+                        float fogAmount = 1.0 - exp(-0.015 * t * t);
+                        finalCol = mix(finalCol, fogCol, fogAmount);
                     }
                     
-                    // Gamma & Tone Mapping - sanfter
-                    col = pow(col, vec3(0.55));
-                    col = col / (1.0 + col);
+                    // Gamma-Korrektur
+                    finalCol = pow(finalCol, vec3(1.0 / 2.2));
                     
-                    // Vignette - sehr dezent
-                    float vignette = 1.0 - 0.08 * length(uv);
-                    col *= vignette;
+                    // Leichtes Vignetting
+                    float vignette = 1.0 - 0.1 * length(uv);
+                    finalCol *= vignette;
                     
-                    fragColor = vec4(col, 1.0);
-                }
-                
-                void main() {
-                    mainImage(gl_FragColor, vUv * u_resolution);
+                    gl_FragColor = vec4(finalCol, 1.0);
                 }
             `,
         });
@@ -312,80 +303,80 @@
         scene.add(quad);
 
         // -----------------------------------------------------------
-        // Input-Handling: Maus dreht, Rad zoomt, Tasten strafen
+        // Interaktion: Kamera steuern
         // -----------------------------------------------------------
-        let camPos = new THREE.Vector3(0, 3, 25);
-        let camTarget = new THREE.Vector3(0, 0.5, 0);
-        let yaw = 0, pitch = 0.2;
-        const radius = 25;
-        let isMouseDown = false;
-        let lastMouse = { x: 0, y: 0 };
+        let camTheta = 0.0;
+        let camPhi = 0.4;
+        let camRadius = 18.0;
+        const target = new THREE.Vector3(0, 0.5, 0);
+        const minRadius = 6.0;
+        const maxRadius = 35.0;
+        let isDragging = false;
+        let lastMouse = new THREE.Vector2();
+
+        function updateCamera() {
+            const phi = THREE.MathUtils.clamp(camPhi, 0.05, Math.PI - 0.05);
+            const x = camRadius * Math.sin(phi) * Math.sin(camTheta);
+            const y = camRadius * Math.cos(phi);
+            const z = camRadius * Math.sin(phi) * Math.cos(camTheta);
+            material.uniforms.u_camPos.value.set(x, y + 0.5, z);
+            material.uniforms.u_camTarget.value.copy(target);
+        }
+        updateCamera();
 
         canvas.addEventListener('mousedown', (e) => {
-            isMouseDown = true;
-            lastMouse = { x: e.clientX, y: e.clientY };
-            canvas.style.cursor = 'grabbing';
-        });
-        window.addEventListener('mouseup', () => {
-            isMouseDown = false;
-            canvas.style.cursor = 'grab';
+            if (e.button === 0) {
+                isDragging = true;
+                lastMouse.set(e.clientX, e.clientY);
+                canvas.style.cursor = 'grabbing';
+            }
         });
         window.addEventListener('mousemove', (e) => {
-            if (!isMouseDown) return;
+            if (!isDragging) return;
             const dx = e.clientX - lastMouse.x;
             const dy = e.clientY - lastMouse.y;
-            yaw -= dx * 0.005;
-            pitch = THREE.MathUtils.clamp(pitch - dy * 0.005, -1.4, 1.4);
-            lastMouse = { x: e.clientX, y: e.clientY };
+            camTheta -= dx * 0.005;
+            camPhi += dy * 0.005;
+            lastMouse.set(e.clientX, e.clientY);
             updateCamera();
         });
-        window.addEventListener('wheel', (e) => {
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+        canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            material.uniforms.u_fov.value = THREE.MathUtils.clamp(material.uniforms.u_fov.value + e.deltaY * 0.05, 20, 80);
+            camRadius += e.deltaY * 0.02;
+            camRadius = THREE.MathUtils.clamp(camRadius, minRadius, maxRadius);
+            updateCamera();
         }, { passive: false });
 
         const keys = {};
         window.addEventListener('keydown', (e) => keys[e.code] = true);
         window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        function updateCamera() {
-            camPos.x = camTarget.x + radius * Math.cos(pitch) * Math.sin(yaw);
-            camPos.y = camTarget.y + radius * Math.sin(pitch);
-            camPos.z = camTarget.z + radius * Math.cos(pitch) * Math.cos(yaw);
-            material.uniforms.u_camPos.value.copy(camPos);
-        }
-
-        function handleKeyboard() {
-            const speed = 0.15;
-            const forward = new THREE.Vector3().subVectors(camTarget, camPos).normalize();
-            forward.y = 0; forward.normalize();
-            const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
-            
-            if (keys['KeyW'] || keys['ArrowUp']) { camTarget.addScaledVector(forward, speed); camPos.addScaledVector(forward, speed); }
-            if (keys['KeyS'] || keys['ArrowDown']) { camTarget.addScaledVector(forward, -speed); camPos.addScaledVector(forward, -speed); }
-            if (keys['KeyA'] || keys['ArrowLeft']) { camTarget.addScaledVector(right, -speed); camPos.addScaledVector(right, -speed); }
-            if (keys['KeyD'] || keys['ArrowRight']) { camTarget.addScaledVector(right, speed); camPos.addScaledVector(right, speed); }
-            if (keys['Space']) { camTarget.y += speed; camPos.y += speed; }
-            if (keys['ShiftLeft'] || keys['ShiftRight']) { camTarget.y -= speed; camPos.y -= speed; }
-            
-            material.uniforms.u_camPos.value.copy(camPos);
-            material.uniforms.u_camTarget.value.copy(camTarget);
-        }
-
         // -----------------------------------------------------------
         // Render-Loop
         // -----------------------------------------------------------
-        let startTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
-            handleKeyboard();
-            material.uniforms.u_time.value = (performance.now() - startTime) * 0.001;
+            
+            // Tastatur-Steuerung (Strafen)
+            const moveSpeed = 0.15;
+            if (keys['KeyW'] || keys['ArrowUp']) target.z -= moveSpeed;
+            if (keys['KeyS'] || keys['ArrowDown']) target.z += moveSpeed;
+            if (keys['KeyA'] || keys['ArrowLeft']) target.x -= moveSpeed;
+            if (keys['KeyD'] || keys['ArrowRight']) target.x += moveSpeed;
+            if (keys['Space']) target.y += moveSpeed;
+            if (keys['ShiftLeft'] || keys['ShiftRight']) target.y -= moveSpeed;
+            target.y = Math.max(0.1, target.y);
+            
+            material.uniforms.u_time.value += 1/60;
+            material.uniforms.u_camTarget.value.copy(target);
+            
             renderer.render(scene, cam);
         }
         animate();
-        
-        // Initial Kamera setzen
-        updateCamera();
     </script>
 </body>
 </html>
