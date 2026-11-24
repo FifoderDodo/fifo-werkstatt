@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Feldmaus im Abendfrost
+2026-11-24
+
+![Feldmaus im Abendfrost](20261124-191847.svg)
+
 ### Brunnen bei Nacht im Frostschein
 2026-11-24
 
