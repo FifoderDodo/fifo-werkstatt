@@ -19,7 +19,7 @@ class ShaderParams:
         self.jitter_strength = 0.10
         self.phase_g = 0.55
         self.noise_seed = 42
-        self.march_steps = 32          # erhöht auf 32
+        self.march_steps = 32
         self.jitter_enabled = True
         self.specular_intensity = 0.7
         self.specular_power = 18.0
@@ -169,198 +169,87 @@ def render_frame(breite, hoehe, params, baeume, light_pos, cam_pos, cam_yaw, cam
     fb_g = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
     fb_b = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
     
-    # Kamerarichtungen vorberechnen
-    fx = cos_yaw * cos_pitch
-    fy = sin_yaw * cos_pitch
-    fz = sin_pitch
-    rx = -sin_yaw
-    ry = cos_yaw
-    rz = 0.0
-    ux = -fx * sin_pitch
-    uy = -fy * sin_pitch
-    uz = cos_pitch
+    forward = (cos_yaw * cos_pitch, sin_yaw * cos_pitch, sin_pitch)
+    right = (-sin_yaw, cos_yaw, 0.0)
+    up = (-cos_yaw * sin_pitch, -sin_yaw * sin_pitch, cos_pitch)
     
-    fov = 1.0
+    fov = math.pi / 3.0
     aspect = breite / hoehe
     
+    jitter_x = 0.0
+    jitter_y = 0.0
+    if params.jitter_enabled:
+        random.seed(params.noise_seed + int(t * 1000))
+        jitter_x = (random.random() - 0.5) * params.jitter_strength
+        jitter_y = (random.random() - 0.5) * params.jitter_strength
+    
     for y in range(hoehe):
         for x in range(breite):
-            # NDC Koordinaten
-            ndc_x = (x + 0.5) / breite * 2.0 - 1.0
-            ndc_y = 1.0 - (y + 0.5) / hoehe * 2.0
+            ndc_x = ((x + 0.5 + jitter_x) / breite) * 2.0 - 1.0
+            ndc_y = 1.0 - ((y + 0.5 + jitter_y) / hoehe) * 2.0
             
-            # Ray Direction
-            dir_x = fx + ndc_x * fov * aspect * rx + ndc_y * fov * ux
-            dir_y = fy + ndc_x * fov * aspect * ry + ndc_y * fov * uy
-            dir_z = fz + ndc_x * fov * aspect * rz + ndc_y * fov * uz
+            ray_x = forward[0] + right[0] * ndc_x * aspect * math.tan(fov * 0.5) + up[0] * ndc_y * math.tan(fov * 0.5)
+            ray_y = forward[1] + right[1] * ndc_x * aspect * math.tan(fov * 0.5) + up[1] * ndc_y * math.tan(fov * 0.5)
+            ray_z = forward[2] + right[2] * ndc_x * aspect * math.tan(fov * 0.5) + up[2] * ndc_y * math.tan(fov * 0.5)
+            ray_len = math.sqrt(ray_x*ray_x + ray_y*ray_y + ray_z*ray_z)
+            ray_x /= ray_len
+            ray_y /= ray_len
+            ray_z /= ray_len
             
-            # Normalisieren
-            dir_len = math.sqrt(dir_x*dir_x + dir_y*dir_y + dir_z*dir_z)
-            dir_x /= dir_len
-            dir_y /= dir_len
-            dir_z /= dir_len
-            
-            # Raymarching
-            ox, oy, oz = cam_pos
             steps = params.march_steps
-            max_dist = 30.0
+            max_dist = 15.0
             step_size = max_dist / steps
             
-            if params.adaptive_steps:
-                step_size *= params.min_step_factor
-            
             transmittance = 1.0
-            scattered_r = scattered_g = scattered_b = 0.0
+            acc_r, acc_g, acc_b = 0.0, 0.0, 0.0
+            pos_x, pos_y, pos_z = cam_pos[0] + ray_x * 0.1, cam_pos[1] + ray_y * 0.1, cam_pos[2] + ray_z * 0.1
             
             for step in range(steps):
+                density = mist_dichte((pos_x, pos_y, pos_z), params)
+                if density > 0.0:
+                    shadow = schattenfaktor_3d((pos_x, pos_y, pos_z), light_pos, baeume, params)
+                    lx, ly, lz = light_pos[0] - pos_x, light_pos[1] - pos_y, light_pos[2] - pos_z
+                    light_dist = math.sqrt(lx*lx + ly*ly + lz*lz)
+                    phase = henyey_greenstein((ray_x * lx + ray_y * ly + ray_z * lz) / max(0.001, light_dist), params.phase_g)
+                    
+                    scattering = params.scattering_coeff * density * shadow * phase
+                    extinction = (scattering + params.absorption_coeff * density) * step_size
+                    transmittance *= math.exp(-extinction)
+                    light_intensity = 1.0 / (1.0 + light_dist * light_dist * 0.05)
+                    contrib = scattering * light_intensity * transmittance * step_size
+                    acc_r += contrib * lr
+                    acc_g += contrib * lg
+                    acc_b += contrib * lb
+                
                 if transmittance < params.early_exit_threshold:
                     break
-                
-                px = ox + dir_x * (step * step_size)
-                py = oy + dir_y * (step * step_size)
-                pz = oz + dir_z * (step * step_size)
-                
-                # Mist-Dichte an dieser Position
-                density = mist_dichte((px, py, pz), params)
-                if density <= 0.0:
-                    continue
-                
-                # Schattenfaktor
-                shadow = schattenfaktor_3d((px, py, pz), light_pos, baeume, params)
-                
-                # Lichtrichtung zum Sample
-                lx, ly, lz = light_pos
-                to_light_x = lx - px
-                to_light_y = ly - py
-                to_light_z = lz - pz
-                light_dist = math.sqrt(to_light_x*to_light_x + to_light_y*to_light_y + to_light_z*to_light_z)
-                
-                if light_dist < 0.01:
-                    continue
-                
-                to_light_x /= light_dist
-                to_light_y /= light_dist
-                to_light_z /= light_dist
-                
-                # Phase Function (Henyey-Greenstein)
-                cos_theta = dir_x * to_light_x + dir_y * to_light_y + dir_z * to_light_z
-                phase = henyey_greenstein(cos_theta, params.phase_g)
-                
-                # Falloff
-                falloff = 1.0 / (1.0 + (light_dist - params.falloff_start) ** params.falloff_exponent)
-                
-                # Streulicht berechnen
-                scatter = density * params.scattering_coeff * phase * falloff * shadow * params.volumetric_gain
-                
-                # Absorption
-                transmittance *= math.exp(-density * params.absorption_coeff * step_size)
-                
-                # Akkumulieren
-                scattered_r += scatter * lr * transmittance
-                scattered_g += scatter * lg * transmittance
-                scattered_b += scatter * lb * transmittance
-    
-            # Ambient hinzufügen
-            scattered_r += params.ambient * lr
-            scattered_g += params.ambient * lg
-            scattered_b += params.ambient * lb
+                pos_x += ray_x * step_size
+                pos_y += ray_y * step_size
+                pos_z += ray_z * step_size
             
-            # Gamma & Vibrancy
-            scattered_r = min(1.0, scattered_r ** (1.0/params.gamma) * params.vibrancy)
-            scattered_g = min(1.0, scattered_g ** (1.0/params.gamma) * params.vibrancy)
-            scattered_b = min(1.0, scattered_b ** (1.0/params.gamma) * params.vibrancy)
-            
-            fb_r[y][x] = scattered_r
-            fb_g[y][x] = scattered_g
-            fb_b[y][x] = scattered_b
+            fb_r[y][x] = (acc_r + params.ambient * lr) * params.volumetric_gain
+            fb_g[y][x] = (acc_g + params.ambient * lg) * params.volumetric_gain
+            fb_b[y][x] = (acc_b + params.ambient * lb) * params.volumetric_gain
     
-    # Optional: Box Blur für Bloom-Effekt (vereinfacht)
-    if params.blur_radius > 0:
-        weights = gauß_gewichte(params.blur_radius)
-        fb_r = box_blur_1d(fb_r, weights, True)
-        fb_r = box_blur_1d(fb_r, weights, False)
-        fb_g = box_blur_1d(fb_g, weights, True)
-        fb_g = box_blur_1d(fb_g, weights, False)
-        fb_b = box_blur_1d(fb_b, weights, True)
-        fb_b = box_blur_1d(fb_b, weights, False)
-    
-    return fb_r, fb_g, fb_b
-
-def frame_zu_ascii(fb_r, fb_g, fb_b, gamma):
-    hoehe = len(fb_r)
-    breite = len(fb_r[0])
-    lines = []
-    for y in range(hoehe):
-        line = []
-        for x in range(breite):
-            # Luminanz approximation
-            lum = 0.2126 * fb_r[y][x] + 0.7152 * fb_g[y][x] + 0.0722 * fb_b[y][x]
-            line.append(intensitaet_zu_ascii(lum, gamma))
-        lines.append(''.join(line))
-    return '\n'.join(lines)
+    return [[intensitaet_zu_ascii(0.2126*fb_r[y][x] + 0.7152*fb_g[y][x] + 0.0722*fb_b[y][x], params.gamma) for x in range(breite)] for y in range(hoehe)]
 
 def main():
-    print("🦤 Fifo's 3D-Lichtspiel - Herbstpark Volumetric Renderer")
-    print("=====================================================")
-    
-    # Parameter & Szene
+    print("🍂 3D-Lichtspiel – Herbstlicher Park-Simulator 🍂")
     params = ShaderParams()
-    breite, hoehe = 80, 40
-    
-    # Bäume: (x, y, radius, height)
-    baeume = [
-        (-5.0, -3.0, 1.2, 6.0),
-        (8.0, -2.0, 1.0, 5.5),
-        (-3.0, 7.0, 1.5, 7.0),
-        (6.0, 5.0, 0.9, 4.5),
-        (0.0, 10.0, 1.3, 6.5),
-        (-8.0, 2.0, 1.1, 5.0),
-        (4.0, -8.0, 1.4, 6.0),
-    ]
-    
-    # Kamera & Licht
-    cam_pos = (0.0, -10.0, 1.5)
-    cam_yaw = -0.10
-    cam_pitch = 0.25
-    light_pos = (1.5, 2.9, 8.1)
-    
-    print(f"Auflösung: {breite}x{hoehe}")
-    print(f"Bäume: {len(baeume)}")
-    print(f"March Steps: {params.march_steps}")
-    print(f"Mist Density: {params.mist_density}")
-    print("\nRendere Frame 1/3...")
-    
+    baeume = [(-5.0, -3.0, 1.2, 8.0), (4.0, 2.0, 1.0, 6.5), (-2.0, 5.0, 0.8, 7.0), (6.0, -4.0, 1.5, 9.0)]
+    light_pos, cam_pos = (0.0, 0.0, 15.0), (0.0, -10.0, 1.8)
+    breite, hoehe, frame = 80, 20, 0
     try:
-        for frame in range(3):
+        while True:
             t = frame * 0.5
-            # Leichtes Licht-Bewegen für Animation
-            light_pos_anim = (
-                light_pos[0] + math.sin(t) * 0.5,
-                light_pos[1] + math.cos(t * 0.7) * 0.3,
-                light_pos[2]
-            )
-            
-            start = time.time()
-            fb_r, fb_g, fb_b = render_frame(breite, hoehe, params, baeume, light_pos_anim, cam_pos, cam_yaw, cam_pitch, t)
-            elapsed = time.time() - start
-            
-            ascii_art = frame_zu_ascii(fb_r, fb_g, fb_b, params.gamma)
-            print(f"\n--- Frame {frame+1} ({elapsed:.2f}s) ---")
-            print(ascii_art)
-            
-            if frame < 2:
-                print("\nDrück Enter für nächsten Frame (oder 'q' zum Beenden)...")
-                try:
-                    inp = input().strip().lower()
-                    if inp == 'q':
-                        break
-                except EOFError:
-                    print("\nEOF - Tschüss!")
-                    return
-    except KeyboardInterrupt:
-        print("\nAbgebrochen.")
-    
-    print("\n✨ Fertig. Danke fürs Zuschauen!")
+            curr_light = (math.sin(t * 0.3) * 8.0, math.cos(t * 0.3) * 8.0, 15.0)
+            frame_ascii = render_frame(breite, hoehe, params, baeume, curr_light, cam_pos, 0, 0, t)
+            for row in frame_ascii: print("".join(row))
+            eingabe = input(f"\nFrame {frame} [enter=weiter, q=quit]: ").strip().lower()
+            if eingabe == 'q': break
+            frame += 1
+    except EOFError: pass
+    print("\n🍃 Danke fürs Zuschauen. 🍃")
 
 if __name__ == "__main__":
     main()
