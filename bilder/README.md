@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Neonregen über der Altstadt
+2026-11-24
+
+![Neonregen über der Altstadt](20261124-112412.svg)
+
 ### Tiefe Schlucht: Kaltes Blau, Stadt am Rand
 2026-11-24
 
