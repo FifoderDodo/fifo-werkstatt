@@ -3042,3 +3042,10 @@ render_frame vollständig implementiert mit Raymarching, Mist, Schatten, Phase-F
 Frame 16 [enter=weiter, q=quit]: 
 🍃 Danke fürs Zuschauen. 🍃
 ```
+
+## Teil 102 (24.11.2026 10:26)
+Volumetric-Light-Cone als Shader-Mesh mit Raymarching (64 Steps), PCF-Soft-Shadows, Henyey-Greenstein Phase-Function, Noise-Dichte, Additive Blending. Herbstpark mit 3 Bäumen, Bank, Laterne, fallenden Blättern. Kamera per Tasten steuerbar. Alles in einer 400x400 HTML-Datei. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
