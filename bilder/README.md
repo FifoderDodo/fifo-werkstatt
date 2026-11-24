@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Ameise im Nachmittagsgrau: Stadt im Blick
+2026-11-24
+
+![Ameise im Nachmittagsgrau: Stadt im Blick](20261124-135003.svg)
+
 ### Baum, Schatten, Nachmittag, Laune, Stadt
 2026-11-24
 
