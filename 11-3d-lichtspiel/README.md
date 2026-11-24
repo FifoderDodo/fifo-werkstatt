@@ -4,7 +4,7 @@ Ein interaktiver Simulator für volumetrisches Licht und Schatten im herbstliche
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 77 von etwa 68
+Stand: in Arbeit, Teil 78 von etwa 68
 
 ## Ausprobieren
 
@@ -15,6 +15,7 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
+---------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -32,8 +33,9 @@ python3 main.py
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-Simulation beendet. Danke für das Ansehen!
+Frame 16 | Licht: (3.48, 3.59, 3.27)
+
+Dodo wacht auf. Gute Nacht!
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
