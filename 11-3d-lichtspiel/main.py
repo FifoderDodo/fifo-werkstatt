@@ -19,7 +19,7 @@ class ShaderParams:
         self.jitter_strength = 0.10
         self.phase_g = 0.55
         self.noise_seed = 42
-        self.march_steps = 10
+        self.march_steps = 8  # reduziert für Performance
         self.jitter_enabled = True
         self.specular_intensity = 0.7
         self.specular_power = 18.0
@@ -174,110 +174,101 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
             if 0.0 <= cz <= bh:
                 dist_xy_sq = dx * dx + dy * dy - proj * proj
                 if dist_xy_sq < br * br:
-                    # inside trunk radius
-                    return params.umbra_dunkelheit
-                # penumbra
-                dist_xy = math.sqrt(dist_xy_sq)
-                penumbra = (dist_xy - br) / (params.penumbra_breite * br)
-                if penumbra < 1.0:
-                    min_f = min(min_f, penumbra)
+                    # Inside shadow cone
+                    dist_to_edge = br - math.sqrt(dist_xy_sq)
+                    penumbra = params.penumbra_breite
+                    if dist_to_edge < penumbra:
+                        f = dist_to_edge / penumbra
+                        min_f = min(min_f, params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * f)
+                    else:
+                        min_f = min(min_f, params.umbra_dunkelheit)
     return min_f
-
-def render_frame(params, width=60, height=30):
-    """Erzeugt einen einfachen ASCII-Frame mit volumetrischem Licht."""
-    # Kamera und Lichtposition
-    cam = (0.0, 0.0, 1.8)
-    light = (9.6, 2.8, 8.1)
-    # Ein paar Bäume: (x, y, radius, height)
-    baeume = [
-        (-3.0, -2.0, 0.5, 4.0),
-        (5.0, 1.0, 0.4, 3.5),
-        (2.0, -4.0, 0.6, 5.0),
-        (-6.0, 3.0, 0.3, 3.0),
-    ]
-    # Blickrichtung: leicht nach unten
-    yaw = math.radians(-6)
-    pitch = math.radians(6)
-    dir_x = math.cos(pitch) * math.sin(yaw)
-    dir_y = math.cos(pitch) * math.cos(yaw)
-    dir_z = math.sin(pitch)
-    # Rechtvektor für horizontales Scannen
-    right = (-dir_y, dir_x, 0.0)
-    up = (0.0, 0.0, 1.0)
-    fov = math.radians(60)
-    aspect = width / height
-    frame = []
-    for iy in range(height):
-        line_chars = []
-        for ix in range(width):
-            # Normalisierte Gerätekoordinaten
-            nx = (ix + 0.5) / width * 2.0 - 1.0
-            ny = (iy + 0.5) / height * 2.0 - 1.0
-            # Strahlrichtung
-            rx = dir_x + right[0] * nx * math.tan(fov/2) * aspect + up[0] * ny * math.tan(fov/2)
-            ry = dir_y + right[1] * nx * math.tan(fov/2) * aspect + up[1] * ny * math.tan(fov/2)
-            rz = dir_z + right[2] * nx * math.tan(fov/2) * aspect + up[2] * ny * math.tan(fov/2)
-            rlen = math.sqrt(rx*rx + ry*ry + rz*rz)
-            rx, ry, rz = rx/rlen, ry/rlen, rz/rlen
-            # Einfaches Raymarching für Volumetrisches Licht
-            steps = params.march_steps
-            max_dist = 30.0
-            step_size = max_dist / steps
-            accum = 0.0
-            for s in range(steps):
-                t = (s + 0.5) * step_size
-                px = cam[0] + rx * t
-                py = cam[1] + ry * t
-                pz = cam[2] + rz * t
-                if pz < 0.0:
-                    continue
-                # Nebeldichte
-                d = mist_dichte((px, py, pz), params)
-                if d <= 0.0:
-                    continue
-                # Schattenfaktor
-                shadow = schattenfaktor_3d((px, py, pz), light, baeume, params)
-                # Streuung (vereinfacht Henyey-Greenstein)
-                lx, ly, lz = light[0]-px, light[1]-py, light[2]-pz
-                ldist = math.sqrt(lx*lx + ly*ly + lz*lz)
-                if ldist > 0.0:
-                    lx, ly, lz = lx/ldist, ly/ldist, lz/ldist
-                    cos_theta = rx*lx + ry*ly + rz*lz
-                    phase = henyey_greenstein(cos_theta, params.phase_g)
-                else:
-                    phase = 1.0
-                # Falloff
-                falloff = 1.0 / (1.0 + (ldist * params.falloff_start) ** params.falloff_exponent)
-                accum += d * shadow * phase * falloff * params.volumetric_gain * step_size
-                if accum > 1.0:
-                    accum = 1.0
-            # Ambient hinzufügen
-            accum = min(1.0, accum + params.ambient)
-            line_chars.append(intensitaet_zu_ascii(accum, params.gamma))
-        frame.append(''.join(line_chars))
-    return frame
 
 def main():
     params = ShaderParams()
-    print("3D-Lichtspiel – Herbstlicher Park (ASCII)")
-    print("Drücke Enter für einen Frame, 'q' zum Beenden.")
-    frame_count = 0
+    # Szene: Bäume als (x, y, radius, höhe)
+    baeume = [
+        (-3.0, -2.0, 0.5, 4.0),
+        (2.0, 1.0, 0.4, 3.5),
+        (-1.0, 3.0, 0.6, 5.0),
+        (4.0, -3.0, 0.3, 3.0),
+    ]
+    cam_pos = (0.0, -10.0, 2.0)
+    light_radius = 5.0
+    light_height = 4.0
+    frames = 30
+    width, height = 60, 30  # kleinere Auflösung für Geschwindigkeit
+    fov = math.pi / 3.0  # 60 Grad
+
+    # Eingaben lesen (max 20 Zeilen, EOFError abfangen)
+    inputs = []
     try:
-        while frame_count < 3:  # maximal 3 Frames, damit der Test schnell durchläuft
-            inp = input("> ").strip().lower()
-            if inp == 'q':
-                break
-            # Frame rendern
-            start = time.time()
-            frame = render_frame(params)
-            elapsed = time.time() - start
-            for line in frame:
-                print(line)
-            print(f"Renderzeit: {elapsed:.3f}s  Frame: {frame_count+1}")
-            frame_count += 1
+        for _ in range(20):
+            line = input()
+            inputs.append(line)
     except EOFError:
         pass
-    print("Tschüss, Dodo träumt weiter.")
+    # Eingaben könnten Parameter ändern, hier ignorieren wir sie für Einfachheit
+
+    for frame in range(frames):
+        # Lichtposition animieren (Kreis)
+        angle = frame * 2.0 * math.pi / frames
+        light_pos = (light_radius * math.cos(angle),
+                     light_radius * math.sin(angle),
+                     light_height)
+
+        frame_lines = []
+        for y in range(height):
+            line_chars = []
+            for x in range(width):
+                # Strahlrichtung berechnen (Perspektive)
+                nx = (x + 0.5) / width * 2.0 - 1.0
+                ny = (y + 0.5) / height * 2.0 - 1.0
+                ray_dir = (nx * math.tan(fov/2.0),
+                           ny * math.tan(fov/2.0) * (height/width),
+                           -1.0)
+                rlen = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
+                ray_dir = (ray_dir[0]/rlen, ray_dir[1]/rlen, ray_dir[2]/rlen)
+
+                # Raymarching
+                total_intensity = 0.0
+                step_dist = 0.5
+                for step in range(params.march_steps):
+                    t = (step + 0.5) * step_dist
+                    px = cam_pos[0] + ray_dir[0] * t
+                    py = cam_pos[1] + ray_dir[1] * t
+                    pz = cam_pos[2] + ray_dir[2] * t
+                    if pz < 0.0:
+                        break
+                    density = mist_dichte((px, py, pz), params)
+                    if density <= 0.0:
+                        continue
+                    shadow = schattenfaktor_3d((px, py, pz), light_pos, baeume, params)
+                    lx, ly, lz = light_pos
+                    vx, vy, vz = lx - px, ly - py, lz - pz
+                    dist_light = math.sqrt(vx*vx + vy*vy + vz*vz)
+                    if dist_light < 0.01:
+                        continue
+                    ldx, ldy, ldz = vx/dist_light, vy/dist_light, vz/dist_light
+                    cos_theta = ray_dir[0]*ldx + ray_dir[1]*ldy + ray_dir[2]*ldz
+                    phase = henyey_greenstein(cos_theta, params.phase_g)
+                    falloff = 1.0 / (dist_light ** params.falloff_exponent)
+                    scatter = density * shadow * phase * falloff * params.scattering_coeff * params.volumetric_gain
+                    total_intensity += scatter * step_dist
+                    # Early exit wenn Sättigung
+                    if total_intensity > params.early_exit_threshold * 10:
+                        break
+                total_intensity += params.ambient
+                total_intensity = min(1.0, total_intensity ** params.gamma)
+                ch = intensitaet_zu_ascii(total_intensity, params.gamma)
+                line_chars.append(ch)
+            frame_lines.append(''.join(line_chars))
+        # Frame ausgeben (einfaches Clearing mit Newlines, kein ANSI für Kompatibilität)
+        print('\n' * 2)  # etwas Abstand zwischen Frames
+        print('\n'.join(frame_lines))
+        print(f"Frame {frame+1}/{frames}")
+        time.sleep(0.05)  # kleine Pause, um Ausgabe lesbar zu machen
+    print("\nFertig.")
 
 if __name__ == "__main__":
     main()
