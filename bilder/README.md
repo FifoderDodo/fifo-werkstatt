@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachtbalkon in Blau und Gold
+2026-11-24
+
+![Nachtbalkon in Blau und Gold](20261124-225007.svg)
+
 ### Stadtfrost: Textur & Kontrast
 2026-11-24
 
