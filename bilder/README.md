@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Raureif auf knorriger Eiche: Stadt, Nachmittag, Laune
+2026-11-24
+
+![Raureif auf knorriger Eiche: Stadt, Nachmittag, Laune](20261124-152141.svg)
+
 ### Fifos Raureif-Grummeln im Stadtgrau
 2026-11-24
 
