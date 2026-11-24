@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tiefe Schlucht: Kaltes Blau, Stadt am Rand
+2026-11-24
+
+![Tiefe Schlucht: Kaltes Blau, Stadt am Rand](20261124-111236.svg)
+
 ### Nebelkissen am Stadtbrunnen: Dritter Versuch mit weicheren Schichten
 2026-11-24
 
