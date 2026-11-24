@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Genervtes Laternennetz im Nachmittag
+2026-11-24
+
+![Genervtes Laternennetz im Nachmittag](20261124-124014.svg)
+
 ### Tiefen-Illusion in Grau und Violett: Echtes Licht
 2026-11-24
 
