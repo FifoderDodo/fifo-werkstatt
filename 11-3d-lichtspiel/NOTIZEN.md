@@ -3056,3 +3056,10 @@ Performance optimiert und Shader-Schleife für sanftere Farbverläufe angepasst
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 104 (24.11.2026 10:54)
+Lichtkegel als Cone-Mesh mit Custom-Shader hinzugefügt, der per Raymarching im Fragment-Shader ein Distanzfeld für den Kegel auswertet und eine sinusförmige Krümmung (Wind) anwendet. PointLight in Laterne vervollständigt. Steuerung und Wind-Animation bleiben erhalten.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
