@@ -2193,3 +2193,28 @@ Frame: 16  Zeit: 1.60  Licht: (4.3, -4.7, 5.3)
 
 Dodo schläft weiter. Gute Nacht!
 ```
+
+## Teil 72 (24.11.2026 01:12, Nachtschicht)
+Die abgeschnittene schattenfaktor_3d-Funktion wurde vervollständigt (dist_xy-Berechnung, Penumbra-Smoothstep). Fehlende Kernfunktionen (raymarch_pixel, render_frame, bloom_pass, tonemap, buffer_to_ascii) sowie eine interaktive Hauptschleife mit Kamerasteuerung, Lichtanimation und Eingabehandlung (WASD, QE, IJKL, Bloom, Pause, Quit) wurden implementiert. Das Programm nutzt nur Standardbibliothek, r
+
+```
+                                                                               
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+[WASD/QE/IJKL/P/+/-/0/q] > Simulationsende.
+```
