@@ -502,3 +502,10 @@ Shader-Code vervollständigt (war abgebrochen), Kamera auf 18 Einheiten zurückg
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 21 (24.11.2026 23:19)
+Fifo hat die Kameradistanz auf 16 Einheiten optimiert und die mathematischen Tiefenwerte im Shader (Raymarching-Schritte, Epsilon für Normalen und Schatten, AO-Abstände) präzisiert, um Artefakte zu minimieren und knackigere Details zu erzeugen.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
