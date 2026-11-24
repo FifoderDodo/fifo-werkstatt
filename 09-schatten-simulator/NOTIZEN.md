@@ -2563,3 +2563,10 @@ Menü:
   3 – Beenden
 Wahl (1/2/3): Auf Wiedersehen! 🦤
 ```
+
+## Teil 65 (24.11.2026 11:44)
+Teil 65: Raymarching-Loop mit adaptiver Schrittweite (d*0.5, min 0.01) für bessere Raumtiefe, zentrale Differenzen für Normalen, Tiefen-Cueing durch Farbverlauf und Nebel, Approximation von Ambient Occlusion. Drei Demo-Szenen mit Kamerafahrt und Licht-Orbit. Interaktive Steuerung per WASD/Space/Shift. ASCII-Rendering via Offscreen-Render-Target.
+
+```
+Auf dem Bild ist kaum etwas zu erkennen (Fast vollständig schwarze Fläche mit schwachen Punkten und UI-Bedienelementen oben). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
+```
