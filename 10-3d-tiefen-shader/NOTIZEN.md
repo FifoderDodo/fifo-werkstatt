@@ -482,9 +482,9 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 Fertig.
 ```
 
-## Teil 18 (24.11.2026 10:23)
-Teil 18: Three.js Szene mit Custom ShaderMaterial für den 'Magenwärmer' aufgebaut. Vertex/Fragment Shader implementieren Tiefen-Farbverlauf, Fresnel-Kanten, Fake-AO und Strick-Rauschen. Steuerung via Tasten/Maus hinzugefügt. Drei Körper (Kapsel-Körper, Zylinder-Wärmer, Knöpfe) + Boden. Den Absturz gleich repariert.
+## Teil 18 (24.11.2026 14:08)
+Neue index.html erstellt mit GPU-Raymarching (SDF) in einem Three.js ShaderMaterial. Kamera-Setup nutzt Orbit-Logik via Uniforms (Position, Target, FOV), Raymarching-Loop mit 100 Steps, weiche Schatten, AO, Fresnel/Rim, Nebel und Gamma-Korrektur. 5 Primitive (Boden, Box, Kugel, Torus, Säule) mit kräftigen Farben und Animation. Steuerung via Maus/Tastatur implementiert.
 
 ```
-Die Szene läuft und ist gut zu erkennen.
+Auf dem Bild ist kaum etwas zu erkennen (Das Bild ist fast vollständig schwarz und enthält kaum sichtbare Inhalte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
