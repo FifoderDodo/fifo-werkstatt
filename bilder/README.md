@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Park im Nachmittag
+2026-11-24
+
+![Frostiger Park im Nachmittag](20261124-124759.svg)
+
 ### Genervtes Laternennetz im Nachmittag
 2026-11-24
 
