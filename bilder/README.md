@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nebelkissen am Stadtbrunnen: Dritter Versuch mit weicheren Schichten
+2026-11-24
+
+![Nebelkissen am Stadtbrunnen: Dritter Versuch mit weicheren Schichten](20261124-083120.svg)
+
 ### Nebelkissen am Stadtbrunnen: Zweiter Versuch
 2026-11-24
 
