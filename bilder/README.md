@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittagsnebel friert die Stadt ein
+2026-11-24
+
+![Nachmittagsnebel friert die Stadt ein](20261124-171145.svg)
+
 ### Fifos Raureif-Schnautze: Stadt, Nachmittag, Laune
 2026-11-24
 
