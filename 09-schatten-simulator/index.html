@@ -26,10 +26,10 @@
     <option value="2">Schlucht</option>
   </select>
   <label>Light-X <input id="lx" type="range" min="-5" max="5" step="0.1" value="3"></label>
-  <label>Light-Y <input id="ly" type="range" min="1" max="10" step="0.1" value="5"></label>
+  <label>Light-Y <input id="ly" type="range" min="1" max="10" step="0.1" value="10"></label>
   <label>Light-Z <input id="lz" type="range" min="-5" max="5" step="0.1" value="3"></label>
   <label>Samples <input id="samples" type="range" min="4" max="32" step="1" value="12"></label>
-  <label>Bias <input id="bias" type="range" min="0" max="0.1" step="0.001" value="0.015"></label>
+  <label>Bias <input id="bias" type="range" min="0" max="0.1" step="0.001" value="0.01"></label>
 </div>
 <canvas id="canvas" width="400" height="400"></canvas>
 <pre id="ascii"></pre>
@@ -49,10 +49,10 @@ const shaderMat = new THREE.ShaderMaterial({
   uniforms: {
     uTime: {value:0},
     uScene: {value:0},
-    uLightPos: {value:new THREE.Vector3(3,5,3)},
+    uLightPos: {value:new THREE.Vector3(3,10,3)},
     uSamples: {value:12},
-    uBias: {value:0.015},
-    uCamPos: {value:new THREE.Vector3(0,12,25)},
+    uBias: {value:0.01},
+    uCamPos: {value:new THREE.Vector3(0,20,50)},
     uCamTarget: {value:new THREE.Vector3(0,0,0)},
     uResolution: {value:new THREE.Vector2(W,H)},
   },
@@ -87,7 +87,7 @@ const shaderMat = new THREE.ShaderMaterial({
         vec3 pos=ro+ldir_j*t_sh;
         float d=map(pos);
         float bias = uBias + 0.005*abs(dot(calcNormal(pos), ldir_j));
-        if(d<bias){ shadow*=0.5; break; }
+        if(d<bias){ shadow*=0.8; break; }
         t_sh += max(d*0.5, 0.02);
         if(t_sh>tmax) break;
       }
@@ -106,21 +106,21 @@ const shaderMat = new THREE.ShaderMaterial({
         float diff=max(dot(n,ldir),0.0);
         float sh=raymarch_shadow(p+n*0.01, ldir, length(uLightPos-p));
         float ao=1.0;
-        for(int k=1;k<5;k++){ float h=float(k)*0.15; ao*=saturate(map(p+n*h)/h*2.0); }
+        for(int k=1;k<5;k++){ float h=float(k)*0.15; ao*=clamp(map(p+n*h)/h*2.0, 0.0, 1.0); }
         
         // HELLERE, KRÄFTIGERE FARBEN
         vec3 col = mix(vec3(1.0,0.8,0.2), vec3(0.2,0.9,1.0), smoothstep(2.0,12.0,t));
-        col *= diff*sh*0.9 + 0.5;
+        col *= diff*sh*0.9 + 0.7;
         col *= ao;
         // Weniger Nebel, hellerer Hintergrund
-        col = mix(col, vec3(0.25,0.25,0.35), smoothstep(10.0,30.0,t));
+        col = mix(col, vec3(0.5,0.5,0.6), smoothstep(10.0,30.0,t));
         return col;
       }
       t += max(d*0.5, 0.01);
       if(t>MAX_DIST) break;
     }
     // HELLERER HINTERGRUND
-    return vec3(0.25,0.25,0.35);
+    return vec3(0.5,0.5,0.6);
   }
   
   void main(){
@@ -134,17 +134,46 @@ const shaderMat = new THREE.ShaderMaterial({
     col = pow(col, vec3(0.9));
     gl_FragColor = vec4(col, 1.0);
   }
-  `,
+`,
 });
 
 const quad = new THREE.Mesh(quadGeo, shaderMat);
 scene.add(quad);
 
 let demoMode = true;
-let sceneIdx = 0;
-const scenes = [0,1,2];
-let lastSwitch = 0;
+let time = 0;
 
+function animate(){
+  requestAnimationFrame(animate);
+  time += 1/60;
+  shaderMat.uniforms.uTime.value = time;
+  if(demoMode){
+    const t = time * 0.5;
+    shaderMat.uniforms.uLightPos.value.set(Math.sin(t)*4, 10, Math.cos(t)*4);
+    shaderMat.uniforms.uCamPos.value.set(Math.sin(t*0.3)*15, 20, 50);
+  }
+  renderer.render(scene, camera);
+  // ASCII fallback
+  const ctx = renderer.getContext();
+  const pixels = new Uint8Array(W*H*4);
+  ctx.readPixels(0,0,W,H,ctx.RGBA,ctx.UNSIGNED_BYTE,pixels);
+  let ascii = '';
+  for(let y=0;y<ASC_H;y++){
+    for(let x=0;x<ASC_W;x++){
+      const sx = Math.floor(x * W/ASC_W);
+      const sy = Math.floor(y * H/ASC_H);
+      const i = (sy*W + sx)*4;
+      const lum = (pixels[i]*0.299 + pixels[i+1]*0.587 + pixels[i+2]*0.114)/255;
+      const idx = Math.floor(lum * (ramp.length-1));
+      ascii += ramp[idx];
+    }
+    ascii += '\n';
+  }
+  asciiEl.textContent = ascii;
+}
+animate();
+
+// UI events
 const btnDemo = document.getElementById('btnDemo');
 const btnInteraktiv = document.getElementById('btnInteraktiv');
 const sceneSel = document.getElementById('sceneSel');
@@ -154,57 +183,14 @@ const lz = document.getElementById('lz');
 const samples = document.getElementById('samples');
 const bias = document.getElementById('bias');
 
-btnDemo.onclick = () => { demoMode=true; btnDemo.classList.add('active'); btnInteraktiv.classList.remove('active'); };
-btnInteraktiv.onclick = () => { demoMode=false; btnInteraktiv.classList.add('active'); btnDemo.classList.remove('active'); };
-sceneSel.onchange = e => { sceneIdx = +e.target.value; shaderMat.uniforms.uScene.value = sceneIdx; };
-lx.oninput = e => shaderMat.uniforms.uLightPos.value.x = +e.target.value;
-ly.oninput = e => shaderMat.uniforms.uLightPos.value.y = +e.target.value;
-lz.oninput = e => shaderMat.uniforms.uLightPos.value.z = +e.target.value;
-samples.oninput = e => shaderMat.uniforms.uSamples.value = +e.target.value;
-bias.oninput = e => shaderMat.uniforms.uBias.value = +e.target.value;
-
-function animate(time){
-  const t = time * 0.001;
-  shaderMat.uniforms.uTime.value = t;
-  
-  if(demoMode && t - lastSwitch > 8){
-    sceneIdx = (sceneIdx + 1) % scenes.length;
-    shaderMat.uniforms.uScene.value = sceneIdx;
-    sceneSel.value = sceneIdx;
-    lastSwitch = t;
-  }
-  
-  // Kamera leicht animieren für Demo
-  if(demoMode){
-    const camRadius = 25;
-    const camHeight = 12;
-    shaderMat.uniforms.uCamPos.value.set(
-      Math.sin(t * 0.15) * camRadius,
-      camHeight,
-      Math.cos(t * 0.15) * camRadius
-    );
-    shaderMat.uniforms.uCamTarget.value.set(0, 0, 0);
-  }
-  
-  renderer.render(scene, camera);
-  
-  // ASCII fallback
-  let ascii = '';
-  for(let y=0; y<ASC_H; y++){
-    for(let x=0; x<ASC_W; x++){
-      const uv = new THREE.Vector2((x/ASC_W)*2-1, 1-(y/ASC_H)*2);
-      const col = new THREE.Color().setHSL(0.5 + uv.x*0.2, 0.7, 0.5);
-      const hsl = col.getHSL();
-      const idx = Math.floor(hsl.l * (ramp.length-1));
-      ascii += ramp[idx];
-    }
-    ascii += '\n';
-  }
-  asciiEl.textContent = ascii;
-  
-  requestAnimationFrame(animate);
-}
-requestAnimationFrame(animate);
+btnDemo.addEventListener('click',()=>{ demoMode=true; btnDemo.classList.add('active'); btnInteraktiv.classList.remove('active'); });
+btnInteraktiv.addEventListener('click',()=>{ demoMode=false; btnInteraktiv.classList.add('active'); btnDemo.classList.remove('active'); });
+sceneSel.addEventListener('change',()=>{ shaderMat.uniforms.uScene.value = parseInt(sceneSel.value); });
+[lx,ly,lz].forEach(el=>el.addEventListener('input',()=>{
+  shaderMat.uniforms.uLightPos.value.set(parseFloat(lx.value), parseFloat(ly.value), parseFloat(lz.value));
+}));
+samples.addEventListener('input',()=>{ shaderMat.uniforms.uSamples.value = parseInt(samples.value); });
+bias.addEventListener('input',()=>{ shaderMat.uniforms.uBias.value = parseFloat(bias.value); });
 </script>
 </body>
 </html>
