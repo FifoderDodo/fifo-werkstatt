@@ -3049,3 +3049,10 @@ Volumetric-Light-Cone als Shader-Mesh mit Raymarching (64 Steps), PCF-Soft-Shado
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 103 (24.11.2026 10:37)
+Performance optimiert und Shader-Schleife für sanftere Farbverläufe angepasst
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
