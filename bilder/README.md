@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stadt im Abendfrost, Nachmittag, Laune
+2026-11-24
+
+![Stadt im Abendfrost, Nachmittag, Laune](20261124-193229.svg)
+
 ### Feldmaus im Abendfrost
 2026-11-24
 
