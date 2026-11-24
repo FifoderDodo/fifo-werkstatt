@@ -170,80 +170,131 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
         if 0.2 < proj < dist_light:
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
-                # Abstand in XY-Ebene zum Baumstamm
                 dist_xy_sq = dx * dx + dy * dy - proj * proj
                 if dist_xy_sq < br * br:
-                    # einfacher linearer Schattenabfall
-                    f = 1.0 - (proj / dist_light)
-                    min_f = min(min_f, f)
+                    # Penumbra: weicher Übergang am Rand
+                    dist_xy = math.sqrt(max(0.0, dist_xy_sq))
+                    rand_faktor = 1.0 - (dist_xy / br)
+                    # Umbra dunkler, Penumbra heller
+                    schatten = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * (1.0 - rand_faktor)
+                    min_f = min(min_f, schatten)
     return min_f
 
-def render_frame(width, height, params, light_pos, baeume):
-    buffer = [[0.0 for _ in range(width)] for _ in range(height)]
-    for y in range(height):
-        for x in range(width):
-            # Normalisierte Bildkoordinaten [-1,1]
-            nx = (x / (width - 1)) * 2.0 - 1.0
-            ny = (y / (height - 1)) * 2.0 - 1.0
-            # Kamera leicht über dem Boden
-            ray_origin = (0.0, 0.0, 1.5)
-            ray_dir = (nx, ny, -1.0)
-            # Normalisieren
-            rl = math.sqrt(ray_dir[0]**2 + ray_dir[1]**2 + ray_dir[2]**2)
-            ray_dir = (ray_dir[0]/rl, ray_dir[1]/rl, ray_dir[2]/rl)
-            # Simple raymarch bis Boden (z=0)
-            t = 0.0
-            hit = False
-            for step in range(params.march_steps):
-                pos = (ray_origin[0] + ray_dir[0]*t,
-                       ray_origin[1] + ray_dir[1]*t,
-                       ray_origin[2] + ray_dir[2]*t)
-                if pos[2] <= 0.0:
-                    hit = True
+def render_frame(licht_pos, baeume, params, breite=80, hoehe=40, cam_z=1.5):
+    """Rendert ein einzelnes Frame als 2D-Intensitäts-Array."""
+    bild = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
+    # Kamera schaut entlang -Y auf die XZ-Ebene (y=0)
+    for iy in range(hoehe):
+        for ix in range(breite):
+            # Pixel-Koordinaten in Weltkoordinaten
+            wx = (ix - breite * 0.5) * 0.1
+            wz = cam_z - iy * 0.1
+            wy = 0.0
+            # Raymarching vom Licht zum Pixel
+            lx, ly, lz = licht_pos
+            dx, dy, dz = wx - lx, wy - ly, wz - lz
+            dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+            if dist < 1e-4:
+                bild[iy][ix] = 1.0
+                continue
+            steps = params.march_steps
+            if params.adaptive_steps:
+                steps = max(4, int(steps * (0.5 + 0.5 * min(1.0, dist / 10.0))))
+            step_len = dist / steps
+            # Jitter für temporales Rauschen
+            jitter = 0.0
+            if params.jitter_enabled:
+                jitter = (random.random() - 0.5) * params.jitter_strength * step_len
+            acc = 0.0
+            transmittance = 1.0
+            for s in range(steps):
+                t = (s + 0.5) / steps + jitter
+                px = lx + dx * t
+                py = ly + dy * t
+                pz = lz + dz * t
+                # Dichte an Position
+                rho = mist_dichte((px, py, pz), params)
+                if rho <= 0.0:
+                    continue
+                # Schattenfaktor
+                shadow = schattenfaktor_3d((px, py, pz), licht_pos, baeume, params)
+                # Phase-Funktion (Henyey-Greenstein)
+                view_dx, view_dy, view_dz = -dx/dist, -dy/dist, -dz/dist
+                light_dx, light_dy, light_dz = dx/dist, dy/dist, dz/dist
+                cos_theta = view_dx*light_dx + view_dy*light_dy + view_dz*light_dz
+                phase = henyey_greenstein(cos_theta, params.phase_g)
+                # Streuung und Absorption
+                scatter = rho * params.scattering_coeff * phase * shadow
+                absorb = rho * params.absorption_coeff
+                transmittance *= math.exp(-absorb * step_len)
+                acc += scatter * transmittance * step_len
+                if transmittance < params.early_exit_threshold:
                     break
-                density = mist_dichte(pos, params)
-                if density > params.early_exit_threshold:
-                    hit = True
-                    break
-                t += max(0.05, 0.2 * (1.0 - density))
-            if hit:
-                # Grundbeleuchtung + Schatten + Nebel
-                base = params.ambient
-                shadow = schattenfaktor_3d(pos, light_pos, baeume, params)
-                mist = mist_dichte(pos, params)
-                intensity = base + (1.0 - base) * shadow * mist * params.volumetric_gain
-                buffer[y][x] = intensity
-            else:
-                buffer[y][x] = params.ambient
-    # Blur für weichen Look
-    gew = gauß_gewichte(params.blur_radius)
-    buffer = box_blur_1d(buffer, gew, horizontal=True)
-    buffer = box_blur_1d(buffer, gew, horizontal=False)
-    # ASCII Ausgabe
-    lines = []
-    for row in buffer:
-        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        lines.append(line)
-    return '\n'.join(lines)
+            # Falloff
+            falloff = 1.0 / (1.0 + (dist * params.falloff_start) ** params.falloff_exponent)
+            acc *= falloff * params.volumetric_gain
+            # Ambient
+            acc += params.ambient
+            bild[iy][ix] = min(1.0, acc)
+    return bild
+
+def apply_bloom(bild, params):
+    """Einfacher Bloom-Effekt via Box-Blur und Additiv-Mischung."""
+    if params.bloom_radius <= 0 or params.bloom_intensity <= 0.0:
+        return bild
+    h, w = len(bild), len(bild[0])
+    # Threshold
+    bloom_src = [[max(0.0, bild[y][x] - params.bloom_threshold) for x in range(w)] for y in range(h)]
+    gewichte = gauß_gewichte(params.bloom_radius)
+    blur_h = box_blur_1d(bloom_src, gewichte, True)
+    blur = box_blur_1d(blur_h, gewichte, False)
+    # Additiv mischen
+    for y in range(h):
+        for x in range(w):
+            bild[y][x] = min(1.0, bild[y][x] + blur[y][x] * params.bloom_intensity)
+    return bild
 
 def main():
-    try:
-        frames = int(input('Anzahl der Frames (0 für Einzelbild): '))
-    except (EOFError, ValueError):
-        frames = 1
-    width, height = 80, 30
     params = ShaderParams()
-    # Beispielbaum: (x,y, radius, höhe)
-    baeume = [(-0.5, 0.2, 0.1, 1.0), (0.3, -0.3, 0.12, 1.2), (0.0, 0.0, 0.15, 1.5)]
-    # Lichtposition bewegt sich leicht für Animation
-    for f in range(frames):
-        angle = f * 0.2
-        light_pos = (math.cos(angle) * 2.0, math.sin(angle) * 2.0, 2.5)
-        frame_txt = render_frame(width, height, params, light_pos, baeume)
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print(frame_txt)
-        time.sleep(0.2)
-    print('Simulation beendet. Danke für das Ansehen!')
+    # Ein paar Bäume: (x, y, radius, height)
+    baeume = [
+        (-3.0, -2.0, 0.6, 4.0),
+        (2.5, 1.5, 0.5, 3.5),
+        (-1.0, 3.0, 0.7, 5.0),
+        (4.0, -3.0, 0.4, 3.0),
+    ]
+    breite, hoehe = 80, 40
+    frame = 0
+    try:
+        while True:
+            # Licht bewegt sich auf einem Kreis
+            t = frame * 0.05
+            r = 5.0
+            licht_pos = (r * math.cos(t), r * math.sin(t), 3.0 + 0.5 * math.sin(t * 0.7))
+            bild = render_frame(licht_pos, baeume, params, breite, hoehe)
+            bild = apply_bloom(bild, params)
+            # Gamma-Korrektur
+            for y in range(hoehe):
+                for x in range(breite):
+                    bild[y][x] = bild[y][x] ** params.gamma
+            # Ausgabe
+            os.system('cls' if os.name == 'nt' else 'clear')
+            for y in range(hoehe):
+                zeile = ''.join(intensitaet_zu_ascii(bild[y][x], params.gamma) for x in range(breite))
+                print(zeile)
+            print(f'Frame {frame} | Licht: ({licht_pos[0]:.2f}, {licht_pos[1]:.2f}, {licht_pos[2]:.2f})')
+            frame += 1
+            # Kurze Pause, aber Eingabe möglich
+            try:
+                inp = input('')  # Leere Eingabe -> nächster Frame
+                if inp.strip().lower() in ('q', 'quit', 'exit'):
+                    break
+            except EOFError:
+                # Kein Input (z.B. im Test) -> kurz schlafen
+                time.sleep(0.05)
+    except KeyboardInterrupt:
+        pass
+    print('\nDodo wacht auf. Gute Nacht!')
 
 if __name__ == '__main__':
     main()
