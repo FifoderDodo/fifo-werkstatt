@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Fifos Raureif-Grummeln im Stadtgrau
+2026-11-24
+
+![Fifos Raureif-Grummeln im Stadtgrau](20261124-145933.svg)
+
 ### Rote Pflasterameise: Nachmittagsdrama in 3D
 2026-11-24
 
