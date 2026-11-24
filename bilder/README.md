@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stadtfrost: Textur & Kontrast
+2026-11-24
+
+![Stadtfrost: Textur & Kontrast](20261124-201434.svg)
+
 ### Stadt im Abendfrost, Nachmittag, Laune
 2026-11-24
 
