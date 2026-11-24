@@ -1,214 +1,362 @@
 <!DOCTYPE html>
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
-  <meta charset="UTF-8">
-  <title>Fifos 3D-Tiefen-Shader: Magenwärmer-Schleife</title>
-  <style>
-    body { margin: 0; background: #2a2a4e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #e0e0e0; overflow: hidden; }
-    canvas { border: 2px solid #ff6b35; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 107, 53, 0.3); background: #1a1a3a; }
-    #info { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #aaa; text-align: center; pointer-events: none; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Fifos 3D-Tiefen-Shader Part 18</title>
+    <style>
+        body { margin: 0; background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #eee; overflow: hidden; }
+        canvas { border: 2px solid #444; box-shadow: 0 0 20px #000; display: block; }
+        #info { position: absolute; bottom: 10px; left: 10px; font-size: 11px; color: #888; pointer-events: none; line-height: 1.4; }
+    </style>
 </head>
 <body>
-  <div id="info">Pfeiltasten: Drehen | Leertaste: Reset | Fifo wärmt den Bauch...</div>
-  <script type="module">
-    // Fifo, der Dodo, häkelt weiter am Magenwärmer-Shader.
-    // Teil 18: Die Schleife für den Magenwärmer wird gestrickt – Tiefe, Fresnel, weiche Kanten.
-    // Three.js r170 liegt global als THREE bereit.
+    <canvas id="glcanvas" width="400" height="400"></canvas>
+    <div id="info">
+        Fifo's Raymarch Lab Part 18<br>
+        Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
+        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, Nebel
+    </div>
 
-    const WIDTH = 400;
-    const HEIGHT = 400;
+    <script type="module">
+        // -----------------------------------------------------------
+        // Fifo der Dodo watschelt hier rein und baut die GPU-Welt.
+        // Kein Import nötig, THREE liegt global bereit (r170).
+        // -----------------------------------------------------------
 
-    // Szene & Kamera
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 100);
-    camera.position.set(0, 1.5, 6);
-    camera.lookAt(0, 0.5, 0);
+        const canvas = document.getElementById('glcanvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+        renderer.setSize(400, 400, false);
+        renderer.setPixelRatio(1); // Knackig pixelig für 400x400
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(WIDTH, HEIGHT);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    document.body.appendChild(renderer.domElement);
+        // Ortho-Kamera für Fullscreen-Quad (Shadertoy-Style)
+        const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+        cam.position.z = 1;
 
-    // Licht: Mehr Ambient + stärkere Richtunglichter
-    const amb = new THREE.AmbientLight(0xffffff, 1.0);
-    scene.add(amb);
-    const dirLight = new THREE.DirectionalLight(0xfff0e0, 1.2);
-    dirLight.position.set(3, 5, 4);
-    scene.add(dirLight);
-    const rimLight = new THREE.DirectionalLight(0x356bff, 0.8);
-    rimLight.position.set(-3, 2, -4);
-    scene.add(rimLight);
-    const fillLight = new THREE.DirectionalLight(0xffffee, 0.5);
-    fillLight.position.set(0, -3, 0);
-    scene.add(fillLight);
+        const scene = new THREE.Scene();
 
-    // --- Shader Material: Der Magenwärmer-Look ---
-    const warmerMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uCameraPos: { value: new THREE.Vector3() },
-        uBaseColor: { value: new THREE.Color(0xff8844) },
-        uDeepColor: { value: new THREE.Color(0xcc4400) },
-        uFresnelColor: { value: new THREE.Color(0xffddaa) },
-        uResolution: { value: new THREE.Vector2(WIDTH, HEIGHT) }
-      },
-      vertexShader: /* glsl */`
-        varying vec3 vWorldPos;
-        varying vec3 vWorldNormal;
-        varying vec3 vViewDir;
-        uniform vec3 uCameraPos;
-        void main() {
-          vec4 worldPos = modelMatrix * vec4(position, 1.0);
-          vWorldPos = worldPos.xyz;
-          vWorldNormal = normalize(mat3(modelMatrix) * normal);
-          vViewDir = normalize(uCameraPos - vWorldPos);
-          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        // -----------------------------------------------------------
+        // Shader-Material: Hier passiert die Magie (Raymarching Loop)
+        // -----------------------------------------------------------
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                u_time: { value: 0 },
+                u_resolution: { value: new THREE.Vector2(400, 400) },
+                u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
+                // Kamera-Parameter für Ray-Generierung im Vertex/Fragment
+                u_camPos: { value: new THREE.Vector3(0, 3, 12) },
+                u_camTarget: { value: new THREE.Vector3(0, 0.5, 0) },
+                u_fov: { value: 45.0 },
+            },
+            vertexShader: /* glsl */`
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: /* glsl */`
+                #define MAX_STEPS 100
+                #define MAX_DIST 100.0
+                #define SURF_DIST 0.001
+                #define PI 3.14159265359
+                #define TAU 6.28318530718
+                
+                precision highp float;
+                
+                uniform float u_time;
+                uniform vec2 u_resolution;
+                uniform vec2 u_mouse;
+                uniform vec3 u_camPos;
+                uniform vec3 u_camTarget;
+                uniform float u_fov;
+                
+                varying vec2 vUv;
+                
+                // -----------------------------------------------------------
+                // Fifo's Mathematik-Helferlein
+                // -----------------------------------------------------------
+                mat3 lookAt(vec3 ro, vec3 ta, vec3 up) {
+                    vec3 f = normalize(ta - ro);
+                    vec3 r = normalize(cross(up, f));
+                    vec3 u = cross(f, r);
+                    return mat3(r, u, f);
+                }
+                
+                float sdSphere(vec3 p, float r) { return length(p) - r; }
+                float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0); }
+                float sdTorus(vec3 p, vec2 t) { vec2 q = vec2(length(p.xz) - t.x, p.y); return length(q) - t.y; }
+                float sdPlane(vec3 p, vec3 n, float h) { return dot(p, n) + h; }
+                
+                float opSmoothUnion(float d1, float d2, float k) {
+                    float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0.0, 1.0);
+                    return mix(d2, d1, h) - k * h * (1.0 - h);
+                }
+                
+                // -----------------------------------------------------------
+                // Szene definieren (SDF)
+                // -----------------------------------------------------------
+                vec3 getColor(vec3 p, vec3 n) {
+                    return vec3(1.0); 
+                }
+                
+                float map(vec3 p, out int objId) {
+                    objId = -1;
+                    float d = 1e9;
+                    int id = -1;
+                    
+                    // 1. Boden
+                    float dPlane = sdPlane(p, vec3(0,1,0), 1.5); 
+                    d = dPlane; id = 0;
+                    
+                    // 2. Zentraler Twisting Box
+                    vec3 pBox = p - vec3(0.0, 0.5, 0.0);
+                    float twist = u_time * 0.3;
+                    pBox.xz = mat2(cos(twist), -sin(twist), sin(twist), cos(twist)) * pBox.xz;
+                    float dBox = sdBox(pBox, vec3(0.8, 0.8, 0.8));
+                    if (dBox < d) { d = dBox; id = 1; }
+                    
+                    // 3. Schwebende Kugel (Pulsierend)
+                    vec3 pSph = p - vec3(-2.5, 1.5 + sin(u_time*1.2)*0.5, -1.0);
+                    float dSph = sdSphere(pSph, 0.6 + 0.2*sin(u_time*2.0));
+                    if (dSph < d) { d = dSph; id = 2; }
+                    
+                    // 4. Torus (Rotierend)
+                    vec3 pTor = p - vec3(2.5, 1.0, 1.5);
+                    float torAngle = u_time * 0.5;
+                    pTor.xz = mat2(cos(torAngle), -sin(torAngle), sin(torAngle), cos(torAngle)) * pTor.xz;
+                    pTor.xy = mat2(cos(torAngle*0.7), -sin(torAngle*0.7), sin(torAngle*0.7), cos(torAngle*0.7)) * pTor.xy;
+                    float dTor = sdTorus(pTor, vec2(0.6, 0.2));
+                    if (dTor < d) { d = dTor; id = 3; }
+                    
+                    // 5. Kleine Säule links
+                    vec3 pCol = p - vec3(-3.0, 0.8, 3.0);
+                    float dCol = sdBox(pCol, vec3(0.3, 1.5, 0.3));
+                    if (dCol < d) { d = dCol; id = 4; }
+                    
+                    objId = id;
+                    return d;
+                }
+                
+                // Normalen via Central Differences (billiger als 6 Samples)
+                vec3 calcNormal(vec3 p) {
+                    const float eps = 0.001;
+                    vec2 h = vec2(eps, 0);
+                    int dummy;
+                    return normalize(vec3(
+                        map(p + h.xyy, dummy) - map(p - h.xyy, dummy),
+                        map(p + h.yxy, dummy) - map(p - h.yxy, dummy),
+                        map(p + h.yyx, dummy) - map(p - h.yyx, dummy)
+                    ));
+                }
+                
+                // -----------------------------------------------------------
+                // Beleuchtung & Schatten
+                // -----------------------------------------------------------
+                float softShadow(vec3 ro, vec3 rd, float mint, float tmax, float k) {
+                    float res = 1.0;
+                    float t = mint;
+                    for(int i=0; i<16; i++) { 
+                        float h = map(ro + rd * t, int(0));
+                        if(h < SURF_DIST) return 0.0;
+                        res = min(res, k * h / t);
+                        t += h;
+                        if(t >= tmax) break;
+                    }
+                    return clamp(res, 0.0, 1.0);
+                }
+                
+                float ao(vec3 p, vec3 n) {
+                    float occ = 0.0;
+                    float sca = 1.0;
+                    for(int i=0; i<5; i++) { 
+                        float h = 0.05 + 0.15 * float(i) / 5.0;
+                        float d = map(p + n * h, int(0));
+                        occ += (h - d) * sca;
+                        sca *= 0.5;
+                    }
+                    return clamp(1.0 - 3.0 * occ, 0.0, 1.0);
+                }
+                
+                // -----------------------------------------------------------
+                // Main Raymarching Loop
+                // -----------------------------------------------------------
+                void main() {
+                    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
+                    
+                    // Kamera Matrix
+                    vec3 up = vec3(0,1,0);
+                    mat3 camMat = lookAt(u_camPos, u_camTarget, up);
+                    float fovRad = radians(u_fov);
+                    vec3 rd = normalize(camMat * vec3(uv * tan(fovRad * 0.5), 1.0));
+                    vec3 ro = u_camPos;
+                    
+                    float t = 0.0;
+                    int objId = -1;
+                    vec3 col = vec3(0.0);
+                    
+                    // Raymarching
+                    for(int i=0; i<MAX_STEPS; i++) {
+                        vec3 p = ro + rd * t;
+                        float d = map(p, objId);
+                        
+                        if(d < SURF_DIST) {
+                            // Getroffen!
+                            vec3 n = calcNormal(p);
+                            vec3 lightDir = normalize(vec3(3.0, 5.0, -2.0));
+                            vec3 viewDir = -rd;
+                            
+                            // Material Farben basierend auf ID - KRÄFTIGER!
+                            vec3 albedo;
+                            float roughness;
+                            if(objId == 0) { albedo = vec3(0.25, 0.25, 0.3); roughness = 0.8; } // Boden heller
+                            else if(objId == 1) { albedo = vec3(1.0, 0.3, 0.3); roughness = 0.2; } // Box Knallrot
+                            else if(objId == 2) { albedo = vec3(0.3, 1.0, 0.4); roughness = 0.05; } // Kugel Neongrün
+                            else if(objId == 3) { albedo = vec3(1.0, 0.9, 0.2); roughness = 0.3; } // Torus Goldgelb
+                            else { albedo = vec3(0.4, 0.6, 1.0); roughness = 0.4; } // Säule Blau
+                            
+                            // Diffuse (Lambert)
+                            float diff = max(dot(n, lightDir), 0.0);
+                            
+                            // Weiche Schatten
+                            float sh = softShadow(p + n * SURF_DIST * 2.0, lightDir, 0.01, 20.0, 32.0);
+                            
+                            // Ambient Occlusion
+                            float aocc = ao(p, n);
+                            
+                            // Fresnel / Rim Light
+                            float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
+                            vec3 rimColor = vec3(1.0, 0.95, 0.8) * 0.8;
+                            
+                            // Specular (Blinn-Phong light)
+                            vec3 halfDir = normalize(lightDir + viewDir);
+                            float spec = pow(max(dot(n, halfDir), 0.0), 64.0 * (1.0 - roughness) + 2.0);
+                            
+                            // Komposition - HELLER!
+                            vec3 lighting = albedo * diff * sh * 1.8; // Stärkere Sonne
+                            lighting += albedo * vec3(0.5, 0.55, 0.65) * aocc * 0.7; // Helleres Ambient
+                            lighting += vec3(spec) * sh * (1.0 - roughness) * 1.5; // Stärkerer Spec
+                            lighting += rimColor * fresnel * (1.0 - roughness * 0.3); // Stärkerer Rim
+                            
+                            col = lighting;
+                            break;
+                        }
+                        
+                        t += d;
+                        if(t > MAX_DIST) break;
+                    }
+                    
+                    // Hintergrund / Himmel - HELLERER GRADIENT
+                    if(t >= MAX_DIST) {
+                        float grad = rd.y * 0.5 + 0.5;
+                        col = mix(vec3(0.3, 0.5, 0.7), vec3(0.6, 0.8, 1.0), grad); // Hellerer Himmel
+                    }
+                    
+                    // Nebel (Distance Fog) - HELLER UND DÜNNER
+                    float fogAmt = 1.0 - exp(-t * 0.04);
+                    col = mix(col, vec3(0.5, 0.65, 0.8), fogAmt); // Hellerer Nebel
+                    
+                    // Gamma Korrektur (sRGB approx)
+                    col = pow(col, vec3(1.0/2.2));
+                    
+                    // Leichter Vignette - SCHWÄCHER
+                    float vig = 1.0 - length(uv) * 0.15;
+                    col *= vig;
+                    
+                    gl_FragColor = vec4(col, 1.0);
+                }
+            `,
+        });
+
+        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+        scene.add(quad);
+
+        // -----------------------------------------------------------
+        // Kamera Steuerung (Fifo's Orbit Controls Light)
+        // -----------------------------------------------------------
+        const state = {
+            theta: -0.5,   // Horizontaler Winkel
+            phi: 0.7,      // Vertikaler Winkel (etwas höher)
+            radius: 14.0,  // WEITER WEG!
+            target: new THREE.Vector3(0, 0.5, 0),
+            keys: {},
+            mouseDown: false,
+            lastMouse: new THREE.Vector2(),
+        };
+
+        function updateCamera() {
+            const { theta, phi, radius, target } = state;
+            // Kugelkoordinaten
+            const sinPhi = Math.sin(phi);
+            const camPos = new THREE.Vector3(
+                target.x + radius * sinPhi * Math.sin(theta),
+                target.y + radius * Math.cos(phi),
+                target.z + radius * sinPhi * Math.cos(theta)
+            );
+            
+            material.uniforms.u_camPos.value.copy(camPos);
+            material.uniforms.u_camTarget.value.copy(target);
         }
-      `,
-      fragmentShader: /* glsl */`
-        varying vec3 vWorldPos;
-        varying vec3 vWorldNormal;
-        varying vec3 vViewDir;
-        uniform float uTime;
-        uniform vec3 uBaseColor;
-        uniform vec3 uDeepColor;
-        uniform vec3 uFresnelColor;
-        uniform vec2 uResolution;
+
+        // Events
+        window.addEventListener('keydown', e => state.keys[e.code] = true);
+        window.addEventListener('keyup', e => state.keys[e.code] = false);
         
-        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-        float noise(vec2 p) {
-          vec2 i = floor(p);
-          vec2 f = fract(p);
-          f = f * f * (3.0 - 2.0 * f);
-          return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
-                     mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+        canvas.addEventListener('mousedown', e => {
+            state.mouseDown = true;
+            state.lastMouse.set(e.clientX, e.clientY);
+            canvas.style.cursor = 'grabbing';
+        });
+        window.addEventListener('mouseup', () => { state.mouseDown = false; canvas.style.cursor = 'grab'; });
+        window.addEventListener('mousemove', e => {
+            if(!state.mouseDown) return;
+            const dx = e.clientX - state.lastMouse.x;
+            const dy = e.clientY - state.lastMouse.y;
+            state.theta -= dx * 0.005;
+            state.phi = THREE.MathUtils.clamp(state.phi - dy * 0.005, 0.05, Math.PI - 0.05);
+            state.lastMouse.set(e.clientX, e.clientY);
+            updateCamera();
+        });
+        window.addEventListener('wheel', e => {
+            state.radius = THREE.MathUtils.clamp(state.radius + e.deltaY * 0.01, 3.0, 30.0);
+            updateCamera();
+        }, { passive: true });
+        
+        // Tastatur Bewegung (Strafen)
+        function handleKeys(dt) {
+            const speed = 3.0 * dt;
+            const forward = new THREE.Vector3().subVectors(state.target, material.uniforms.u_camPos.value).setY(0).normalize();
+            const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
+            
+            if(state.keys['KeyW'] || state.keys['ArrowUp']) state.target.addScaledVector(forward, speed);
+            if(state.keys['KeyS'] || state.keys['ArrowDown']) state.target.addScaledVector(forward, -speed);
+            if(state.keys['KeyA'] || state.keys['ArrowLeft']) state.target.addScaledVector(right, -speed);
+            if(state.keys['KeyD'] || state.keys['ArrowRight']) state.target.addScaledVector(right, speed);
+            if(state.keys['Space']) state.target.y += speed;
+            if(state.keys['ShiftLeft'] || state.keys['ShiftRight']) state.target.y -= speed;
+            
+            updateCamera();
         }
-        float fbm(vec2 p) {
-          float v = 0.0; float a = 0.5;
-          for(int i=0;i<4;i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }
-          return v;
+
+        // -----------------------------------------------------------
+        // Render Loop
+        // -----------------------------------------------------------
+        let lastTime = performance.now();
+        function animate(now) {
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+            
+            material.uniforms.u_time.value = now * 0.001;
+            
+            handleKeys(dt);
+            
+            renderer.render(scene, cam);
+            requestAnimationFrame(animate);
         }
         
-        void main() {
-          vec3 N = normalize(vWorldNormal);
-          vec3 V = normalize(vViewDir);
-          
-          float depth = smoothstep(-0.5, 1.5, vWorldPos.y);
-          
-          vec2 uv = vWorldPos.xz * 3.0 + vec2(uTime * 0.05, 0.0);
-          float stitch = fbm(uv) * 0.15;
-          vec3 col = mix(uDeepColor, uBaseColor, depth);
-          col += stitch * vec3(0.1, 0.05, 0.0);
-          
-          float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-          col += uFresnelColor * fresnel * 0.6;
-          
-          float ao = 1.0 - smoothstep(0.8, 1.0, abs(N.y)) * 0.3;
-          float edge = smoothstep(0.0, 0.3, fresnel);
-          ao -= edge * 0.2;
-          col *= clamp(ao, 0.6, 1.0);
-          
-          float shadow = smoothstep(-0.2, 0.5, vWorldPos.y);
-          col *= mix(0.6, 1.0, shadow);
-          
-          col = pow(col, vec3(1.0/2.2));
-          
-          gl_FragColor = vec4(col, 1.0);
-        }
-      `,
-      side: THREE.DoubleSide
-    });
-
-    // --- Geometrie: Der Magenwärmer (Torso + Wärmer) ---
-    const group = new THREE.Group();
-    scene.add(group);
-
-    const bodyGeo = new THREE.CapsuleGeometry(0.6, 1.2, 8, 16);
-    const body = new THREE.Mesh(bodyGeo, warmerMaterial);
-    body.position.y = 0.8;
-    group.add(body);
-
-    const warmerMeshGeo = new THREE.CylinderGeometry(0.75, 0.75, 1.0, 32, 4, true);
-    const warmer = new THREE.Mesh(warmerMeshGeo, warmerMaterial);
-    warmer.position.y = 0.8;
-    warmer.scale.set(1.02, 0.8, 1.02);
-    group.add(warmer);
-    
-    const btnMat = new THREE.MeshStandardMaterial({ color: 0xffddaa, roughness: 0.3, metalness: 0.2 });
-    for(let i=-1; i<=1; i++) {
-      const btn = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), btnMat);
-      btn.position.set(0.72, 0.8 + i * 0.3, 0.05);
-      group.add(btn);
-    }
-
-    const groundGeo = new THREE.PlaneGeometry(10, 10);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x222244, roughness: 1, metalness: 0 });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.1;
-    ground.receiveShadow = true;
-    scene.add(ground);
-    
-    renderer.shadowMap.enabled = true;
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.set(512, 512);
-    dirLight.shadow.camera.near = 1;
-    dirLight.shadow.camera.far = 20;
-    dirLight.shadow.camera.left = -5;
-    dirLight.shadow.camera.right = 5;
-    dirLight.shadow.camera.top = 5;
-    dirLight.shadow.camera.bottom = -5;
-    body.castShadow = true;
-    warmer.castShadow = true;
-
-    // --- Steuerung ---
-    let rotX = 0, rotY = 0;
-    const targetRot = { x: 0, y: 0 };
-    window.addEventListener('keydown', (e) => {
-      const speed = 0.03;
-      if (e.key === 'ArrowLeft') targetRot.y += speed;
-      if (e.key === 'ArrowRight') targetRot.y -= speed;
-      if (e.key === 'ArrowUp') targetRot.x -= speed;
-      if (e.key === 'ArrowDown') targetRot.x += speed;
-      if (e.key === ' ') { targetRot.x = 0; targetRot.y = 0; }
-    });
-
-    let isDown = false, lastX = 0, lastY = 0;
-    renderer.domElement.addEventListener('mousedown', (e) => { isDown = true; lastX = e.clientX; lastY = e.clientY; });
-    window.addEventListener('mouseup', () => { isDown = false; });
-    window.addEventListener('mousemove', (e) => {
-      if (!isDown) return;
-      targetRot.y -= (e.clientX - lastX) * 0.005;
-      targetRot.x -= (e.clientY - lastY) * 0.005;
-      lastX = e.clientX; lastY = e.clientY;
-    });
-
-    // --- Loop ---
-    const clock = new THREE.Clock();
-    function animate() {
-      requestAnimationFrame(animate);
-      const dt = clock.getDelta();
-      const t = clock.getElapsedTime();
-
-      rotX += (targetRot.x - rotX) * 0.1;
-      rotY += (targetRot.y - rotY) * 0.1;
-      group.rotation.x = rotX;
-      group.rotation.y = rotY;
-
-      warmerMaterial.uniforms.uTime.value = t;
-      camera.getWorldPosition(warmerMaterial.uniforms.uCameraPos.value);
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    window.addEventListener('resize', () => {
-      renderer.setPixelRatio(window.devicePixelRatio);
-    });
-
-    console.log('Fifo: Magenwärmer-Schleife läuft. Strick, strick, Shader.');
-  </script>
+        updateCamera();
+        requestAnimationFrame(animate);
+        
+        console.log('%cFifo der Dodo meldet: Raymarching läuft auf der GPU!', 'color: #0f0; font-size: 12px;');
+    </script>
 </body>
 </html>
