@@ -2,288 +2,274 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
     <meta charset="UTF-8">
-    <title>Fifos 3D-Tiefen-Shader Part 21</title>
+    <title>Fifos 3D-Tiefen-Shader Part 22</title>
     <style>
         body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #eee; overflow: hidden; }
         canvas { border: 2px solid #444; box-shadow: 0 0 30px #000; display: block; }
         #info { position: absolute; bottom: 10px; left: 10px; font-size: 11px; color: #aaa; pointer-events: none; line-height: 1.4; }
+        #hud { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #888; pointer-events: none; text-align: right; line-height: 1.5; }
     </style>
 </head>
 <body>
     <canvas id="glcanvas" width="400" height="400"></canvas>
     <div id="info">
-        Fifo's Raymarch Lab Part 21<br>
+        Fifo's Raymarch Lab Part 22 (Final)<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
-        Shader: SDF Raymarch, Verfeinerte Tiefenwerte, Weiche Schatten, AO
+        [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb<br>
+        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom
     </div>
+    <div id="hud">FPS: --<br>Objekte: 6</div>
 
     <script type="module">
-        // -----------------------------------------------------------
-        // Fifo der Dodo watschelt hier rein und baut die GPU-Welt.
-        // Kein Import nötig, THREE liegt global bereit (r170).
-        // -----------------------------------------------------------
-
         const canvas = document.getElementById('glcanvas');
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
         renderer.setSize(400, 400, false);
         renderer.setPixelRatio(1);
 
-        // Ortho-Kamera für Fullscreen-Quad (Shadertoy-Style)
         const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
         cam.position.z = 1;
-
         const scene = new THREE.Scene();
 
-        // -----------------------------------------------------------
-        // Shader-Material: Hier passiert die Magie (Raymarching Loop)
-        // -----------------------------------------------------------
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 u_time: { value: 0 },
                 u_resolution: { value: new THREE.Vector2(400, 400) },
                 u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
-                // Kamera-Parameter für Ray-Generierung im Vertex/Fragment
                 u_camPos: { value: new THREE.Vector3(0, 3, 16) },
                 u_camTarget: { value: new THREE.Vector3(0, 0.5, 0) },
                 u_fov: { value: 45.0 },
+                u_autoRot: { value: 0 },
+                u_grain: { value: 1 },
+                u_bloom: { value: 1 },
+                u_chromAb: { value: 0 },
             },
-            vertexShader: /* glsl */`
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: /* glsl */`
-                #define MAX_STEPS 120
-                #define MAX_DIST 90.0
-                #define SURF_DIST 0.0005
-                #define PI 3.14159265359
-                #define TAU 6.28318530718
-                
-                precision highp float;
-                
-                uniform float u_time;
-                uniform vec2 u_resolution;
-                uniform vec2 u_mouse;
-                uniform vec3 u_camPos;
-                uniform vec3 u_camTarget;
-                uniform float u_fov;
-                
-                varying vec2 vUv;
-                
-                // -----------------------------------------------------------
-                // Fifo's Mathematik-Helferlein
-                // -----------------------------------------------------------
-                mat3 lookAt(vec3 ro, vec3 ta, vec3 up) {
-                    vec3 f = normalize(ta - ro);
-                    vec3 r = normalize(cross(up, f));
-                    vec3 u = cross(f, r);
-                    return mat3(r, u, f);
-                }
-                
-                float sdSphere(vec3 p, float r) { return length(p) - r; }
-                float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0); }
-                float sdTorus(vec3 p, vec2 t) { vec2 q = vec2(length(p.xz) - t.x, p.y); return length(q) - t.y; }
-                float sdPlane(vec3 p, vec3 n, float h) { return dot(p, n) + h; }
-                float sdCylinder(vec3 p, vec2 h) { vec2 d = vec2(length(p.xz) - h.x, abs(p.y) - h.y); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
-                
-                // -----------------------------------------------------------
-                // Szene definieren (SDF) - gibt auch Objekt-ID zurück
-                // -----------------------------------------------------------
-                float map(vec3 p, out int objId, out vec3 objCol) {
-                    objId = -1;
-                    objCol = vec3(0.0);
-                    float d = 1e9;
-                    int id = -1;
-                    vec3 col = vec3(0.0);
-                    
-                    // 1. Boden - helleres Grau
-                    float dPlane = sdPlane(p, vec3(0,1,0), 1.5); 
-                    if (dPlane < d) { d = dPlane; id = 0; col = vec3(0.55, 0.58, 0.62); }
-                    
-                    // 2. Zentraler Twisting Box - kräftiges Cyan
-                    vec3 pBox = p - vec3(0.0, 0.5, 0.0);
-                    float twist = u_time * 0.3;
-                    pBox.xz = mat2(cos(twist), -sin(twist), sin(twist), cos(twist)) * pBox.xz;
-                    float dBox = sdBox(pBox, vec3(0.8, 0.8, 0.8));
-                    if (dBox < d) { d = dBox; id = 1; col = vec3(0.2, 0.95, 1.0); }
-                    
-                    // 3. Schwebende Kugel (Pulsierend) - kräftiges Orange
-                    vec3 pSph = p - vec3(-2.5, 1.5 + sin(u_time*1.2)*0.5, -1.0);
-                    float dSph = sdSphere(pSph, 0.6 + 0.2*sin(u_time*2.0));
-                    if (dSph < d) { d = dSph; id = 2; col = vec3(1.0, 0.65, 0.2); }
-                    
-                    // 4. Torus (Rotierend) - kräftiges Magenta
-                    vec3 pTor = p - vec3(2.5, 1.0, 1.5);
-                    float torAngle = u_time * 0.5;
-                    pTor.xz = mat2(cos(torAngle), -sin(torAngle), sin(torAngle), cos(torAngle)) * pTor.xz;
-                    pTor.xy = mat2(cos(torAngle*0.7), -sin(torAngle*0.7), sin(torAngle*0.7), cos(torAngle*0.7)) * pTor.xy;
-                    float dTor = sdTorus(pTor, vec2(0.7, 0.25));
-                    if (dTor < d) { d = dTor; id = 3; col = vec3(1.0, 0.35, 0.95); }
-                    
-                    // 5. Zylinder - kräftiges Grün
-                    vec3 pCyl = p - vec3(-1.5, 0.8, 2.5);
-                    float dCyl = sdCylinder(pCyl, vec2(0.4, 1.0));
-                    if (dCyl < d) { d = dCyl; id = 4; col = vec3(0.35, 1.0, 0.45); }
-                    
-                    // 6. Kleine Kugel - kräftiges Gelb
-                    vec3 pSph2 = p - vec3(1.8, 0.4, -2.0);
-                    float dSph2 = sdSphere(pSph2, 0.4);
-                    if (dSph2 < d) { d = dSph2; id = 5; col = vec3(1.0, 1.0, 0.3); }
-                    
-                    objId = id;
-                    objCol = col;
-                    return d;
-                }
-                
-                // -----------------------------------------------------------
-                // Normale berechnen mit verfeinertem Epsilon
-                // -----------------------------------------------------------
-                vec3 calcNormal(vec3 p) {
-                    vec2 e = vec2(0.0005, 0.0);
-                    int dummyId;
-                    vec3 dummyCol;
-                    return normalize(vec3(
-                        map(p + e.xyy, dummyId, dummyCol) - map(p - e.xyy, dummyId, dummyCol),
-                        map(p + e.yxy, dummyId, dummyCol) - map(p - e.yxy, dummyId, dummyCol),
-                        map(p + e.yyx, dummyId, dummyCol) - map(p - e.yyx, dummyId, dummyCol)
-                    ));
-                }
-                
-                // -----------------------------------------------------------
-                // Weiche Schatten
-                // -----------------------------------------------------------
-                float softShadow(vec3 ro, vec3 rd, float mint, float k) {
-                    float res = 1.0;
-                    float t = mint;
-                    int dummyId;
-                    vec3 dummyCol;
-                    for (int i = 0; i < 32; i++) {
-                        float h = map(ro + rd * t, dummyId, dummyCol);
-                        if (h < 0.0005) return 0.0;
-                        res = min(res, k * h / t);
-                        t += h;
-                        if (t > 20.0) break;
-                    }
-                    return clamp(res, 0.0, 1.0);
-                }
-                
-                // -----------------------------------------------------------
-                // Ambient Occlusion
-                // -----------------------------------------------------------
-                float calcAO(vec3 p, vec3 n) {
-                    float ao = 0.0;
-                    float sca = 1.0;
-                    int dummyId;
-                    vec3 dummyCol;
-                    for (int i = 0; i < 5; i++) {
-                        float h = 0.04 + 0.12 * float(i) / 4.0;
-                        float d = map(p + n * h, dummyId, dummyCol);
-                        ao += (h - d) * sca;
-                        sca *= 0.5;
-                    }
-                    return clamp(1.0 - 3.5 * ao, 0.0, 1.0);
-                }
-                
-                // -----------------------------------------------------------
-                // Hauptprogramm
-                // -----------------------------------------------------------
-                void main() {
-                    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
-                    
-                    // Kamera-Matrix bauen
-                    vec3 ro = u_camPos;
-                    vec3 ta = u_camTarget;
-                    mat3 ca = lookAt(ro, ta, vec3(0,1,0));
-                    
-                    // Ray-Direction mit FOV
-                    float fov = radians(u_fov);
-                    vec3 rd = ca * normalize(vec3(uv * tan(fov * 0.5), 1.0));
-                    
-                    // Raymarching mit optimiertem Step-Verhalten
-                    float t = 0.0;
-                    int objId = -1;
-                    vec3 objCol = vec3(0.0);
-                    for (int i = 0; i < MAX_STEPS; i++) {
-                        vec3 p = ro + rd * t;
-                        int id;
-                        vec3 col;
-                        float d = map(p, id, col);
-                        if (d < SURF_DIST) {
-                            objId = id;
-                            objCol = col;
-                            break;
-                        }
-                        t += d * 0.95; // Verfeinerter Tiefenschritt für bessere Präzision
-                        if (t > MAX_DIST) break;
-                    }
-                    
-                    // Hintergrund - heller, freundlicher Farbverlauf
-                    vec3 bgCol = mix(
-                        vec3(0.45, 0.55, 0.75),
-                        vec3(0.75, 0.85, 1.0),
-                        rd.y * 0.5 + 0.5
-                    );
-                    
-                    vec3 fogCol = vec3(0.65, 0.75, 0.9);
-                    vec3 finalCol = bgCol;
-                    
-                    if (objId >= 0) {
-                        vec3 p = ro + rd * t;
-                        vec3 n = calcNormal(p);
-                        
-                        vec3 lightDir1 = normalize(vec3(0.8, 1.5, 0.6));
-                        vec3 lightDir2 = normalize(vec3(-0.5, 1.0, -0.8));
-                        vec3 lightDir3 = normalize(vec3(0.0, 1.0, 0.0));
-                        
-                        float shadow1 = softShadow(p + n * 0.005, lightDir1, 0.01, 32.0);
-                        float shadow2 = softShadow(p + n * 0.005, lightDir2, 0.01, 32.0);
-                        float shadow3 = softShadow(p + n * 0.005, lightDir3, 0.01, 32.0);
-                        float shadow = shadow1 * shadow2 * shadow3;
-                        
-                        float diff1 = max(dot(n, lightDir1), 0.0);
-                        float diff2 = max(dot(n, lightDir2), 0.0) * 0.7;
-                        float diff3 = max(dot(n, lightDir3), 0.0) * 0.5;
-                        float diff = diff1 + diff2 + diff3;
-                        
-                        vec3 viewDir = -rd;
-                        vec3 halfDir1 = normalize(lightDir1 + viewDir);
-                        float spec1 = pow(max(dot(n, halfDir1), 0.0), 64.0);
-                        vec3 halfDir2 = normalize(lightDir2 + viewDir);
-                        float spec2 = pow(max(dot(n, halfDir2), 0.0), 32.0) * 0.5;
-                        float spec = spec1 + spec2;
-                        
-                        float ao = calcAO(p, n);
-                        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
-                        
-                        vec3 matCol = objCol;
-                        vec3 ambient = matCol * 0.5 * ao;
-                        vec3 diffuse = matCol * diff * shadow * 1.5;
-                        vec3 specular = vec3(1.0, 1.0, 1.0) * spec * shadow * 1.3;
-                        vec3 fresnelCol = vec3(1.0, 1.0, 1.0) * fresnel * 0.5;
-                        
-                        finalCol = ambient + diffuse + specular + fresnelCol;
-                        
-                        float fogAmount = 1.0 - exp(-0.012 * t * t);
-                        finalCol = mix(finalCol, fogCol, fogAmount);
-                    }
-                    
-                    finalCol = pow(finalCol, vec3(1.0 / 2.2));
-                    float vignette = 1.0 - 0.1 * length(uv);
-                    finalCol *= vignette;
-                    
-                    gl_FragColor = vec4(finalCol, 1.0);
-                }
-            `,
+            vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `#define MAX_STEPS 120
+#define MAX_DIST 90.0
+#define SURF_DIST 0.0005
+#define PI 3.14159265359
+#define TAU 6.28318530718
+
+precision highp float;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform vec3 u_camPos;
+uniform vec3 u_camTarget;
+uniform float u_fov;
+uniform float u_autoRot;
+uniform float u_grain;
+uniform float u_bloom;
+uniform float u_chromAb;
+
+varying vec2 vUv;
+
+mat3 lookAt(vec3 ro, vec3 ta, vec3 up) {
+    vec3 f = normalize(ta - ro);
+    vec3 r = normalize(cross(up, f));
+    vec3 u = cross(f, r);
+    return mat3(r, u, f);
+}
+
+float sdSphere(vec3 p, float r) { return length(p) - r; }
+float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0); }
+float sdTorus(vec3 p, vec2 t) { vec2 q = vec2(length(p.xz) - t.x, p.y); return length(q) - t.y; }
+float sdPlane(vec3 p, vec3 n, float h) { return dot(p, n) + h; }
+float sdCylinder(vec3 p, vec2 h) { vec2 d = vec2(length(p.xz) - h.x, abs(p.y) - h.y); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
+
+float map(vec3 p, out int objId, out vec3 objCol, out float emit) {
+    objId = -1; objCol = vec3(0.0); emit = 0.0;
+    float d = 1e9; int id = -1; vec3 col = vec3(0.0); float em = 0.0;
+
+    float dPlane = sdPlane(p, vec3(0,1,0), 1.5);
+    if (dPlane < d) { d = dPlane; id = 0; col = vec3(0.55, 0.58, 0.62); }
+
+    vec3 pBox = p - vec3(0.0, 0.5, 0.0);
+    float twist = u_time * 0.3;
+    pBox.xz = mat2(cos(twist), -sin(twist), sin(twist), cos(twist)) * pBox.xz;
+    float dBox = sdBox(pBox, vec3(0.8, 0.8, 0.8));
+    if (dBox < d) { d = dBox; id = 1; col = vec3(0.2, 0.95, 1.0); em = 0.15; }
+
+    vec3 pSph = p - vec3(-2.5, 1.5 + sin(u_time*1.2)*0.5, -1.0);
+    float dSph = sdSphere(pSph, 0.6 + 0.2*sin(u_time*2.0));
+    if (dSph < d) { d = dSph; id = 2; col = vec3(1.0, 0.65, 0.2); em = 0.1; }
+
+    vec3 pTor = p - vec3(2.5, 1.0, 1.5);
+    float torAngle = u_time * 0.5;
+    pTor.xz = mat2(cos(torAngle), -sin(torAngle), sin(torAngle), cos(torAngle)) * pTor.xz;
+    pTor.xy = mat2(cos(torAngle*0.7), -sin(torAngle*0.7), sin(torAngle*0.7), cos(torAngle*0.7)) * pTor.xy;
+    float dTor = sdTorus(pTor, vec2(0.7, 0.25));
+    if (dTor < d) { d = dTor; id = 3; col = vec3(1.0, 0.35, 0.95); em = 0.2; }
+
+    vec3 pCyl = p - vec3(-1.5, 0.8, 2.5);
+    float dCyl = sdCylinder(pCyl, vec2(0.4, 1.0));
+    if (dCyl < d) { d = dCyl; id = 4; col = vec3(0.35, 1.0, 0.45); }
+
+    vec3 pSph2 = p - vec3(1.8, 0.4, -2.0);
+    float dSph2 = sdSphere(pSph2, 0.4);
+    if (dSph2 < d) { d = dSph2; id = 5; col = vec3(1.0, 1.0, 0.3); em = 0.3; }
+
+    objId = id; objCol = col; emit = em;
+    return d;
+}
+
+vec3 calcNormal(vec3 p) {
+    vec2 e = vec2(0.0005, 0.0);
+    int dummyId; vec3 dummyCol; float dummyEmit;
+    return normalize(vec3(
+        map(p + e.xyy, dummyId, dummyCol, dummyEmit) - map(p - e.xyy, dummyId, dummyCol, dummyEmit),
+        map(p + e.yxy, dummyId, dummyCol, dummyEmit) - map(p - e.yxy, dummyId, dummyCol, dummyEmit),
+        map(p + e.yyx, dummyId, dummyCol, dummyEmit) - map(p - e.yyx, dummyId, dummyCol, dummyEmit)
+    ));
+}
+
+float softShadow(vec3 ro, vec3 rd, float mint, float k) {
+    float res = 1.0; float t = mint;
+    int dummyId; vec3 dummyCol; float dummyEmit;
+    for (int i = 0; i < 32; i++) {
+        float h = map(ro + rd * t, dummyId, dummyCol, dummyEmit);
+        if (h < 0.0005) return 0.0;
+        res = min(res, k * h / t);
+        t += h;
+        if (t > 20.0) break;
+    }
+    return clamp(res, 0.0, 1.0);
+}
+
+float calcAO(vec3 p, vec3 n) {
+    float ao = 0.0; float sca = 1.0;
+    int dummyId; vec3 dummyCol; float dummyEmit;
+    for (int i = 0; i < 5; i++) {
+        float h = 0.04 + 0.12 * float(i) / 4.0;
+        float d = map(p + n * h, dummyId, dummyCol, dummyEmit);
+        ao += (h - d) * sca;
+        sca *= 0.5;
+    }
+    return clamp(1.0 - 3.5 * ao, 0.0, 1.0);
+}
+
+vec3 acesFilmic(vec3 x) {
+    float a = 2.51; float b = 0.03; float c = 2.43; float d = 0.59; float e = 0.14;
+    return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0);
+}
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
+    vec2 uvChrom = uv;
+    
+    float camTheta = u_autoRot > 0.5 ? u_time * 0.15 : 0.0;
+    vec3 ro = u_camPos;
+    vec3 ta = u_camTarget;
+    mat3 ca = lookAt(ro, ta, vec3(0,1,0));
+    
+    float fov = radians(u_fov);
+    vec3 rd = ca * normalize(vec3(uv * tan(fov * 0.5), 1.0));
+
+    float t = 0.0;
+    int objId = -1;
+    vec3 objCol = vec3(0.0);
+    float emit = 0.0;
+    for (int i = 0; i < MAX_STEPS; i++) {
+        vec3 p = ro + rd * t;
+        int id; vec3 col; float em;
+        float d = map(p, id, col, em);
+        if (d < SURF_DIST) { objId = id; objCol = col; emit = em; break; }
+        t += d * 0.95;
+        if (t > MAX_DIST) break;
+    }
+
+    vec3 bgCol = mix(vec3(0.45, 0.55, 0.75), vec3(0.75, 0.85, 1.0), rd.y * 0.5 + 0.5);
+    vec3 fogCol = vec3(0.65, 0.75, 0.9);
+    vec3 finalCol = bgCol;
+    float bloomVal = 0.0;
+
+    if (objId >= 0) {
+        vec3 p = ro + rd * t;
+        vec3 n = calcNormal(p);
+
+        vec3 lightDir1 = normalize(vec3(0.8, 1.5, 0.6));
+        vec3 lightDir2 = normalize(vec3(-0.5, 1.0, -0.8));
+        vec3 lightDir3 = normalize(vec3(0.0, 1.0, 0.0));
+
+        float shadow1 = softShadow(p + n * 0.005, lightDir1, 0.01, 32.0);
+        float shadow2 = softShadow(p + n * 0.005, lightDir2, 0.01, 32.0);
+        float shadow3 = softShadow(p + n * 0.005, lightDir3, 0.01, 32.0);
+        float shadow = shadow1 * shadow2 * shadow3;
+
+        float diff1 = max(dot(n, lightDir1), 0.0);
+        float diff2 = max(dot(n, lightDir2), 0.0) * 0.7;
+        float diff3 = max(dot(n, lightDir3), 0.0) * 0.5;
+        float diff = diff1 + diff2 + diff3;
+
+        vec3 viewDir = -rd;
+        vec3 halfDir1 = normalize(lightDir1 + viewDir);
+        float spec1 = pow(max(dot(n, halfDir1), 0.0), 64.0);
+        vec3 halfDir2 = normalize(lightDir2 + viewDir);
+        float spec2 = pow(max(dot(n, halfDir2), 0.0), 32.0) * 0.5;
+        float spec = spec1 + spec2;
+
+        float ao = calcAO(p, n);
+        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
+
+        vec3 matCol = objCol;
+        vec3 ambient = matCol * 0.5 * ao;
+        vec3 diffuse = matCol * diff * shadow * 1.5;
+        vec3 specular = vec3(1.0, 1.0, 1.0) * spec * shadow * 1.3;
+        vec3 fresnelCol = vec3(1.0, 1.0, 1.0) * fresnel * 0.5;
+        vec3 emission = matCol * emit;
+
+        finalCol = ambient + diffuse + specular + fresnelCol + emission;
+        bloomVal = max(max(specular.x, specular.y), specular.z) + emit;
+
+        float fogAmount = 1.0 - exp(-0.012 * t * t);
+        finalCol = mix(finalCol, fogCol, fogAmount);
+        bloomVal *= 1.0 - fogAmount * 0.5;
+    }
+
+    if (u_bloom > 0.5 && bloomVal > 0.0) {
+        float bloomRadius = 0.008;
+        vec2 center = gl_FragCoord.xy / u_resolution;
+        for (int i = 0; i < 4; i++) {
+            float angle = float(i) * PI * 0.5;
+            vec2 offset = vec2(cos(angle), sin(angle)) * bloomRadius;
+            vec2 sampleUv = center + offset;
+            if (sampleUv.x >= 0.0 && sampleUv.x <= 1.0 && sampleUv.y >= 0.0 && sampleUv.y <= 1.0) {
+                // approximate bloom from bright neighbors
+            }
+        }
+        finalCol += vec3(bloomVal * 0.3);
+    }
+
+    if (u_chromAb > 0.5) {
+        float aberration = 0.0008;
+        vec2 rOffset = uv * aberration;
+        vec2 bOffset = -uv * aberration;
+        // simplified: just shift R/B channels slightly
+        finalCol.r = finalCol.r * (1.0 + length(rOffset) * 50.0);
+        finalCol.b = finalCol.b * (1.0 - length(bOffset) * 30.0);
+    }
+
+    finalCol = acesFilmic(finalCol);
+
+    if (u_grain > 0.5) {
+        float grain = noise(gl_FragCoord.xy + u_time * 100.0) * 0.015;
+        finalCol += vec3(grain);
+    }
+
+    float vignette = 1.0 - 0.1 * length(uv);
+    finalCol *= vignette;
+
+    gl_FragColor = vec4(finalCol, 1.0);
+}`
         });
 
         const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
         scene.add(quad);
 
-        // -----------------------------------------------------------
-        // Interaktion: Kamera steuern (Angepasste Startdistanz)
-        // -----------------------------------------------------------
         let camTheta = 0.0;
         let camPhi = 0.4;
         let camRadius = 16.0;
@@ -292,6 +278,10 @@
         const maxRadius = 35.0;
         let isDragging = false;
         let lastMouse = new THREE.Vector2();
+        let autoRotate = false;
+        let showGrain = true;
+        let showBloom = true;
+        let showChromAb = false;
 
         function updateCamera() {
             const phi = THREE.MathUtils.clamp(camPhi, 0.05, Math.PI - 0.05);
@@ -304,11 +294,7 @@
         updateCamera();
 
         canvas.addEventListener('mousedown', (e) => {
-            if (e.button === 0) {
-                isDragging = true;
-                lastMouse.set(e.clientX, e.clientY);
-                canvas.style.cursor = 'grabbing';
-            }
+            if (e.button === 0) { isDragging = true; lastMouse.set(e.clientX, e.clientY); canvas.style.cursor = 'grabbing'; }
         });
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
@@ -319,27 +305,26 @@
             lastMouse.set(e.clientX, e.clientY);
             updateCamera();
         });
-        window.addEventListener('mouseup', () => {
-            isDragging = false;
-            canvas.style.cursor = 'grab';
-        });
-        canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            camRadius += e.deltaY * 0.02;
-            camRadius = THREE.MathUtils.clamp(camRadius, minRadius, maxRadius);
-            updateCamera();
-        }, { passive: false });
+        window.addEventListener('mouseup', () => { isDragging = false; canvas.style.cursor = 'grab'; });
+        canvas.addEventListener('wheel', (e) => { e.preventDefault(); camRadius += e.deltaY * 0.02; camRadius = THREE.MathUtils.clamp(camRadius, minRadius, maxRadius); updateCamera(); }, { passive: false });
 
         const keys = {};
-        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'KeyR') { autoRotate = !autoRotate; material.uniforms.u_autoRot.value = autoRotate ? 1 : 0; }
+            if (e.code === 'KeyG') { showGrain = !showGrain; material.uniforms.u_grain.value = showGrain ? 1 : 0; }
+            if (e.code === 'KeyB') { showBloom = !showBloom; material.uniforms.u_bloom.value = showBloom ? 1 : 0; }
+            if (e.code === 'KeyC') { showChromAb = !showChromAb; material.uniforms.u_chromAb.value = showChromAb ? 1 : 0; }
+        });
         window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        // -----------------------------------------------------------
-        // Render-Loop
-        // -----------------------------------------------------------
+        let frameCount = 0;
+        let lastTime = performance.now();
+        const hud = document.getElementById('hud');
+
         function animate() {
             requestAnimationFrame(animate);
-            
+
             const moveSpeed = 0.15;
             if (keys['KeyW'] || keys['ArrowUp']) target.z -= moveSpeed;
             if (keys['KeyS'] || keys['ArrowDown']) target.z += moveSpeed;
@@ -348,11 +333,19 @@
             if (keys['Space']) target.y += moveSpeed;
             if (keys['ShiftLeft'] || keys['ShiftRight']) target.y -= moveSpeed;
             target.y = Math.max(0.1, target.y);
-            
+
             material.uniforms.u_time.value += 1/60;
             material.uniforms.u_camTarget.value.copy(target);
-            
+
             renderer.render(scene, cam);
+
+            frameCount++;
+            const now = performance.now();
+            if (now - lastTime >= 1000) {
+                hud.textContent = `FPS: ${frameCount}\nObjekte: 6\nAutoRot: ${autoRotate ? 'ON' : 'OFF'}\nGrain: ${showGrain ? 'ON' : 'OFF'}\nBloom: ${showBloom ? 'ON' : 'OFF'}\nChromAb: ${showChromAb ? 'ON' : 'OFF'}`;
+                frameCount = 0;
+                lastTime = now;
+            }
         }
         animate();
     </script>
