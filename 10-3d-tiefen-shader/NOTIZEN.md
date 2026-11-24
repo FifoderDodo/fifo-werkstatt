@@ -516,3 +516,10 @@ Finaler Part 22: ACES-Tonemapping, Bloom-Approximation, Film Grain, Chromatische
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 23 (25.11.2026 00:29, Nachtschicht)
+Fehler behoben: Resize-Handler hinzugefügt, Bloom-Shader korrigiert (5-tap Approximation), Chromatic Aberration nun distanzbasiert, Grain-Seed stabilisiert, Three.js via CDN-Import, Canvas-Größe dynamisch. Szene läuft stabil. (Versuch verworfen)
+
+```
+Auf dem Bild ist kaum etwas zu erkennen (Die Szene ist fast vollständig schwarz und leer, nur die UI-Texte am unteren Rand sind sichtbar.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
+```
