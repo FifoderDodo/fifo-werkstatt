@@ -2,7 +2,7 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
     <meta charset="UTF-8">
-    <title>Fifos 3D-Tiefen-Shader Part 20</title>
+    <title>Fifos 3D-Tiefen-Shader Part 21</title>
     <style>
         body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #eee; overflow: hidden; }
         canvas { border: 2px solid #444; box-shadow: 0 0 30px #000; display: block; }
@@ -12,9 +12,9 @@
 <body>
     <canvas id="glcanvas" width="400" height="400"></canvas>
     <div id="info">
-        Fifo's Raymarch Lab Part 20<br>
+        Fifo's Raymarch Lab Part 21<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
-        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, Nebel, Kamera fix
+        Shader: SDF Raymarch, Verfeinerte Tiefenwerte, Weiche Schatten, AO
     </div>
 
     <script type="module">
@@ -43,7 +43,7 @@
                 u_resolution: { value: new THREE.Vector2(400, 400) },
                 u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
                 // Kamera-Parameter für Ray-Generierung im Vertex/Fragment
-                u_camPos: { value: new THREE.Vector3(0, 3, 18) },
+                u_camPos: { value: new THREE.Vector3(0, 3, 16) },
                 u_camTarget: { value: new THREE.Vector3(0, 0.5, 0) },
                 u_fov: { value: 45.0 },
             },
@@ -55,9 +55,9 @@
                 }
             `,
             fragmentShader: /* glsl */`
-                #define MAX_STEPS 100
-                #define MAX_DIST 100.0
-                #define SURF_DIST 0.001
+                #define MAX_STEPS 120
+                #define MAX_DIST 90.0
+                #define SURF_DIST 0.0005
                 #define PI 3.14159265359
                 #define TAU 6.28318530718
                 
@@ -87,11 +87,6 @@
                 float sdTorus(vec3 p, vec2 t) { vec2 q = vec2(length(p.xz) - t.x, p.y); return length(q) - t.y; }
                 float sdPlane(vec3 p, vec3 n, float h) { return dot(p, n) + h; }
                 float sdCylinder(vec3 p, vec2 h) { vec2 d = vec2(length(p.xz) - h.x, abs(p.y) - h.y); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
-                
-                float opSmoothUnion(float d1, float d2, float k) {
-                    float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0.0, 1.0);
-                    return mix(d2, d1, h) - k * h * (1.0 - h);
-                }
                 
                 // -----------------------------------------------------------
                 // Szene definieren (SDF) - gibt auch Objekt-ID zurück
@@ -143,10 +138,10 @@
                 }
                 
                 // -----------------------------------------------------------
-                // Normale berechnen
+                // Normale berechnen mit verfeinertem Epsilon
                 // -----------------------------------------------------------
                 vec3 calcNormal(vec3 p) {
-                    vec2 e = vec2(0.001, 0.0);
+                    vec2 e = vec2(0.0005, 0.0);
                     int dummyId;
                     vec3 dummyCol;
                     return normalize(vec3(
@@ -166,7 +161,7 @@
                     vec3 dummyCol;
                     for (int i = 0; i < 32; i++) {
                         float h = map(ro + rd * t, dummyId, dummyCol);
-                        if (h < 0.001) return 0.0;
+                        if (h < 0.0005) return 0.0;
                         res = min(res, k * h / t);
                         t += h;
                         if (t > 20.0) break;
@@ -183,12 +178,12 @@
                     int dummyId;
                     vec3 dummyCol;
                     for (int i = 0; i < 5; i++) {
-                        float h = 0.05 + 0.15 * float(i) / 4.0;
+                        float h = 0.04 + 0.12 * float(i) / 4.0;
                         float d = map(p + n * h, dummyId, dummyCol);
                         ao += (h - d) * sca;
                         sca *= 0.5;
                     }
-                    return clamp(1.0 - 3.0 * ao, 0.0, 1.0);
+                    return clamp(1.0 - 3.5 * ao, 0.0, 1.0);
                 }
                 
                 // -----------------------------------------------------------
@@ -202,11 +197,11 @@
                     vec3 ta = u_camTarget;
                     mat3 ca = lookAt(ro, ta, vec3(0,1,0));
                     
-                    // Ray-Direction mit FOV (WICHTIG: +1.0 statt -1.0, da forward-Vektor in Blickrichtung zeigt)
+                    // Ray-Direction mit FOV
                     float fov = radians(u_fov);
                     vec3 rd = ca * normalize(vec3(uv * tan(fov * 0.5), 1.0));
                     
-                    // Raymarching
+                    // Raymarching mit optimiertem Step-Verhalten
                     float t = 0.0;
                     int objId = -1;
                     vec3 objCol = vec3(0.0);
@@ -220,44 +215,38 @@
                             objCol = col;
                             break;
                         }
-                        t += d;
+                        t += d * 0.95; // Verfeinerter Tiefenschritt für bessere Präzision
                         if (t > MAX_DIST) break;
                     }
                     
                     // Hintergrund - heller, freundlicher Farbverlauf
                     vec3 bgCol = mix(
-                        vec3(0.45, 0.55, 0.75),  // Horizont: helles Blau
-                        vec3(0.75, 0.85, 1.0),   // Zenit: sehr helles Blau
+                        vec3(0.45, 0.55, 0.75),
+                        vec3(0.75, 0.85, 1.0),
                         rd.y * 0.5 + 0.5
                     );
                     
-                    // Nebel-Farbe
                     vec3 fogCol = vec3(0.65, 0.75, 0.9);
-                    
                     vec3 finalCol = bgCol;
                     
                     if (objId >= 0) {
                         vec3 p = ro + rd * t;
                         vec3 n = calcNormal(p);
                         
-                        // Lichtrichtung - mehrere Lichter für mehr Helligkeit
                         vec3 lightDir1 = normalize(vec3(0.8, 1.5, 0.6));
                         vec3 lightDir2 = normalize(vec3(-0.5, 1.0, -0.8));
                         vec3 lightDir3 = normalize(vec3(0.0, 1.0, 0.0));
                         
-                        // Weiche Schatten
-                        float shadow1 = softShadow(p + n * 0.01, lightDir1, 0.01, 32.0);
-                        float shadow2 = softShadow(p + n * 0.01, lightDir2, 0.01, 32.0);
-                        float shadow3 = softShadow(p + n * 0.01, lightDir3, 0.01, 32.0);
+                        float shadow1 = softShadow(p + n * 0.005, lightDir1, 0.01, 32.0);
+                        float shadow2 = softShadow(p + n * 0.005, lightDir2, 0.01, 32.0);
+                        float shadow3 = softShadow(p + n * 0.005, lightDir3, 0.01, 32.0);
                         float shadow = shadow1 * shadow2 * shadow3;
                         
-                        // Diffuses Licht - stärker
                         float diff1 = max(dot(n, lightDir1), 0.0);
                         float diff2 = max(dot(n, lightDir2), 0.0) * 0.7;
                         float diff3 = max(dot(n, lightDir3), 0.0) * 0.5;
                         float diff = diff1 + diff2 + diff3;
                         
-                        // Specular (Blinn-Phong)
                         vec3 viewDir = -rd;
                         vec3 halfDir1 = normalize(lightDir1 + viewDir);
                         float spec1 = pow(max(dot(n, halfDir1), 0.0), 64.0);
@@ -265,16 +254,10 @@
                         float spec2 = pow(max(dot(n, halfDir2), 0.0), 32.0) * 0.5;
                         float spec = spec1 + spec2;
                         
-                        // Ambient Occlusion
                         float ao = calcAO(p, n);
-                        
-                        // Fresnel für Kanten-Glanz
                         float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
                         
-                        // Material-Farbe mischen
                         vec3 matCol = objCol;
-                        
-                        // Beleuchtung zusammenbauen - HELLER!
                         vec3 ambient = matCol * 0.5 * ao;
                         vec3 diffuse = matCol * diff * shadow * 1.5;
                         vec3 specular = vec3(1.0, 1.0, 1.0) * spec * shadow * 1.3;
@@ -282,15 +265,11 @@
                         
                         finalCol = ambient + diffuse + specular + fresnelCol;
                         
-                        // Nebel - weniger dicht
-                        float fogAmount = 1.0 - exp(-0.015 * t * t);
+                        float fogAmount = 1.0 - exp(-0.012 * t * t);
                         finalCol = mix(finalCol, fogCol, fogAmount);
                     }
                     
-                    // Gamma-Korrektur
                     finalCol = pow(finalCol, vec3(1.0 / 2.2));
-                    
-                    // Leichtes Vignetting
                     float vignette = 1.0 - 0.1 * length(uv);
                     finalCol *= vignette;
                     
@@ -303,13 +282,13 @@
         scene.add(quad);
 
         // -----------------------------------------------------------
-        // Interaktion: Kamera steuern
+        // Interaktion: Kamera steuern (Angepasste Startdistanz)
         // -----------------------------------------------------------
         let camTheta = 0.0;
         let camPhi = 0.4;
-        let camRadius = 18.0;
+        let camRadius = 16.0;
         const target = new THREE.Vector3(0, 0.5, 0);
-        const minRadius = 6.0;
+        const minRadius = 5.0;
         const maxRadius = 35.0;
         let isDragging = false;
         let lastMouse = new THREE.Vector2();
@@ -361,7 +340,6 @@
         function animate() {
             requestAnimationFrame(animate);
             
-            // Tastatur-Steuerung (Strafen)
             const moveSpeed = 0.15;
             if (keys['KeyW'] || keys['ArrowUp']) target.z -= moveSpeed;
             if (keys['KeyS'] || keys['ArrowDown']) target.z += moveSpeed;
