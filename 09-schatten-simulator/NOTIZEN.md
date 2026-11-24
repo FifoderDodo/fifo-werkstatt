@@ -2577,3 +2577,10 @@ Shader vervollständigt (fehlender raymarch-Rest, Main-Funktion). Kamera weiter 
 ```
 Auf dem Bild ist kaum etwas zu erkennen (Es sind nur Bedienelemente auf dunklem Hintergrund sichtbar, keine 3D-Objekte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
+
+## Teil 67 (24.11.2026 12:24)
+Shader-Fragment vervollständigt (fehlende Klammern und gl_FragColor), Kamera weiter weg (0,12,25) und auf Zentrum gerichtet, hellerer Hintergrund (0.25,0.25,0.35), Gamma-Korrektur 0.9 für hellere Darstellung, Kamera-Orbit in Demo für bessere Sicht.
+
+```
+Uncaught TypeError: Cannot set properties of undefined (setting 'h')
+```
