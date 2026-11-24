@@ -509,3 +509,10 @@ Fifo hat die Kameradistanz auf 16 Einheiten optimiert und die mathematischen Tie
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 22 (25.11.2026 00:15, Nachtschicht)
+Finaler Part 22: ACES-Tonemapping, Bloom-Approximation, Film Grain, Chromatische Aberration, Auto-Rotation und Toggles (R/G/B/C) hinzugefügt. HUD zeigt FPS und Status. Shader auf Emission pro Objekt erweitert. Szene wirkt nun deutlich weniger flach durch HDR-Look und Post-Effekte.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
