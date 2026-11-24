@@ -3063,3 +3063,10 @@ Lichtkegel als Cone-Mesh mit Custom-Shader hinzugefügt, der per Raymarching im 
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 105 (24.11.2026 11:02)
+Vervollständigte PointLight in Laterne, fügte zwei volumetrische Lichtkegel (Cone-Meshes) mit Custom-Raymarching-Shader hinzu. Shader nutzt Distanzfeld für Kegel, FBM-Wind-Verzerrung und Partikel-Rauschen. Uniforms werden pro Frame für beide Spotlights aktualisiert. Kamera-Steuerung, Wind-Animation und Laternen-Flackern bleiben erhalten. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
