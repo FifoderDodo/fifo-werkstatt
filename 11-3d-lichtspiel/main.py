@@ -173,95 +173,139 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
         if 0.2 < proj < dist_light:
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
-                # Abstand in der XY‑Ebene zum Baumstamm
-                dist_xy_sq = dx * dx + dy * dy - proj * proj
-                if dist_xy_sq < br * br:
-                    # Punkt liegt im Schatten des Baumes
-                    # Penumbra‑Übergang: je näher zur Baumkante, desto mehr Licht
-                    dist_xy = math.sqrt(dist_xy_sq)
-                    edge = br * (1.0 - params.penumbra_breite)
-                    if dist_xy > edge:
-                        # im Penumbra‑Band
-                        factor = (br - dist_xy) / (br - edge)
-                        min_f = min(min_f, factor * (1.0 - params.umbra_dunkelheit) + params.umbra_dunkelheit)
+                # horizontale Distanz vom Strahl zum Baumstamm
+                dist_horiz = abs(dx * uy - dy * ux)
+                if dist_horiz < br:
+                    umbra_radius = br - params.penumbra_breite
+                    if dist_horiz <= umbra_radius:
+                        f = params.umbra_dunkelheit
                     else:
-                        min_f = min(min_f, params.umbra_dunkelheit)
+                        t = (dist_horiz - umbra_radius) / params.penumbra_breite
+                        f = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * t
+                    if f < min_f:
+                        min_f = f
     return min_f
 
-def raymarch(pos, dir_vec, light_pos, baeume, params):
-    """Einfacher volumetrischer Ray‑Marching‑Loop, gibt Intensität zurück."""
-    step = params.light_radius / params.march_steps
-    accum = 0.0
-    t = 0.0
-    for i in range(params.march_steps):
-        sample = (pos[0] + dir_vec[0] * t,
-                  pos[1] + dir_vec[1] * t,
-                  pos[2] + dir_vec[2] * t)
-        dens = mist_dichte(sample, params)
-        if dens > 0.0:
-            # Lichtabsorption + Streuung
-            shade = schattenfaktor_3d(sample, light_pos, baeume, params)
-            accum += dens * shade * math.exp(-params.absorption_coeff * t)
-        t += step
-    return accum * params.volumetric_gain
+def compute_light_at_point(pos, light_pos, baeume, params):
+    """Berechnet die Lichtintensität an einem Punkt (Skalar 0..1)."""
+    px, py, pz = pos
+    lx, ly, lz = light_pos
+    vx, vy, vz = lx - px, ly - py, lz - pz
+    dist = math.sqrt(vx * vx + vy * vy + vz * vz)
+    if dist < 0.001:
+        return 1.0
+    # Schatten
+    shadow = schattenfaktor_3d(pos, light_pos, baeume, params)
+    # Falloff
+    falloff = 1.0 / max(params.falloff_start, dist) ** params.falloff_exponent
+    # Volumetrisches Streulicht (einfache Raymarch-Integration vom Licht zum Punkt)
+    steps = params.march_steps
+    scatter_acc = 0.0
+    transmittance = 1.0
+    for i in range(steps):
+        t = (i + 0.5) / steps
+        sx = lx + (px - lx) * t
+        sy = ly + (py - ly) * t
+        sz = lz + (pz - lz) * t
+        density = mist_dichte((sx, sy, sz), params)
+        # Absorption
+        transmittance *= math.exp(-params.absorption_coeff * density * dist / steps)
+        # Streuung in Richtung Betrachter (hier vereinfacht: Phase-Funktion mit cos_theta=1)
+        phase = henyey_greenstein(1.0, params.phase_g)
+        scatter_acc += density * phase * transmittance
+    volumetric = scatter_acc * params.volumetric_gain * dist / steps
+    # Gesamthelligkeit
+    intensity = (falloff * shadow + volumetric) * transmittance + params.ambient
+    return max(0.0, min(1.0, intensity))
 
-def render_frame(width, height, params):
-    """Renderet ein einzelnes ASCII‑Bild."""
-    # Kamera‑Parameter (einfach orthogonal)
-    cam_z = -2.0
-    light_pos = (0.0, 0.0, 2.0)
-    # Zufällige Bäume im Park (x, y, radius, height)
-    baeume = [(-0.5, 0.2, 0.12, 0.6), (0.4, -0.3, 0.15, 0.8), (0.0, 0.5, 0.1, 0.5)]
-    frame = [[0.0 for _ in range(width)] for __ in range(height)]
+def render_frame(light_pos, baeume, params, width, height, world_scale):
+    """Rendert ein 2D-Gitter der Lichtintensität auf Bodenhöhe (z=0)."""
+    grid = [[0.0 for _ in range(width)] for __ in range(height)]
+    half_w = width * world_scale * 0.5
+    half_h = height * world_scale * 0.5
     for y in range(height):
+        wy = (y - half_h) * world_scale
         for x in range(width):
-            # Normalisierte Bildkoordinaten [-1,1]
-            nx = (x / (width - 1)) * 2.0 - 1.0
-            ny = (y / (height - 1)) * 2.0 - 1.0
-            # Ray von Kamera in Richtung +z
-            origin = (nx, ny, cam_z)
-            dir_vec = (0.0, 0.0, 1.0)
-            intensity = raymarch(origin, dir_vec, light_pos, baeume, params)
-            # Ambient + simple falloff
-            intensity = params.ambient + intensity * (1.0 - params.falloff_start)
-            frame[y][x] = intensity
-    # Bloom‑Post‑Processing (einfaches Blur + Verstärkung)
-    if params.bloom_intensity > 0.0:
-        kern = gauß_gewichte(params.bloom_radius)
-        blurred = box_blur_1d(frame, kern, horizontal=True)
-        blurred = box_blur_1d(blurred, kern, horizontal=False)
-        for y in range(height):
-            for x in range(width):
-                if frame[y][x] > params.bloom_threshold:
-                    frame[y][x] += blurred[y][x] * params.bloom_intensity
-    # In ASCII konvertieren
+            wx = (x - half_w) * world_scale
+            intensity = compute_light_at_point((wx, wy, 0.0), light_pos, baeume, params)
+            grid[y][x] = intensity
+    return grid
+
+def apply_bloom(grid, params):
+    """Einfacher Bloom-Effekt durch Threshold und Blur."""
+    h, w = len(grid), len(grid[0])
+    # Threshold
+    bloom_src = [[max(0.0, v - params.bloom_threshold) for v in row] for row in grid]
+    # Blur
+    weights = gauß_gewichte(params.bloom_radius)
+    bloom_blur = box_blur_1d(bloom_src, weights, True)
+    bloom_blur = box_blur_1d(bloom_blur, weights, False)
+    # Add back
+    for y in range(h):
+        for x in range(w):
+            grid[y][x] = min(1.0, grid[y][x] + bloom_blur[y][x] * params.bloom_intensity)
+    return grid
+
+def intensity_to_ascii(grid, params):
+    """Wandelt Intensitäts-Gitter in Liste von Strings um."""
     lines = []
-    for row in frame:
+    for row in grid:
         line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
         lines.append(line)
-    return '\n'.join(lines)
+    return lines
 
 def main():
     params = ShaderParams()
-    width, height = 80, 24
+    # Beispiel-Bäume: (x, y, radius, height)
+    baeume = [
+        (-2.0, 1.5, 0.4, 3.0),
+        (3.0, -1.0, 0.5, 2.5),
+        (-1.0, -2.5, 0.3, 2.0),
+        (4.0, 2.0, 0.6, 3.5),
+        (0.0, 3.0, 0.4, 2.8),
+    ]
+    light_pos = [0.0, 0.0, 4.0]  # startet mittig über dem Ursprung
+    width, height = 80, 40
+    world_scale = 0.15  # Weltkoordinaten pro Zeichen
+    frame = 0
+    print("3D-Lichtspiel – Drücke Enter für nächsten Frame, 'q' zum Beenden, 'm <wert>' für Mistdichte.")
     try:
         while True:
+            # Licht langsam im Kreis bewegen
+            angle = frame * 0.03
+            light_pos[0] = 3.0 * math.cos(angle)
+            light_pos[1] = 3.0 * math.sin(angle)
+            light_pos[2] = 4.0 + 0.5 * math.sin(frame * 0.07)
+            
+            grid = render_frame(light_pos, baeume, params, width, height, world_scale)
+            grid = apply_bloom(grid, params)
+            lines = intensity_to_ascii(grid, params)
             os.system('cls' if os.name == 'nt' else 'clear')
-            print(render_frame(width, height, params))
-            # Kleine Interaktion: Nutzer kann die Mist‑Dichte ändern
+            print(f"Frame {frame} | Licht: ({light_pos[0]:.2f}, {light_pos[1]:.2f}, {light_pos[2]:.2f}) | Mist: {params.mist_density:.2f}")
+            for line in lines:
+                print(line)
+            
+            # Eingabe
             try:
-                inp = input('Mist-Dichte (0‑1, ENTER für gleich): ')
-                if inp:
-                    val = float(inp)
-                    params.mist_density = max(0.0, min(1.0, val))
+                inp = input("> ").strip()
             except EOFError:
-                print('\nEnde der Eingabe – Auf Wiedersehen!')
                 break
-            except Exception:
-                pass
-            time.sleep(0.1)
+            if not inp:
+                frame += 1
+                continue
+            if inp.lower() == 'q':
+                break
+            parts = inp.split()
+            if parts[0] == 'm' and len(parts) == 2:
+                try:
+                    params.mist_density = max(0.0, min(2.0, float(parts[1])))
+                    print(f"Mistdichte auf {params.mist_density:.2f} gesetzt.")
+                except ValueError:
+                    pass
+            frame += 1
     except KeyboardInterrupt:
-        print('\nAbgebrochen.')
+        pass
+    print("\nBis zum nächsten Traum.")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
