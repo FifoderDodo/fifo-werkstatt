@@ -173,38 +173,168 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
         if 0.2 < proj < dist_light:
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
-                # einfacher Schatten: Vollschatten wenn innerhalb des Stammes
-                return 0.0
-    # keine direkte Blockade -> leichte Abschwächung durch Penumbra
-    penumbra = params.penumbra_breite * (dist_light / params.light_radius)
-    return max(0.0, 1.0 - penumbra)
+                # distance from ray to tree center in xy plane
+                dist_xy = math.sqrt((dx - proj*ux)**2 + (dy - proj*uy)**2)
+                if dist_xy < br:
+                    # inside umbra
+                    min_f = min(min_f, params.umbra_dunkelheit)
+                else:
+                    # penumbra region
+                    penumbra_width = params.penumbra_breite * (proj / dist_light) * params.light_radius * 2.0
+                    if dist_xy < br + penumbra_width:
+                        t = (dist_xy - br) / penumbra_width
+                        shadow_val = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * t
+                        min_f = min(min_f, shadow_val)
+    return min_f
 
-def demo():
+def render_frame(params, frame_time, width=80, height=40):
+    """Rendert einen Frame als Liste von Strings (ASCII)."""
+    # Kamera-Setup
+    cam_pos = (0.0, -15.0, 2.0)
+    look_at = (0.0, 0.0, 1.0)
+    up = (0.0, 0.0, 1.0)
+    fov = math.radians(60.0)
+    aspect = width / height
+    
+    # Lichtposition (bewegt sich langsam)
+    light_angle = frame_time * 0.2
+    light_pos = (math.sin(light_angle) * 8.0, math.cos(light_angle) * 8.0, 6.0)
+    
+    # Bäume: (x, y, radius, height)
+    baeume = [
+        (-4.0, -2.0, 0.8, 4.0),
+        (3.0, 1.0, 0.6, 3.5),
+        (-2.0, 5.0, 0.7, 3.0),
+        (5.0, -4.0, 0.9, 4.5),
+        (0.0, 6.0, 0.5, 2.5),
+        (-6.0, -3.0, 0.8, 3.8),
+    ]
+    
+    # Farbtemperatur
+    r_f, g_f, b_f = kelvin_to_rgb_factor(params.color_temp)
+    
+    # Ray-Marching Parameter
+    max_dist = 30.0
+    steps = params.march_steps
+    step_size = max_dist / steps
+    
+    # Vorberechnete View-Richtungen für jeden Pixel
+    forward = (look_at[0] - cam_pos[0], look_at[1] - cam_pos[1], look_at[2] - cam_pos[2])
+    f_len = math.sqrt(forward[0]**2 + forward[1]**2 + forward[2]**2)
+    forward = (forward[0]/f_len, forward[1]/f_len, forward[2]/f_len)
+    right = (forward[1]*up[2] - forward[2]*up[1],
+             forward[2]*up[0] - forward[0]*up[2],
+             forward[0]*up[1] - forward[1]*up[0])
+    r_len = math.sqrt(right[0]**2 + right[1]**2 + right[2]**2)
+    right = (right[0]/r_len, right[1]/r_len, right[2]/r_len)
+    up_vec = (right[1]*forward[2] - right[2]*forward[1],
+              right[2]*forward[0] - right[0]*forward[2],
+              right[0]*forward[1] - right[1]*forward[0])
+    
+    half_height = math.tan(fov * 0.5)
+    half_width = half_height * aspect
+    
+    frame = []
+    for j in range(height):
+        line_chars = []
+        for i in range(width):
+            # Normalized device coordinates
+            u = (i + 0.5) / width * 2.0 - 1.0
+            v = (j + 0.5) / height * 2.0 - 1.0
+            # Ray direction
+            dir_x = forward[0] + right[0] * u * half_width + up_vec[0] * v * half_height
+            dir_y = forward[1] + right[1] * u * half_width + up_vec[1] * v * half_height
+            dir_z = forward[2] + right[2] * u * half_width + up_vec[2] * v * half_height
+            d_len = math.sqrt(dir_x**2 + dir_y**2 + dir_z**2)
+            dir_x, dir_y, dir_z = dir_x/d_len, dir_y/d_len, dir_z/d_len
+            
+            # Ray Marching
+            accumulated = 0.0
+            transmittance = 1.0
+            for s in range(steps):
+                t = (s + 0.5) * step_size
+                px = cam_pos[0] + dir_x * t
+                py = cam_pos[1] + dir_y * t
+                pz = cam_pos[2] + dir_z * t
+                
+                # Mist density at this point
+                density = mist_dichte((px, py, pz), params)
+                if density <= 0.0:
+                    continue
+                
+                # Shadow factor towards light
+                shadow = schattenfaktor_3d((px, py, pz), light_pos, baeume, params)
+                
+                # Vector to light
+                lx = light_pos[0] - px
+                ly = light_pos[1] - py
+                lz = light_pos[2] - pz
+                l_dist = math.sqrt(lx**2 + ly**2 + lz**2)
+                if l_dist < 0.01:
+                    continue
+                lx, ly, lz = lx/l_dist, ly/l_dist, lz/l_dist
+                
+                # Phase function (Henyey-Greenstein)
+                cos_theta = dir_x * lx + dir_y * ly + dir_z * lz
+                phase = henyey_greenstein(cos_theta, params.phase_g)
+                
+                # Light intensity falloff
+                falloff = 1.0 / (l_dist**2 + 0.1)
+                
+                # Scattering contribution
+                scatter = density * params.scattering_coeff * phase * falloff * shadow
+                
+                # Absorption
+                absorb = density * params.absorption_coeff
+                transmittance *= math.exp(-absorb * step_size)
+                
+                accumulated += scatter * transmittance * step_size
+                
+                # Early exit if transmittance too low
+                if transmittance < params.early_exit_threshold:
+                    break
+            
+            # Add ambient
+            accumulated += params.ambient
+            
+            # Apply volumetric gain and color temperature
+            accumulated *= params.volumetric_gain
+            accumulated = accumulated * (0.3 + 0.7 * r_f)  # simplify to monochrome with warm tint
+            
+            # Tone mapping / gamma
+            char = intensitaet_zu_ascii(accumulated, params.gamma)
+            line_chars.append(char)
+        frame.append(''.join(line_chars))
+    return frame
+
+def main():
     params = ShaderParams()
-    light = (0.0, 0.0, 5.0)
-    # Beispielbäume: (x, y, radius, höhe)
-    baeume = [(-1.0, 0.0, 0.3, 2.0), (1.0, 0.5, 0.4, 2.5)]
-    print("3D‑Lichtspiel Demo (ASCII)…")
-    width, height = 40, 20
-    for y in range(height):
-        line = ''
-        for x in range(width):
-            # Kartenkoordinaten in Weltkoordinaten umrechnen
-            wx = (x - width/2) * 0.1
-            wy = (y - height/2) * 0.1
-            wz = 0.0
-            pos = (wx, wy, wz)
-            shade = schattenfaktor_3d(pos, light, baeume, params)
-            mist = mist_dichte(pos, params)
-            intensity = params.ambient + shade * (1.0 - mist)
-            line += intensitaet_zu_ascii(intensity, params.gamma)
-        print(line)
-    print("Demo beendet.")
+    frame_count = 0
+    max_frames = 20  # safety limit
+    print("3D-Lichtspiel: Volumetrisches Licht und Schatten im herbstlichen Park")
+    print("Drücke Enter für nächsten Frame, 'q' zum Beenden. Strg+C oder EOF beendet ebenfalls.")
+    try:
+        while frame_count < max_frames:
+            frame_time = frame_count * 0.1
+            frame = render_frame(params, frame_time)
+            # Clear screen (ANSI escape)
+            print("\033[H\033[J", end='')
+            for line in frame:
+                print(line)
+            print(f"Frame {frame_count+1}/{max_frames}  (Zeit: {frame_time:.1f}s)")
+            frame_count += 1
+            
+            # Wait for user input (non-blocking would be better, but simple)
+            try:
+                user_in = input("[Enter=weiter, q=quit] ").strip().lower()
+                if user_in == 'q':
+                    break
+            except EOFError:
+                print("\nEOF erkannt. Beende freundlich.")
+                break
+    except KeyboardInterrupt:
+        print("\nAbbruch durch Benutzer. Tschüss!")
+    print("Danke fürs Zuschauen. Der Dodo schläft weiter.")
 
 if __name__ == "__main__":
-    try:
-        demo()
-    except EOFError:
-        print("Eingabe beendet – Auf Wiedersehen!")
-    except KeyboardInterrupt:
-        print("Abgebrochen.")
+    main()
