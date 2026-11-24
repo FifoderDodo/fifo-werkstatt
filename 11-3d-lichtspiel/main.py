@@ -173,170 +173,38 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
         if 0.2 < proj < dist_light:
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
-                # Abstand der Strahlmitte zum Baumstamm in der Senkrechten
-                perp_x = dx - ux * proj
-                perp_y = dy - uy * proj
-                perp_dist = math.sqrt(perp_x * perp_x + perp_y * perp_y)
-                if perp_dist < br:
-                    # harter Schatten mit Penumbra-Uebergang
-                    penumbra = params.penumbra_breite
-                    shadow_strength = 1.0 - params.umbra_dunkelheit
-                    # linearer Uebergang am Rand
-                    if perp_dist > br - penumbra:
-                        t = (br - perp_dist) / penumbra
-                        shadow_strength = 1.0 - (1.0 - params.umbra_dunkelheit) * t
-                    min_f = min(min_f, shadow_strength)
-    return min_f
+                # einfacher Schatten: Vollschatten wenn innerhalb des Stammes
+                return 0.0
+    # keine direkte Blockade -> leichte Abschwächung durch Penumbra
+    penumbra = params.penumbra_breite * (dist_light / params.light_radius)
+    return max(0.0, 1.0 - penumbra)
 
-def raymarch(origin, direction, light_pos, baeume, params, max_dist=20.0):
-    """Volumetric raymarching mit Schatten und Streuung."""
-    steps = params.march_steps
-    if params.adaptive_steps:
-        # adaptive step count based on distance
-        steps = int(steps * params.max_step_factor)
-    step_size = max_dist / steps
-    transmittance = 1.0
-    radiance = 0.0
-    light_color = kelvin_to_rgb_factor(params.color_temp)
-    for i in range(steps):
-        t = (i + (random.random() * params.jitter_strength if params.jitter_enabled else 0.5)) * step_size
-        px = origin[0] + direction[0] * t
-        py = origin[1] + direction[1] * t
-        pz = origin[2] + direction[2] * t
-        if pz < 0.0:
-            continue
-        density = mist_dichte((px, py, pz), params)
-        if density < 1e-4:
-            continue
-        # shadow toward light
-        shadow = schattenfaktor_3d((px, py, pz), light_pos, baeume, params)
-        # phase function
-        lx, ly, lz = light_pos[0] - px, light_pos[1] - py, light_pos[2] - pz
-        ld = math.sqrt(lx*lx + ly*ly + lz*lz)
-        if ld < 1e-4:
-            continue
-        lx, ly, lz = lx/ld, ly/ld, lz/ld
-        cos_theta = direction[0]*lx + direction[1]*ly + direction[2]*lz
-        phase = henyey_greenstein(cos_theta, params.phase_g)
-        # scattering
-        scatter = density * params.scattering_coeff * phase * shadow
-        # absorption
-        absorb = density * params.absorption_coeff
-        # accumulate
-        radiance += transmittance * scatter * light_color[0]  # use red channel as luminance proxy
-        transmittance *= math.exp(-absorb * step_size)
-        if transmittance < params.early_exit_threshold:
-            break
-    return radiance * params.volumetric_gain
-
-def render_frame(params, baeume, light_pos, cam_pos, cam_dir, width=80, height=40):
-    """Rendert einen Frame in einen Float-Puffer."""
-    # einfache perspektivische Kamera
-    fov = math.pi / 3.0
-    aspect = width / height
-    half_w = math.tan(fov * 0.5) * aspect
-    half_h = math.tan(fov * 0.5)
-    # orthonormal basis
-    forward = cam_dir
-    f_len = math.sqrt(forward[0]**2 + forward[1]**2 + forward[2]**2)
-    forward = (forward[0]/f_len, forward[1]/f_len, forward[2]/f_len)
-    right = (forward[2], 0.0, -forward[0])  # simplified, assumes up is (0,1,0)
-    r_len = math.sqrt(right[0]**2 + right[2]**2)
-    if r_len < 1e-4:
-        right = (1.0, 0.0, 0.0)
-    else:
-        right = (right[0]/r_len, 0.0, right[2]/r_len)
-    up = (0.0, 1.0, 0.0)
-    buffer = [[0.0 for _ in range(width)] for __ in range(height)]
-    for y in range(height):
-        for x in range(width):
-            # NDC coordinates
-            nx = (x + 0.5) / width * 2.0 - 1.0
-            ny = 1.0 - (y + 0.5) / height * 2.0
-            # ray direction
-            rx = forward[0] + right[0] * nx * half_w + up[0] * ny * half_h
-            ry = forward[1] + right[1] * nx * half_w + up[1] * ny * half_h
-            rz = forward[2] + right[2] * nx * half_w + up[2] * ny * half_h
-            r_len = math.sqrt(rx*rx + ry*ry + rz*rz)
-            rx, ry, rz = rx/r_len, ry/r_len, rz/r_len
-            val = raymarch(cam_pos, (rx, ry, rz), light_pos, baeume, params)
-            buffer[y][x] = val
-    return buffer
-
-def apply_bloom(buffer, params):
-    """Einfaches Bloom: threshold, blur, add."""
-    h, w = len(buffer), len(buffer[0])
-    # threshold
-    bloom_src = [[max(0.0, buffer[y][x] - params.bloom_threshold) for x in range(w)] for y in range(h)]
-    # blur
-    weights = gauß_gewichte(params.bloom_radius)
-    blur_h = box_blur_1d(bloom_src, weights, horizontal=True)
-    blur_v = box_blur_1d(blur_h, weights, horizontal=False)
-    # add
-    for y in range(h):
-        for x in range(w):
-            buffer[y][x] += blur_v[y][x] * params.bloom_intensity
-    return buffer
-
-def tonemap(buffer, params):
-    """Gamma und Vibrancy."""
-    for y in range(len(buffer)):
-        for x in range(len(buffer[0])):
-            v = buffer[y][x]
-            v = v * params.vibrancy
-            v = v ** params.gamma
-            buffer[y][x] = min(1.0, max(0.0, v))
-    return buffer
-
-def buffer_to_ascii(buffer, params):
-    lines = []
-    for row in buffer:
-        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        lines.append(line)
-    return '\n'.join(lines)
-
-def main():
+def demo():
     params = ShaderParams()
-    # Beispiel-Szene: ein paar Bäume (x, y, radius, height)
-    baeume = [
-        (-3.0, -2.0, 0.4, 4.0),
-        (2.0, 1.5, 0.3, 3.5),
-        (-1.0, 3.0, 0.5, 5.0),
-        (4.0, -3.0, 0.35, 4.2),
-        (-4.0, 2.0, 0.45, 3.8),
-    ]
-    light_pos = (0.0, 0.0, 3.0)  # Laterne in der Mitte
-    cam_pos = (0.0, -8.0, 2.0)
-    cam_dir = (0.0, 1.0, -0.2)  # schaut leicht nach unten
-    width, height = 80, 40
-    print("3D-Lichtspiel – interaktiver volumetrischer Park (Traum-Modus)")
-    print("Tasten: n=Nebel+, m=Nebel-, b=Bloom+, v=Bloom-, Enter=neuer Frame, q=Ende")
-    try:
-        while True:
-            buffer = render_frame(params, baeume, light_pos, cam_pos, cam_dir, width, height)
-            buffer = apply_bloom(buffer, params)
-            buffer = tonemap(buffer, params)
-            ascii_art = buffer_to_ascii(buffer, params)
-            print(ascii_art)
-            print("---")
-            try:
-                inp = input("(n/m/b/v/Enter/q): ").strip().lower()
-            except EOFError:
-                break
-            if inp == 'q':
-                break
-            elif inp == 'n':
-                params.mist_density = min(1.0, params.mist_density + 0.02)
-            elif inp == 'm':
-                params.mist_density = max(0.0, params.mist_density - 0.02)
-            elif inp == 'b':
-                params.bloom_intensity = min(2.0, params.bloom_intensity + 0.05)
-            elif inp == 'v':
-                params.bloom_intensity = max(0.0, params.bloom_intensity - 0.05)
-            # Enter oder anderes -> einfach weiter
-    except KeyboardInterrupt:
-        pass
-    print("Der Dodo wacht auf. Gute Nacht.")
+    light = (0.0, 0.0, 5.0)
+    # Beispielbäume: (x, y, radius, höhe)
+    baeume = [(-1.0, 0.0, 0.3, 2.0), (1.0, 0.5, 0.4, 2.5)]
+    print("3D‑Lichtspiel Demo (ASCII)…")
+    width, height = 40, 20
+    for y in range(height):
+        line = ''
+        for x in range(width):
+            # Kartenkoordinaten in Weltkoordinaten umrechnen
+            wx = (x - width/2) * 0.1
+            wy = (y - height/2) * 0.1
+            wz = 0.0
+            pos = (wx, wy, wz)
+            shade = schattenfaktor_3d(pos, light, baeume, params)
+            mist = mist_dichte(pos, params)
+            intensity = params.ambient + shade * (1.0 - mist)
+            line += intensitaet_zu_ascii(intensity, params.gamma)
+        print(line)
+    print("Demo beendet.")
 
 if __name__ == "__main__":
-    main()
+    try:
+        demo()
+    except EOFError:
+        print("Eingabe beendet – Auf Wiedersehen!")
+    except KeyboardInterrupt:
+        print("Abgebrochen.")
