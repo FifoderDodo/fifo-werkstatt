@@ -14,7 +14,7 @@
 <div id="info"></div>
 <div id="hud">Pfeile: Kamera drehen | Leertaste: Hoch/Runter | Shift: Tempo | Herbstwind weht...</div>
 <script type="module">
-// ===== Fifo der Dodo baut: Volumetrischer Herbstpark (Optimierte Shader-Schleife) =====
+// ===== Fifo der Dodo bastelt: Volumetrischer Herbstpark (Raymarching mit Distanzfeld) =====
 // Three.js r170 liegt global als THREE vor
 
 const W = 400, H = 400;
@@ -137,153 +137,146 @@ arm.rotation.z = -Math.PI/2; arm.position.set(1.3, 5.8, 0); arm.castShadow = tru
 const glass = new THREE.Mesh(new THREE.SphereGeometry(0.45, 20, 16), matGlass);
 glass.position.set(2.8, 5.8, 0); glass.castShadow = true; lamp.add(glass);
 
-const pointLight = new THREE.PointLight(0xffaa44, 40, 15);
+const pointLight = new THREE.PointLight(0xffcc60, 50, 10, 2);
 pointLight.position.set(2.8, 5.8, 0);
 pointLight.castShadow = true;
 lamp.add(pointLight);
-lamp.position.set(4, 0, -3);
+lamp.position.set(10, 0, -8);
 scene.add(lamp);
 
-// --- Volumetrischer Lichtkegel Shader (Optimierte Farbverläufe) ---
-const volGeo = new THREE.ConeGeometry(8, 25, 32, 32, true);
-volGeo.translate(0, -12.5, 0);
-volGeo.rotateX(Math.PI);
+// --- Volumetrischer Lichtkegel (Raymarching mit Distanzfeld) ---
+// Wir erzeugen einen Kegel-Mesh, der den Spotlight-Kegel approximiert,
+// und nutzen einen Custom-Shader, der im Fragment-Shader raymarched.
+// Die Distanzfeldfunktion beschreibt einen unendlichen Kegel, den wir mit
+// einer sinusförmigen Krümmung (Wind) verbiegen.
 
-const volMat = new THREE.ShaderMaterial({
+const coneHeight = 50;
+const coneAngle = Math.PI/4.5; // wie spot.angle
+const coneRadius = coneHeight * Math.tan(coneAngle);
+
+const coneGeom = new THREE.ConeGeometry(coneRadius, coneHeight, 32, 1, true);
+coneGeom.rotateX(Math.PI); // Spitze nach oben
+coneGeom.translate(0, coneHeight/2, 0); // Basis in Ursprung
+
+const coneMaterial = new THREE.ShaderMaterial({
   uniforms: {
-    time: { value: 0 },
-    lightPos: { value: new THREE.Vector3(5, 18, 10) },
-    viewPos: { value: camera.position },
-    color: { value: new THREE.Color(0xffcc60) }
+    uTime: { value: 0 },
+    uLightPos: { value: spot.position },
+    uLightDir: { value: new THREE.Vector3().subVectors(spot.target.position, spot.position).normalize() },
+    uLightColor: { value: new THREE.Color(0xffcc60) },
+    uConeHeight: { value: coneHeight },
+    uConeAngle: { value: coneAngle },
+    uCameraPos: { value: camera.position }
   },
-  vertexShader: `
-    varying vec3 vWorldPos;
-    varying vec3 vNormal;
-    void main() {
-      vNormal = normalize(normalMatrix * normal);
-      vec4 worldPos = modelMatrix * vec4(position, 1.0);
-      vWorldPos = worldPos.xyz;
-      gl_Position = projectionMatrix * viewMatrix * worldPos;
-    }
-  `,
-  fragmentShader: `
-    uniform float time;
-    uniform vec3 lightPos;
-    uniform vec3 viewPos;
-    uniform vec3 color;
-    varying vec3 vWorldPos;
-    varying vec3 vNormal;
-
-    float noise(vec3 p) {
-      return sin(p.x*1.5 + time) * cos(p.y*1.5 - time) * sin(p.z*1.5 + time*0.5);
-    }
-
-    void main() {
-      vec3 rayDir = normalize(vWorldPos - viewPos);
-      vec3 p = vWorldPos;
-      float density = 0.0;
+  vertexShader: `\n    varying vec3 vWorldPos;\n    void main(){\n      vWorldPos = (modelMatrix * vec4(position,1.0)).xyz;\n      gl_Position = projectionMatrix * viewMatrix * vec4(vWorldPos,1.0);\n    }\n  `,
+  fragmentShader: `\n    varying vec3 vWorldPos;\n    uniform float uTime;\n    uniform vec3 uLightPos;\n    uniform vec3 uLightDir;\n    uniform vec3 uLightColor;\n    uniform float uConeHeight;\n    uniform float uConeAngle;\n    uniform vec3 uCameraPos;\n    \n    // Distanzfeld für einen geraden Kegel (Spitze bei uLightPos, Achse uLightDir)\n    float sdCone(vec3 p, float h, float angle){\n      // p in lokalem Koordinatensystem des Kegels: y entlang Achse, xz radial\n      float r = length(p.xz);\n      float d = r - p.y * tan(angle);\n      // Begrenzen auf Höhe\n      d = max(d, -p.y);\n      d = max(d, p.y - h);\n      return d;
+    }\n    \n    // Krümmung: Wir verbiegen den Kegel durch einen Wind-Einfluss\n    // Einfache Sinus-Welle entlang der Höhe und um die Achse\n    vec3 bendCone(vec3 p, float h, float t){\n      float y = p.y;
+      float wave = sin(y * 0.5 + t) * 0.15 * (y/h);
+      // Krümmung in x-Richtung (könnte auch z sein)\n      p.x += wave;
+      return p;
+    }\n    \n    void main(){\n      // View-Ray von Kamera zum Fragment\n      vec3 ro = uCameraPos;
+      vec3 rd = normalize(vWorldPos - ro);
       
-      // Optimierte Raymarching-Schleife mit sanfteren Verlaufsschritten
-      for(int i=0; i<32; i++) {
-        float n = noise(p * 0.2);
-        density += (0.05 + 0.03 * n);
-        p += rayDir * 0.4;
-      }
+      // Transformiere in Kegel-Lokalkoordinaten\n      // Basis: uLightPos, Achse: uLightDir\n      // Wir bauen eine Basis-Matrix\n      vec3 up = abs(uLightDir.y) < 0.9 ? vec3(0,1,0) : vec3(1,0,0);
+      vec3 right = normalize(cross(up, uLightDir));
+      vec3 fwd = uLightDir;
+      mat3 toLocal = mat3(right, fwd, cross(fwd, right)); // Spalten: right, fwd, up
       
-      density = clamp(density, 0.0, 1.5);
-      float fresnel = pow(1.0 - abs(dot(vNormal, -rayDir)), 2.0);
-      float alpha = density * 0.18 + fresnel * 0.12;
+      vec3 localPos = toLocal * (vWorldPos - uLightPos);
       
-      gl_FragColor = vec4(color * (1.2 + 0.3 * sin(time)), alpha);
-    }
-  `,
+      // Krümmung anwenden (in lokalen Koordinaten)\n      localPos = bendCone(localPos, uConeHeight, uTime);
+      
+      // Distanzfeld abfragen\n      float d = sdCone(localPos, uConeHeight, uConeAngle);
+      
+      // Einfache Volumendichte: exponentieller Abfall mit Distanz zum Kegelrand\n      float density = exp(-max(d,0.0) * 30.0);
+      
+      // Zusätzlich: Lichtabfall mit Höhe (Inverse Square approx)
+      float heightAtten = 1.0 - smoothstep(0.0, uConeHeight, localPos.y);
+      
+      vec3 color = uLightColor * density * heightAtten * 0.8;
+      
+      // Additive Mischung (wir rendern den Kegel nach der Szene mit Blending)
+      gl_FragColor = vec4(color, density * 0.6);
+    }\n  `,
   transparent: true,
-  blending: THREE.AdditiveBlending,
   depthWrite: false,
-  side: THREE.DoubleSide
+  blending: THREE.AdditiveBlending,
+  side: THREE.BackSide // Wir schauen von innen in den Kegel
 });
 
-const volMesh = new THREE.Mesh(volGeo, volMat);
-volMesh.position.copy(spot.position);
-scene.add(volMesh);
-
-// --- Fallende Herbstblätter ---
-const leafCount = 120;
-const leafGeo = new THREE.PlaneGeometry(0.3, 0.3);
-const leafInstanced = new THREE.InstancedMesh(leafGeo, matLeaf[0], leafCount);
-const dummy = new THREE.Object3D();
-const leafData = [];
-
-for(let i=0; i<leafCount; i++) {
-  const x = (Math.random() - 0.5) * 40;
-  const y = Math.random() * 20;
-  const z = (Math.random() - 0.5) * 40;
-  const speed = 0.02 + Math.random() * 0.03;
-  const rotSpeed = (Math.random() - 0.5) * 0.05;
-  leafData.push({x, y, z, speed, rotSpeed, rx: Math.random()*Math.PI, ry: Math.random()*Math.PI});
-}
-
-scene.add(leafInstanced);
+const lightCone = new THREE.Mesh(coneGeom, coneMaterial);
+lightCone.position.copy(spot.position);
+// Ausrichtung: Kegel zeigt entlang -y (da wir gedreht haben), also drehen wir so, dass -y auf uLightDir zeigt
+const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,-1,0), new THREE.Vector3().subVectors(spot.target.position, spot.position).normalize());
+lightCone.quaternion.copy(quat);
+scene.add(lightCone);
 
 // --- Steuerung ---
+let yaw = 0, pitch = 0.3, dist = 28;
 const keys = {};
-window.addEventListener('keydown', e => keys[e.code] = true);
-window.addEventListener('keyup', e => keys[e.code] = false);
+addEventListener('keydown', e => keys[e.code] = true);
+addEventListener('keyup', e => keys[e.code] = false);
 
-let camAngle = 0;
-let camHeight = 12;
-let camDist = 28;
-
-// --- Animationsschleife ---
-const clock = new THREE.Clock();
-
-function animate() {
-  requestAnimationFrame(animate);
-  const dt = clock.getDelta();
-  const time = clock.getElapsedTime();
-
-  // Kamera-Steuerung
-  let speedMult = keys['ShiftLeft'] || keys['ShiftRight'] ? 2.5 : 1;
-  if (keys['ArrowLeft'] || keys['KeyA']) camAngle += 0.8 * dt * speedMult;
-  if (keys['ArrowRight'] || keys['KeyD']) camAngle -= 0.8 * dt * speedMult;
-  if (keys['ArrowUp'] || keys['KeyW']) camDist = Math.max(10, camDist - 10 * dt * speedMult);
-  if (keys['ArrowDown'] || keys['KeyS']) camDist = Math.min(50, camDist + 10 * dt * speedMult);
-  if (keys['Space']) camHeight += 8 * dt * speedMult;
-  if (keys['KeyC']) camHeight = Math.max(2, camHeight - 8 * dt * speedMult);
-
-  camera.position.x = Math.sin(camAngle) * camDist;
-  camera.position.z = Math.cos(camAngle) * camDist;
-  camera.position.y = camHeight;
-  camera.lookAt(0, 3, 0);
-
-  // Shader Update
-  volMat.uniforms.time.value = time;
-  volMat.uniforms.viewPos.value.copy(camera.position);
-
-  // Blätter bewegen (Wind)
-  for(let i=0; i<leafCount; i++) {
-    let d = leafData[i];
-    d.y -= d.speed;
-    d.x += Math.sin(time + i) * 0.02;
-    d.z += Math.cos(time * 0.7 + i) * 0.02;
-    d.rx += d.rotSpeed;
-    d.ry += d.rotSpeed;
-    if(d.y < 0) d.y = 20;
-
-    dummy.position.set(d.x, d.y, d.z);
-    dummy.rotation.set(d.rx, d.ry, 0);
-    dummy.updateMatrix();
-    leafInstanced.setMatrixAt(i, dummy.matrix);
-  }
-  leafInstanced.instanceMatrix.needsUpdate = true;
-
-  renderer.render(scene, camera);
+function updateCamera(){
+  const speed = keys['ShiftLeft'] ? 0.5 : 0.1;
+  if(keys['ArrowLeft']) yaw += speed;
+  if(keys['ArrowRight']) yaw -= speed;
+  if(keys['ArrowUp']) pitch = Math.min(1.4, pitch + speed);
+  if(keys['ArrowDown']) pitch = Math.max(-0.5, pitch - speed);
+  if(keys['Space']) camera.position.y += speed;
+  if(keys['ShiftLeft'] && !keys['Space']) camera.position.y -= speed;
   
-  document.getElementById('info').innerHTML = 
-    `FPS: ${Math.round(1/dt)}<br>Kamera: ${Math.round(camAngle*57)}°`;
+  camera.position.x = Math.sin(yaw) * Math.cos(pitch) * dist;
+  camera.position.z = Math.cos(yaw) * Math.cos(pitch) * dist;
+  camera.position.y = Math.sin(pitch) * dist + 12;
+  camera.lookAt(0,0,0);
 }
 
-animate();
-</script>
+// --- Wind für Blätter (einfache Vertex-Animation via OnBeforeCompile) ---
+const windTime = { value: 0 };
+[matLeaf[0], matLeaf[1], matLeaf[2], matLeaf[3]].forEach(mat => {
+  mat.onBeforeCompile = shader => {
+    shader.uniforms.uWindTime = windTime;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <begin_vertex>',
+      `uniform float uWindTime;
+      #include <begin_vertex>
+      float h = position.y;
+      float sway = sin(uWindTime * 0.7 + h * 2.0 + transformed.x * 0.5) * 0.03 * h;
+      transformed.x += sway;
+      transformed.z += sway * 0.5;`
+    );
+  };
+});
+
+// --- Animationsschleife ---
+let last = performance.now();
+function animate(now){
+  const dt = (now - last) / 1000;
+  last = now;
+  
+  updateCamera();
+  
+  // Windzeit
+  windTime.value = now * 0.001;
+  
+  // Shader-Uniforms für Lichtkegel aktualisieren
+  coneMaterial.uniforms.uTime.value = now * 0.001;
+  coneMaterial.uniforms.uCameraPos.value.copy(camera.position);
+  coneMaterial.uniforms.uLightPos.value.copy(spot.position);
+  coneMaterial.uniforms.uLightDir.value.subVectors(spot.target.position, spot.position).normalize();
+  
+  // Laterne leicht schwingen
+  lamp.rotation.y = Math.sin(now * 0.0005) * 0.05;
+  pointLight.intensity = 50 + Math.sin(now * 0.003) * 10;
+  
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+// Info-Text
+const info = document.getElementById('info');
+info.innerHTML = '3D-Lichtspiel: Volumetrischer Kegel mit Distanzfeld & Krümmung<br>Spotlight wirft Godrays, Laterne pulsiert';</script>
 </body>
 </html>
