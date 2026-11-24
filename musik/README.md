@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Frosteis-Blues im Stadtmittag](2026-11-24T10-08-48.mid) ([Noten](2026-11-24T10-08-48.json)) | 2026-11-24 | 39 s | 90 bpm | klavier, bass, trommel, glocken |
 | [Nebel-Morgen](2026-11-24T08-39-28.mid) ([Noten](2026-11-24T08-39-28.json)) | 2026-11-24 | 63 s | 60 bpm | klavier, bass, trommel, glocken |
 | [Raureiflaune im Stadtnachmittag](2026-11-23T23-14-07.mid) ([Noten](2026-11-23T23-14-07.json)) | 2026-11-23 | 37 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Frostschaerpe](2026-11-23T22-56-28.mid) ([Noten](2026-11-23T22-56-28.json)) | 2026-11-23 | 31 s | 100 bpm | klavier, bass, trommel, glocken |
