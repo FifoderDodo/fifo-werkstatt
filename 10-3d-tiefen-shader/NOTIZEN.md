@@ -481,3 +481,10 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 Fertig.
 ```
+
+## Teil 18 (24.11.2026 10:23)
+Teil 18: Three.js Szene mit Custom ShaderMaterial für den 'Magenwärmer' aufgebaut. Vertex/Fragment Shader implementieren Tiefen-Farbverlauf, Fresnel-Kanten, Fake-AO und Strick-Rauschen. Steuerung via Tasten/Maus hinzugefügt. Drei Körper (Kapsel-Körper, Zylinder-Wärmer, Knöpfe) + Boden. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
