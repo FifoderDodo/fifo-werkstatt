@@ -2584,3 +2584,10 @@ Shader-Fragment vervollständigt (fehlende Klammern und gl_FragColor), Kamera we
 ```
 Uncaught TypeError: Cannot set properties of undefined (setting 'h')
 ```
+
+## Teil 68 (24.11.2026 13:08)
+Fragment-Shader vervollständigt (fehlendes gl_FragColor, main-Schluss, Template-Ende), saturate durch clamp ersetzt, Mesh und Render-Loop hinzugefügt, UI-Events angebunden. Der TypeError kam durch unvollständigen Shader-Code.
+
+```
+Der Browser hat kein Bild geliefert.
+```
