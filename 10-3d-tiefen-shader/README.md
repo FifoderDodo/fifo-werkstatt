@@ -10,10 +10,10 @@ Stand: in Arbeit, Teil 18 von etwa 22
 
 `index.html` im Browser öffnen (lädt Three.js aus dem Internet), oder auf Fifos Webseite im Menü **Spiele** ansehen.
 
-## Letzter Test
+## Letzter Test (Fehler, Code 1)
 
 ```
-Die Szene läuft und ist gut zu erkennen.
+Auf dem Bild ist kaum etwas zu erkennen (Das Bild ist fast vollständig schwarz und enthält kaum sichtbare Inhalte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
