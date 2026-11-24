@@ -156,6 +156,9 @@ def dichte_gradient(pos, params, eps=0.1):
     return (-dx / l, -dy / l, -dz / l)
 
 def schattenfaktor_3d(pos, light_pos, baeume, params):
+    """Berechnet den Schattenfaktor (0..1) für einen Punkt.
+    Penumbra wird mit einer linearen Interpolation über die Breite
+    des Lichtkegels modelliert."""
     px, py, pz = pos
     lx, ly, lz = light_pos
     vx, vy, vz = lx - px, ly - py, lz - pz
@@ -170,101 +173,95 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
         if 0.2 < proj < dist_light:
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
+                # Abstand in der XY‑Ebene zum Baumstamm
                 dist_xy_sq = dx * dx + dy * dy - proj * proj
                 if dist_xy_sq < br * br:
-                    # Penumbra‑Übergang
-                    d = math.sqrt(br * br - dist_xy_sq)
-                    t = (proj - d) / dist_light
-                    f = max(0.0, min(1.0, t))
-                    min_f = min(min_f, f * (1.0 - params.penumbra_breite) + params.penumbra_breite)
+                    # Punkt liegt im Schatten des Baumes
+                    # Penumbra‑Übergang: je näher zur Baumkante, desto mehr Licht
+                    dist_xy = math.sqrt(dist_xy_sq)
+                    edge = br * (1.0 - params.penumbra_breite)
+                    if dist_xy > edge:
+                        # im Penumbra‑Band
+                        factor = (br - dist_xy) / (br - edge)
+                        min_f = min(min_f, factor * (1.0 - params.umbra_dunkelheit) + params.umbra_dunkelheit)
+                    else:
+                        min_f = min(min_f, params.umbra_dunkelheit)
     return min_f
 
-def raymarch(start, dir_vec, max_dist, params, light_pos, baeume):
-    step = params.march_steps
-    step_size = max_dist / step
-    acc = 0.0
-    pos = list(start)
-    for i in range(step):
-        pos[0] += dir_vec[0] * step_size
-        pos[1] += dir_vec[1] * step_size
-        pos[2] += dir_vec[2] * step_size
-        dens = mist_dichte(tuple(pos), params)
+def raymarch(pos, dir_vec, light_pos, baeume, params):
+    """Einfacher volumetrischer Ray‑Marching‑Loop, gibt Intensität zurück."""
+    step = params.light_radius / params.march_steps
+    accum = 0.0
+    t = 0.0
+    for i in range(params.march_steps):
+        sample = (pos[0] + dir_vec[0] * t,
+                  pos[1] + dir_vec[1] * t,
+                  pos[2] + dir_vec[2] * t)
+        dens = mist_dichte(sample, params)
         if dens > 0.0:
-            shade = schattenfaktor_3d(tuple(pos), light_pos, baeume, params)
-            acc += dens * shade * params.volumetric_gain * step_size
-    return acc
+            # Lichtabsorption + Streuung
+            shade = schattenfaktor_3d(sample, light_pos, baeume, params)
+            accum += dens * shade * math.exp(-params.absorption_coeff * t)
+        t += step
+    return accum * params.volumetric_gain
 
-def render_frame(width, height, params, light_pos, baeume, time_sec):
-    aspect = width / height
-    fov = math.radians(60)
-    tan_fov = math.tan(fov / 2)
-    frame = []
+def render_frame(width, height, params):
+    """Renderet ein einzelnes ASCII‑Bild."""
+    # Kamera‑Parameter (einfach orthogonal)
+    cam_z = -2.0
+    light_pos = (0.0, 0.0, 2.0)
+    # Zufällige Bäume im Park (x, y, radius, height)
+    baeume = [(-0.5, 0.2, 0.12, 0.6), (0.4, -0.3, 0.15, 0.8), (0.0, 0.5, 0.1, 0.5)]
+    frame = [[0.0 for _ in range(width)] for __ in range(height)]
     for y in range(height):
-        row = []
         for x in range(width):
-            ndc_x = (x + 0.5) / width * 2 - 1
-            ndc_y = 1 - (y + 0.5) / height * 2
-            ray_dir = [ndc_x * aspect * tan_fov, ndc_y * tan_fov, -1]
-            length = math.sqrt(sum(c * c for c in ray_dir))
-            ray_dir = [c / length for c in ray_dir]
-            col = raymarch((0, 1.5, 5 + math.sin(time_sec) * 0.5), ray_dir, 20.0, params, light_pos, baeume)
-            row.append(intensitaet_zu_ascii(col, params.gamma))
-        frame.append(''.join(row))
-    return frame
-
-def apply_bloom(frame, params):
-    # Konvertiere ASCII zu Helligkeit, blur, zurück
-    height = len(frame)
-    width = len(frame[0]) if height else 0
-    # Mapping ASCII->float
-    ramp = " .:'-=+*#%@"
-    rev = {c: i / (len(ramp) - 1) for i, c in enumerate(ramp)}
-    buffer = [[rev.get(ch, 0.0) for ch in line] for line in frame]
-    # Blur horizontal & vertikal
-    w = gauß_gewichte(params.bloom_radius)
-    buffer = box_blur_1d(buffer, w, True)
-    buffer = box_blur_1d(buffer, w, False)
-    # Add bloom
-    result = []
-    for y in range(height):
-        line = []
-        for x in range(width):
-            base = rev.get(frame[y][x], 0.0)
-            add = buffer[y][x] * params.bloom_intensity
-            val = min(1.0, base + add)
-            line.append(intensitaet_zu_ascii(val, params.gamma))
-        result.append(''.join(line))
-    return result
-
-def clear_screen():
-    if os.name == 'nt':
-        os.system('cls')
-    else:
-        os.system('clear')
+            # Normalisierte Bildkoordinaten [-1,1]
+            nx = (x / (width - 1)) * 2.0 - 1.0
+            ny = (y / (height - 1)) * 2.0 - 1.0
+            # Ray von Kamera in Richtung +z
+            origin = (nx, ny, cam_z)
+            dir_vec = (0.0, 0.0, 1.0)
+            intensity = raymarch(origin, dir_vec, light_pos, baeume, params)
+            # Ambient + simple falloff
+            intensity = params.ambient + intensity * (1.0 - params.falloff_start)
+            frame[y][x] = intensity
+    # Bloom‑Post‑Processing (einfaches Blur + Verstärkung)
+    if params.bloom_intensity > 0.0:
+        kern = gauß_gewichte(params.bloom_radius)
+        blurred = box_blur_1d(frame, kern, horizontal=True)
+        blurred = box_blur_1d(blurred, kern, horizontal=False)
+        for y in range(height):
+            for x in range(width):
+                if frame[y][x] > params.bloom_threshold:
+                    frame[y][x] += blurred[y][x] * params.bloom_intensity
+    # In ASCII konvertieren
+    lines = []
+    for row in frame:
+        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
+        lines.append(line)
+    return '\n'.join(lines)
 
 def main():
-    width, height = 80, 30
     params = ShaderParams()
-    # Beispiel‑Bäume: (x, y, radius, height)
-    baeume = [(-2, -1, 0.5, 2.0), (1.5, 0.5, 0.4, 1.8), (0, -2, 0.6, 2.2)]
-    light_pos = (0.0, 3.0, 2.0)
-    start_time = time.time()
-    frame_count = 0
+    width, height = 80, 24
     try:
         while True:
-            t = time.time() - start_time
-            raw = render_frame(width, height, params, light_pos, baeume, t)
-            frame = apply_bloom(raw, params)
-            clear_screen()
-            print('\n'.join(frame))
-            frame_count += 1
-            # einfache Eingabe für Beenden nach 20 Frames oder bei EOF
-            if frame_count >= 20:
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print(render_frame(width, height, params))
+            # Kleine Interaktion: Nutzer kann die Mist‑Dichte ändern
+            try:
+                inp = input('Mist-Dichte (0‑1, ENTER für gleich): ')
+                if inp:
+                    val = float(inp)
+                    params.mist_density = max(0.0, min(1.0, val))
+            except EOFError:
+                print('\nEnde der Eingabe – Auf Wiedersehen!')
                 break
+            except Exception:
+                pass
             time.sleep(0.1)
-    except EOFError:
-        pass
-    print('Simulation beendet. Danke für das Zuschauen!')
+    except KeyboardInterrupt:
+        print('\nAbgebrochen.')
 
 if __name__ == '__main__':
     main()
