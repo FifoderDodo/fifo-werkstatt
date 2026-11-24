@@ -2644,3 +2644,28 @@ Die unvollständige schattenfaktor_3d-Funktion wurde fertiggestellt (Penumbra-Be
 
 > 👋 Gute Nacht!
 ```
+
+## Teil 88 (24.11.2026 05:57, Nachtschicht)
+Die Funktion schattenfaktor_3d wurde vollständig implementiert, ein einfacher Ray‑Marching‑Renderer und ein ASCII‑Ausgabe‑Loop wurden hinzugefügt, Eingabe‑ und EOF‑Handling integriert.
+
+```
+                               ..::''''''''':::.....            
+                                                 ..............                 
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+Weiter? (j/n) Simulation beendet. Danke für das Anschauen!
+```
