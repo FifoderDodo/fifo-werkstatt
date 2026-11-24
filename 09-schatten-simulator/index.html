@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
+<meta charset="UTF-8">
+<title>Schatten-Simulator – Teil 65</title>
+<style>
+  body { margin:0; background:#111; color:#eee; font-family:monospace; display:flex; flex-direction:column; align-items:center; height:100vh; overflow:hidden; }
+  h1 { font-size:1.2rem; margin:0.5rem; }
+  #ui { display:flex; gap:0.5rem; margin-bottom:0.5rem; flex-wrap:wrap; justify-content:center; }
+  button { background:#333; border:1px solid #555; color:#eee; padding:0.4rem 0.8rem; cursor:pointer; }
+  button:hover { background:#444; }
+  button.active { background:#0a0; border-color:#0f0; }
+  select, input[type=range] { background:#222; border:1px solid #555; color:#eee; }
+  #ascii { font-size:6px; line-height:1.05; letter-spacing:0; white-space:pre; text-align:left; background:#000; padding:4px; border:1px solid #333; }
+  #canvas { display:none; }
+</style>
+</head>
+<body>
+<h1>Schatten-Simulator – Teil 65</h1>
+<div id="ui">
+  <button id="btnDemo" class="active">Demo-Sequenz</button>
+  <button id="btnInteraktiv">Interaktiv</button>
+  <select id="sceneSel">
+    <option value="0">Hügel</option>
+    <option value="1">Wellen</option>
+    <option value="2">Schlucht</option>
+  </select>
+  <label>Light-X <input id="lx" type="range" min="-5" max="5" step="0.1" value="3"></label>
+  <label>Light-Y <input id="ly" type="range" min="1" max="10" step="0.1" value="5"></label>
+  <label>Light-Z <input id="lz" type="range" min="-5" max="5" step="0.1" value="3"></label>
+  <label>Samples <input id="samples" type="range" min="4" max="32" step="1" value="12"></label>
+  <label>Bias <input id="bias" type="range" min="0" max="0.1" step="0.001" value="0.015"></label>
+</div>
+<canvas id="canvas" width="400" height="400"></canvas>
+<pre id="ascii"></pre>
+<script type="module">
+// Three.js r170 global als THREE
+const W=400, H=400, ASC_W=100, ASC_H=100;
+const ramp = " .'`^\":;~!><{}[]()\\/|@#$%&*"
+const rampInv = ramp.split('').reverse().join(''); // hell->dunkel
+const asciiEl = document.getElementById('ascii');
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({canvas, alpha:true});
+renderer.setSize(W,H);
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const quadGeo = new THREE.PlaneGeometry(2,2);
+
+// --- SDF & Raymarch Shader ---
+const shaderMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime: {value:0},
+    uScene: {value:0},
+    uLightPos: {value:new THREE.Vector3(3,5,3)},
+    uSamples: {value:12},
+    uBias: {value:0.015},
+    uCamPos: {value:new THREE.Vector3(0,3,8)},
+    uCamTarget: {value:new THREE.Vector3(0,0,0)},
+    uResolution: {value:new THREE.Vector2(W,H)},
+  },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader: `
+` +
+  `varying vec2 vUv;
+  uniform float uTime; uniform int uScene; uniform vec3 uLightPos;
+  uniform int uSamples; uniform float uBias; uniform vec3 uCamPos; uniform vec3 uCamTarget;
+  uniform vec2 uResolution;
+  const float PI=3.14159265359; const int MAX_STEPS=128; const float MAX_DIST=100.0; const float SURF_DIST=0.001;
+  
+  // Scene SDFs
+  float map_hill(vec3 p){ float h=sin(p.x*1.2)*0.4+cos(p.z*1.1)*0.3+sin(p.x*2.3+p.z*3.1)*0.15; return p.y-h; }
+  float map_waves(vec3 p){ float h=0.0; h+=sin(p.x*1.5+uTime*0.8)*0.5; h+=cos(p.z*1.3-uTime*0.6)*0.4; h+=sin((p.x+p.z)*2.0+uTime)*0.2; h+=sin(p.x*4.1-p.z*3.7)*0.1; return p.y-h; }
+  float map_canyon(vec3 p){ float w=abs(p.z)-3.0; float floor=p.y+1.0; float wall=max(w,floor); float noise=sin(p.x*2.0)*0.3+cos(p.z*1.5)*0.2; return max(wall, p.y-noise); }
+  float map(vec3 p){ if(uScene==0) return map_hill(p); else if(uScene==1) return map_waves(p); else return map_canyon(p); }
+  
+  // Normal via central differences (better depth perception)
+  vec3 calcNormal(vec3 p){ vec2 e=vec2(0.001,0); return normalize(vec3(map(p+e.xyy)-map(p-e.xyy), map(p+e.yxy)-map(p-e.yxy), map(p+e.yyx)-map(p-e.yyx))); }
+  
+  // Soft shadow with PCF, area light, slope-scaled bias, adaptive steps
+  float raymarch_shadow(vec3 ro, vec3 rd, float tmax){
+    float t=0.0;
+    vec3 ldir=normalize(uLightPos-ro);
+    // Orthonormal basis for area light
+    vec3 up=abs(ldir.y)<0.99?vec3(0,1,0):vec3(1,0,0);
+    vec3 u=normalize(cross(up,ldir))*0.15; vec3 v=cross(ldir,u);
+    float shadow=1.0;
+    for(int s=0;s<uSamples;s++){
+      // Hammersley sequence for better distribution
+      float f=0.0, inv=0.5; int i=s;
+      for(;i>0;i>>=1){ f+=float(i&1)*inv; inv*=0.5; }
+      vec2 xi=vec2(float(s)/float(uSamples), f);
+      vec3 ldir_j=normalize(ldir + u*(xi.x-0.5)*0.3 + v*(xi.y-0.5)*0.3);
+      
+      float t_sh=0.0;
+      for(int m=0;m<32;m++){
+        vec3 pos=ro+ldir_j*t_sh;
+        float d=map(pos);
+        // Slope-scaled bias
+        float bias = uBias + 0.005*abs(dot(calcNormal(pos), ldir_j));
+        if(d<bias){ shadow*=0.5; break; }
+        // Adaptive step: larger steps far away, smaller near surface
+        t_sh += max(d*0.5, 0.02);
+        if(t_sh>tmax) break;
+      }
+    }
+    return shadow/float(uSamples);
+  }
+  
+  // Main raymarch with depth-based coloring for spatial depth
+  vec3 raymarch(vec3 ro, vec3 rd){
+    float t=0.0;
+    for(int i=0;i<MAX_STEPS;i++){
+      vec3 p=ro+rd*t;
+      float d=map(p);
+      if(d<SURF_DIST){
+        vec3 n=calcNormal(p);
+        vec3 ldir=normalize(uLightPos-p);
+        float diff=max(dot(n,ldir),0.0);
+        float sh=raymarch_shadow(p+n*0.01, ldir, length(uLightPos-p));
+        // Ambient occlusion approximation
+        float ao=1.0;
+        for(int k=1;k<5;k++){ float h=float(k)*0.15; ao*=saturate(map(p+n*h)/h*2.0); }
+        
+        // Depth cue: color shift based on distance
+        vec3 col = mix(vec3(0.9,0.6,0.3), vec3(0.3,0.5,0.8), smoothstep(2.0,12.0,t));
+        col *= diff*sh*0.8 + 0.2;
+        col *= ao;
+        // Fog for depth
+        col = mix(col, vec3(0.05), smoothstep(5.0,20.0,t));
+        return col;
+      }
+      // Adaptive step size: proportional to distance, min clamp
+      t += max(d*0.5, 0.01);
+      if(t>MAX_DIST) break;
+    }
+    // Sky gradient with depth
+    float sky = rd.y*0.5+0.5;
+    return mix(vec3(0.1,0.15,0.2), vec3(0.4,0.5,0.6), sky);
+  }
+  
+  void main(){ vec2 uv=(gl_FragCoord.xy-0.5)/uResolution; uv.x*=uResolution.x/uResolution.y;
+    vec3 ro=uCamPos; vec3 forward=normalize(uCamTarget-ro); vec3 right=normalize(cross(vec3(0,1,0),forward)); vec3 up=cross(forward,right);
+    vec3 rd=normalize(forward*1.5+right*uv.x+up*uv.y);
+    vec3 col=raymarch(ro,rd);
+    gl_FragColor=vec4(col,1.0); }
+  `
+});
+const quad = new THREE.Mesh(quadGeo, shaderMat);
+scene.add(quad);
+
+// --- ASCII Render Target & Conversion ---
+const rt = new THREE.WebGLRenderTarget(ASC_W, ASC_H, {minFilter:THREE.NearestFilter, magFilter:THREE.NearestFilter});
+const asciiShader = new THREE.ShaderMaterial({
+  uniforms:{tDiff:{value:rt.texture}, uRamp:{value:rampInv}, uRampLen:{value:rampInv.length}},
+  vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`varying vec2 vUv; uniform sampler2D tDiff; uniform sampler2D uRamp; uniform int uRampLen;
+    void main(){ vec3 c=texture2D(tDiff,vUv).rgb; float l=dot(c,vec3(0.2126,0.7152,0.0722)); int idx=int(l*float(uRampLen-1)); gl_FragColor=vec4(vec3(float(idx)/float(uRampLen-1)),1.0); }`
+});
+const asciiQuad = new THREE.Mesh(quadGeo, asciiShader);
+const asciiScene = new THREE.Scene(); asciiScene.add(asciiQuad);
+const asciiCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+
+// Read pixels for ASCII text
+const readBuf = new Uint8Array(ASC_W*ASC_H*4);
+function renderASCII(){
+  renderer.setRenderTarget(rt); renderer.render(scene,camera);
+  renderer.setRenderTarget(null); renderer.render(asciiScene,asciiCam);
+  renderer.readRenderTargetPixels(rt,0,0,ASC_W,ASC_H,readBuf);
+  let out=''; for(let y=0;y<ASC_H;y++){ for(let x=0;x<ASC_W;x++){ const i=(y*ASC_W+x)*4; const v=readBuf[i]/255; const ch=rampInv[Math.min(Math.floor(v*rampInv.length),rampInv.length-1)]; out+=ch; } out+='\n'; }
+  asciiEl.textContent=out;
+}
+
+// --- Controls & State ---
+let mode='demo', sceneIdx=0, time=0, demoPhase=0, demoT=0;
+const scenes = [
+  {name:'Hügel', camPos:new THREE.Vector3(0,3,8), camTarget:new THREE.Vector3(0,0,0), light:new THREE.Vector3(3,5,3)},
+  {name:'Wellen', camPos:new THREE.Vector3(0,4,10), camTarget:new THREE.Vector3(0,0,0), light:new THREE.Vector3(-4,6,2)},
+  {name:'Schlucht', camPos:new THREE.Vector3(0,5,12), camTarget:new THREE.Vector3(0,-1,0), light:new THREE.Vector3(5,8,-3)}
+];
+function applyScene(s){ shaderMat.uniforms.uScene.value=s; shaderMat.uniforms.uCamPos.value.copy(scenes[s].camPos); shaderMat.uniforms.uCamTarget.value.copy(scenes[s].camTarget); shaderMat.uniforms.uLightPos.value.copy(scenes[s].light); document.getElementById('sceneSel').value=s; }
+function updateUI(){ document.getElementById('lx').value=shaderMat.uniforms.uLightPos.value.x; document.getElementById('ly').value=shaderMat.uniforms.uLightPos.value.y; document.getElementById('lz').value=shaderMat.uniforms.uLightPos.value.z; document.getElementById('samples').value=shaderMat.uniforms.uSamples.value; document.getElementById('bias').value=shaderMat.uniforms.uBias.value; }
+
+// Event listeners
+['btnDemo','btnInteraktiv'].forEach(id=>document.getElementById(id).addEventListener('click',()=>{mode=id==='btnDemo'?'demo':'interactiv'; document.getElementById('btnDemo').classList.toggle('active',mode==='demo'); document.getElementById('btnInteraktiv').classList.toggle('active',mode==='interactiv');}));
+document.getElementById('sceneSel').addEventListener('change',e=>{sceneIdx=+e.target.value; applyScene(sceneIdx);});
+['lx','ly','lz'].forEach((id,ax)=>{document.getElementById(id).addEventListener('input',e=>{const v=+e.target.value; const lp=shaderMat.uniforms.uLightPos.value; lp.setComponent(ax,v); shaderMat.uniforms.uLightPos.value=lp;});});
+document.getElementById('samples').addEventListener('input',e=>shaderMat.uniforms.uSamples.value=+e.target.value);
+document.getElementById('bias').addEventListener('input',e=>shaderMat.uniforms.uBias.value=+e.target.value);
+
+// Keyboard camera control in interactive mode
+const keys={}; addEventListener('keydown',e=>keys[e.code]=true); addEventListener('keyup',e=>keys[e.code]=false);
+function handleKeys(dt){ if(mode!=='interactiv') return; const cp=shaderMat.uniforms.uCamPos.value; const ct=shaderMat.uniforms.uCamTarget.value; const forward=new THREE.Vector3().subVectors(ct,cp).normalize(); const right=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),forward).normalize(); const up=new THREE.Vector3().crossVectors(forward,right); const speed=5*dt; if(keys['KeyW']){cp.addScaledVector(forward,speed); ct.addScaledVector(forward,speed);} if(keys['KeyS']){cp.addScaledVector(forward,-speed); ct.addScaledVector(forward,-speed);} if(keys['KeyA']){cp.addScaledVector(right,speed); ct.addScaledVector(right,speed);} if(keys['KeyD']){cp.addScaledVector(right,-speed); ct.addScaledVector(right,-speed);} if(keys['Space']){cp.y+=speed; ct.y+=speed;} if(keys['ShiftLeft']){cp.y-=speed; ct.y-=speed;} }
+
+// Demo sequence
+const demoPhases=[
+  {scene:0, dur:8, camStart:new THREE.Vector3(0,3,8), camEnd:new THREE.Vector3(6,4,6), target:new THREE.Vector3(0,0,0)},
+  {scene:1, dur:8, camStart:new THREE.Vector3(0,4,10), camEnd:new THREE.Vector3(-5,5,5), target:new THREE.Vector3(0,0,0)},
+  {scene:2, dur:8, camStart:new THREE.Vector3(0,5,12), camEnd:new THREE.Vector3(4,6,8), target:new THREE.Vector3(0,-1,0)}
+];
+function updateDemo(dt){ demoT+=dt; const ph=demoPhases[demoPhase]; if(demoT>ph.dur){ demoT=0; demoPhase=(demoPhase+1)%demoPhases.length; } const t=demoT/ph.dur; const s=ph.scene; applyScene(s); const cp=shaderMat.uniforms.uCamPos.value; const ct=shaderMat.uniforms.uCamTarget.value; cp.lerpVectors(ph.camStart, ph.camEnd, t); ct.lerpVectors(ph.target, ph.target, t); // light orbit
+ const lp=shaderMat.uniforms.uLightPos.value; const ang=time*0.3+s*2.1; lp.set(Math.cos(ang)*5, 5+Math.sin(ang)*2, Math.sin(ang)*5); updateUI(); }
+
+// Main loop
+let last=performance.now();
+function loop(now){ const dt=Math.min((now-last)/1000,0.1); last=now; time+=dt; shaderMat.uniforms.uTime.value=time;
+  if(mode==='demo') updateDemo(dt); else handleKeys(dt);
+  renderASCII(); requestAnimationFrame(loop); }
+applyScene(0); updateUI(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>
