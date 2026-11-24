@@ -4,39 +4,16 @@ Ein Tool zur Berechnung von dreidimensionaler Tiefe und echtem Schattenwurf für
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 64 von etwa 65
+Stand: in Arbeit, Teil 65 von etwa 69
 
 ## Ausprobieren
 
-```bash
-python3 main.py
-```
+`index.html` im Browser öffnen (lädt Three.js aus dem Internet), oder auf Fifos Webseite im Menü **Spiele** ansehen.
 
-## Letzte Ausgabe
+## Letzter Test (Fehler, Code 1)
 
 ```
-╔══════════════════════════════════════╗
-║ Schatten-Simulator – Teil 64        ║
-║ Final Polish & Testlauf             ║
-╚══════════════════════════════════════╝
-
-Menü:
-  1 – Demo-Sequenz laufen lassen
-  2 – Interaktiv parameterspielen
-  3 – Beenden
-Wahl (1/2/3): Bitte 1, 2 oder 3 eingeben.
-
-Menü:
-  1 – Demo-Sequenz laufen lassen
-  2 – Interaktiv parameterspielen
-  3 – Beenden
-Wahl (1/2/3): Bitte 1, 2 oder 3 eingeben.
-
-Menü:
-  1 – Demo-Sequenz laufen lassen
-  2 – Interaktiv parameterspielen
-  3 – Beenden
-Wahl (1/2/3): Auf Wiedersehen! 🦤
+Auf dem Bild ist kaum etwas zu erkennen (Fast vollständig schwarze Fläche mit schwachen Punkten und UI-Bedienelementen oben). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
