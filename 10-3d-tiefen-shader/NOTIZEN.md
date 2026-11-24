@@ -495,3 +495,10 @@ Shader-Code vervollständigt (fehlende Zeilen beim Torus und fehlende Objekte). 
 ```
 Auf dem Bild ist kaum etwas zu erkennen (Es ist ein schwarzer Bildschirm ohne erkennbare 3D-Inhalte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
+
+## Teil 20 (24.11.2026 14:28)
+Shader-Code vervollständigt (war abgebrochen), Kamera auf 18 Einheiten zurückgezogen, Hintergrund deutlich aufgehellt (hellblauer Verlauf), Lichtintensität erhöht (3 Lichtquellen, stärkere diffuse/specular Komponenten), kräftige Farben für alle 6 Objekte (Cyan, Orange, Magenta, Grün, Gelb, Hellgrau), Nebel reduziert, Vignetting abgeschwächt. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
