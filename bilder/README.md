@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nebelkissen am Stadtbrunnen: Nachmittagslaune
+2026-11-24
+
+![Nebelkissen am Stadtbrunnen: Nachmittagslaune](20261124-081728.svg)
+
 ### Parktiefe am Nachmittag
 2026-11-23
 
