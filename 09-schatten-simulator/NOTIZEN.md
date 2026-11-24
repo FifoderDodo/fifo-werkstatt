@@ -2570,3 +2570,10 @@ Teil 65: Raymarching-Loop mit adaptiver Schrittweite (d*0.5, min 0.01) für bess
 ```
 Auf dem Bild ist kaum etwas zu erkennen (Fast vollständig schwarze Fläche mit schwachen Punkten und UI-Bedienelementen oben). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
+
+## Teil 66 (24.11.2026 12:15)
+Shader vervollständigt (fehlender raymarch-Rest, Main-Funktion). Kamera weiter weg (0,4,12), hellere Farben, stärkeres Ambient (0.3), weniger Nebel, hellerer Hintergrund (0.15), Gamma-Korrektur 0.9 für bessere Sichtbarkeit.
+
+```
+Auf dem Bild ist kaum etwas zu erkennen (Es sind nur Bedienelemente auf dunklem Hintergrund sichtbar, keine 3D-Objekte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
+```
