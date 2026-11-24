@@ -4,7 +4,7 @@ Ein interaktiver Simulator für volumetrisches Licht und Schatten im herbstliche
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 104 von etwa 105
+Stand: fertig
 
 ## Ausprobieren
 
