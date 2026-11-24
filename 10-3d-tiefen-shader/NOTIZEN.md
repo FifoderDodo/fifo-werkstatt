@@ -523,3 +523,10 @@ Fehler behoben: Resize-Handler hinzugefügt, Bloom-Shader korrigiert (5-tap Appr
 ```
 Auf dem Bild ist kaum etwas zu erkennen (Die Szene ist fast vollständig schwarz und leer, nur die UI-Texte am unteren Rand sind sichtbar.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
+
+## Teil 24 (25.11.2026 00:43, Nachtschicht)
+Kamera weiter weg (Radius 20), Hintergrund deutlich aufgehellt, 4. Lichtquelle hinzugefügt, Schatten-Minimum auf 0.15 gesetzt, Nebel-Dichte halbiert, Objektfarben gesättigt, Emission erhöht, AO-Intensität reduziert, Vignette abgeschwächt.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
