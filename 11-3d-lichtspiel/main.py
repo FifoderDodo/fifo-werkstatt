@@ -1,4 +1,4 @@
-import math, sys, random, unicodedata, time, os
+import math, sys, random, unicodedata, time
 
 class ShaderParams:
     """Container für alle einstellbaren Shader-Parameter mit Defaults."""
@@ -19,7 +19,7 @@ class ShaderParams:
         self.jitter_strength = 0.10
         self.phase_g = 0.55
         self.noise_seed = 42
-        self.march_steps = 8
+        self.march_steps = 10
         self.jitter_enabled = True
         self.specular_intensity = 0.7
         self.specular_power = 18.0
@@ -28,7 +28,7 @@ class ShaderParams:
         self.depth_shading_wrap = 0.35
         self.bloom_threshold = 0.6
         self.bloom_intensity = 0.45
-        self.bloom_radius = 3
+        self.bloom_radius = 2
         self.adaptive_steps = True
         self.min_step_factor = 0.3
         self.max_step_factor = 2.0
@@ -173,139 +173,164 @@ def schattenfaktor_3d(pos, light_pos, baeume, params):
         if 0.2 < proj < dist_light:
             cz = pz + uz * proj
             if 0.0 <= cz <= bh:
-                # horizontale Distanz vom Strahl zum Baumstamm
-                dist_horiz = abs(dx * uy - dy * ux)
-                if dist_horiz < br:
-                    umbra_radius = br - params.penumbra_breite
-                    if dist_horiz <= umbra_radius:
-                        f = params.umbra_dunkelheit
-                    else:
-                        t = (dist_horiz - umbra_radius) / params.penumbra_breite
-                        f = params.umbra_dunkelheit + (1.0 - params.umbra_dunkelheit) * t
-                    if f < min_f:
-                        min_f = f
+                crown_r = br * (1.3 if cz > bh * 0.35 else 0.45)
+                d_sq = (dx - proj * ux) ** 2 + (dy - proj * uy) ** 2
+                dist_axis = math.sqrt(max(0.0, d_sq))
+                penumbra = max(0.05, params.penumbra_breite * (proj / max(0.1, dist_light)))
+                if dist_axis < crown_r:
+                    min_f = min(min_f, params.umbra_dunkelheit)
+                elif dist_axis < crown_r + penumbra:
+                    t = (dist_axis - crown_r) / penumbra
+                    f = params.umbra_dunkelheit + t * (1.0 - params.umbra_dunkelheit)
+                    min_f = min(min_f, f)
     return min_f
 
-def compute_light_at_point(pos, light_pos, baeume, params):
-    """Berechnet die Lichtintensität an einem Punkt (Skalar 0..1)."""
-    px, py, pz = pos
-    lx, ly, lz = light_pos
-    vx, vy, vz = lx - px, ly - py, lz - pz
-    dist = math.sqrt(vx * vx + vy * vy + vz * vz)
-    if dist < 0.001:
-        return 1.0
-    # Schatten
-    shadow = schattenfaktor_3d(pos, light_pos, baeume, params)
-    # Falloff
-    falloff = 1.0 / max(params.falloff_start, dist) ** params.falloff_exponent
-    # Volumetrisches Streulicht (einfache Raymarch-Integration vom Licht zum Punkt)
-    steps = params.march_steps
-    scatter_acc = 0.0
-    transmittance = 1.0
-    for i in range(steps):
-        t = (i + 0.5) / steps
-        sx = lx + (px - lx) * t
-        sy = ly + (py - ly) * t
-        sz = lz + (pz - lz) * t
-        density = mist_dichte((sx, sy, sz), params)
-        # Absorption
-        transmittance *= math.exp(-params.absorption_coeff * density * dist / steps)
-        # Streuung in Richtung Betrachter (hier vereinfacht: Phase-Funktion mit cos_theta=1)
-        phase = henyey_greenstein(1.0, params.phase_g)
-        scatter_acc += density * phase * transmittance
-    volumetric = scatter_acc * params.volumetric_gain * dist / steps
-    # Gesamthelligkeit
-    intensity = (falloff * shadow + volumetric) * transmittance + params.ambient
-    return max(0.0, min(1.0, intensity))
-
-def render_frame(light_pos, baeume, params, width, height, world_scale):
-    """Rendert ein 2D-Gitter der Lichtintensität auf Bodenhöhe (z=0)."""
-    grid = [[0.0 for _ in range(width)] for __ in range(height)]
-    half_w = width * world_scale * 0.5
-    half_h = height * world_scale * 0.5
-    for y in range(height):
-        wy = (y - half_h) * world_scale
-        for x in range(width):
-            wx = (x - half_w) * world_scale
-            intensity = compute_light_at_point((wx, wy, 0.0), light_pos, baeume, params)
-            grid[y][x] = intensity
-    return grid
-
-def apply_bloom(grid, params):
-    """Einfacher Bloom-Effekt durch Threshold und Blur."""
-    h, w = len(grid), len(grid[0])
-    # Threshold
-    bloom_src = [[max(0.0, v - params.bloom_threshold) for v in row] for row in grid]
-    # Blur
-    weights = gauß_gewichte(params.bloom_radius)
-    bloom_blur = box_blur_1d(bloom_src, weights, True)
-    bloom_blur = box_blur_1d(bloom_blur, weights, False)
-    # Add back
+def anwenden_bloom(puffer, params):
+    h, w = len(puffer), len(puffer[0])
+    hell_puffer = [[0.0 for _ in range(w)] for __ in range(h)]
+    thresh = params.bloom_threshold
     for y in range(h):
         for x in range(w):
-            grid[y][x] = min(1.0, grid[y][x] + bloom_blur[y][x] * params.bloom_intensity)
-    return grid
+            val = puffer[y][x]
+            if val > thresh:
+                hell_puffer[y][x] = val - thresh
+    gewichte = gauß_gewichte(params.bloom_radius)
+    blur_h = box_blur_1d(hell_puffer, gewichte, horizontal=True)
+    blur_hv = box_blur_1d(blur_h, gewichte, horizontal=False)
+    ergebnis = [[0.0 for _ in range(w)] for __ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            ergebnis[y][x] = puffer[y][x] + blur_hv[y][x] * params.bloom_intensity
+    return ergebnis
 
-def intensity_to_ascii(grid, params):
-    """Wandelt Intensitäts-Gitter in Liste von Strings um."""
-    lines = []
-    for row in grid:
-        line = ''.join(intensitaet_zu_ascii(v, params.gamma) for v in row)
-        lines.append(line)
-    return lines
+def raymarch_szene(breite: int, hoehe: int, sonnen_azimut: float, sonnen_hoehe: float, params: ShaderParams):
+    lx = 6.0 * math.cos(sonnen_azimut) * math.cos(sonnen_hoehe)
+    ly = 6.0 * math.sin(sonnen_azimut) * math.cos(sonnen_hoehe)
+    lz = 1.0 + 5.0 * math.sin(sonnen_hoehe)
+    light_pos = (lx, ly, lz)
+    light_color = kelvin_to_rgb_factor(params.color_temp)
+    light_helligkeit = (light_color[0] + light_color[1] + light_color[2]) / 3.0
+
+    baeume = [
+        (-1.8, 3.2, 0.65, 3.2),
+        (1.5, 4.0, 0.85, 3.8),
+        (0.2, 5.5, 0.70, 3.5),
+        (-2.5, 6.0, 0.90, 4.0),
+        (2.8, 5.0, 0.75, 3.4)
+    ]
+
+    cam_pos = (0.0, -4.5, 1.8)
+    cam_dir = (0.0, 1.0, -0.05)
+    cam_right = (1.0, 0.0, 0.0)
+    cam_up = (0.0, 0.05, 1.0)
+
+    puffer = [[0.0 for _ in range(breite)] for __ in range(hoehe)]
+    t_max = 10.0
+    steps = max(4, params.march_steps)
+
+    for py in range(hoehe):
+        fy = (hoehe / 2.0 - py) / (hoehe / 2.0) * 0.6
+        for px in range(breite):
+            fx = (px - breite / 2.0) / (breite / 2.0) * 0.9
+            rx = cam_dir[0] + fx * cam_right[0] + fy * cam_up[0]
+            ry = cam_dir[1] + fx * cam_right[1] + fy * cam_up[1]
+            rz = cam_dir[2] + fx * cam_right[2] + fy * cam_up[2]
+            rlen = math.sqrt(rx * rx + ry * ry + rz * rz)
+            rdx, rdy, rdz = rx / rlen, ry / rlen, rz / rlen
+
+            t_ground = t_max
+            if rdz < -1e-4:
+                tg = -cam_pos[2] / rdz
+                if tg > 0.0:
+                    t_ground = min(t_max, tg)
+
+            march_dist = min(t_max, t_ground)
+            dt = march_dist / steps
+            accum_light = 0.0
+            transmittance = 1.0
+
+            cos_theta = (rdx * (light_pos[0] - cam_pos[0]) +
+                         rdy * (light_pos[1] - cam_pos[1]) +
+                         rdz * (light_pos[2] - cam_pos[2]))
+            cos_theta /= max(0.1, math.sqrt(sum((a - b)**2 for a, b in zip(light_pos, cam_pos))))
+            phase = henyey_greenstein(cos_theta, params.phase_g)
+
+            for s in range(steps):
+                t = (s + 0.5) * dt
+                pos = (cam_pos[0] + rdx * t, cam_pos[1] + rdy * t, cam_pos[2] + rdz * t)
+                dichte = mist_dichte(pos, params)
+                if dichte > 1e-4:
+                    schatten = schattenfaktor_3d(pos, light_pos, baeume, params)
+                    to_l = (light_pos[0] - pos[0], light_pos[1] - pos[1], light_pos[2] - pos[2])
+                    dist_sq = to_l[0]**2 + to_l[1]**2 + to_l[2]**2
+                    attenuation = 1.0 / (1.0 + 0.08 * dist_sq)
+                    step_light = dichte * schatten * attenuation * phase * light_helligkeit * params.volumetric_gain
+                    accum_light += step_light * transmittance * dt
+                    extinction = (params.scattering_coeff + params.absorption_coeff) * dichte
+                    transmittance *= math.exp(-extinction * dt)
+                    if transmittance < params.early_exit_threshold:
+                        break
+
+            boden_wert = 0.0
+            if t_ground < t_max:
+                gx = cam_pos[0] + rdx * t_ground
+                gy = cam_pos[1] + rdy * t_ground
+                boden_schatten = schattenfaktor_3d((gx, gy, 0.01), light_pos, baeume, params)
+                herbst_laub = 0.5 + 0.5 * noise_3d(gx * 1.5, gy * 1.5, 0.0, 99)
+                boden_wert = (params.ambient + 0.65 * boden_schatten * herbst_laub) * transmittance
+
+            hintergrund = params.ambient * (0.8 + 0.3 * math.sin(py / max(1, hoehe)))
+            gesamtwert = accum_light + boden_wert + hintergrund * transmittance
+            puffer[py][px] = gesamtwert
+
+    final_puffer = anwenden_bloom(puffer, params)
+    return final_puffer
 
 def main():
+    print("--- Fifos 3D-Lichtspiel im herbstlichen Park (Teil 82) ---")
     params = ShaderParams()
-    # Beispiel-Bäume: (x, y, radius, height)
-    baeume = [
-        (-2.0, 1.5, 0.4, 3.0),
-        (3.0, -1.0, 0.5, 2.5),
-        (-1.0, -2.5, 0.3, 2.0),
-        (4.0, 2.0, 0.6, 3.5),
-        (0.0, 3.0, 0.4, 2.8),
-    ]
-    light_pos = [0.0, 0.0, 4.0]  # startet mittig über dem Ursprung
-    width, height = 80, 40
-    world_scale = 0.15  # Weltkoordinaten pro Zeichen
-    frame = 0
-    print("3D-Lichtspiel – Drücke Enter für nächsten Frame, 'q' zum Beenden, 'm <wert>' für Mistdichte.")
-    try:
-        while True:
-            # Licht langsam im Kreis bewegen
-            angle = frame * 0.03
-            light_pos[0] = 3.0 * math.cos(angle)
-            light_pos[1] = 3.0 * math.sin(angle)
-            light_pos[2] = 4.0 + 0.5 * math.sin(frame * 0.07)
-            
-            grid = render_frame(light_pos, baeume, params, width, height, world_scale)
-            grid = apply_bloom(grid, params)
-            lines = intensity_to_ascii(grid, params)
-            os.system('cls' if os.name == 'nt' else 'clear')
-            print(f"Frame {frame} | Licht: ({light_pos[0]:.2f}, {light_pos[1]:.2f}, {light_pos[2]:.2f}) | Mist: {params.mist_density:.2f}")
-            for line in lines:
-                print(line)
-            
-            # Eingabe
-            try:
-                inp = input("> ").strip()
-            except EOFError:
-                break
-            if not inp:
-                frame += 1
-                continue
-            if inp.lower() == 'q':
-                break
-            parts = inp.split()
-            if parts[0] == 'm' and len(parts) == 2:
-                try:
-                    params.mist_density = max(0.0, min(2.0, float(parts[1])))
-                    print(f"Mistdichte auf {params.mist_density:.2f} gesetzt.")
-                except ValueError:
-                    pass
-            frame += 1
-    except KeyboardInterrupt:
-        pass
-    print("\nBis zum nächsten Traum.")
+    sonnen_azimut = 0.9
+    sonnen_hoehe = 0.45
+    breite = 60
+    hoehe = 20
 
-if __name__ == "__main__":
+    durchlauf = 0
+    max_eingaben = 15
+
+    while durchlauf < max_eingaben:
+        durchlauf += 1
+        puffer = raymarch_szene(breite, hoehe, sonnen_azimut, sonnen_hoehe, params)
+        zeilen = []
+        for y in range(hoehe):
+            zeile = "".join(intensitaet_zu_ascii(puffer[y][x], gamma=params.gamma) for x in range(breite))
+            zeilen.append(zeile)
+
+        print("\n".join(zeilen))
+        print(f"[Herbstlicht] Azimut: {math.degrees(sonnen_azimut):.1f}° | Höhe: {math.degrees(sonnen_hoehe):.1f}° | Nebeldichte: {params.mist_density:.2f} | Bloom: {params.bloom_intensity:.2f}")
+
+        try:
+            befehl = input("Fifos Traumbefehl (s=Sonne drehen, n=Nebel, b=Bloom, enter=weiter, q=Ende): ")
+        except EOFError:
+            print("Fifo nickt zufrieden ein. Auf Wiedersehen im Park!")
+            break
+
+        b = _norm(befehl)
+        if b in ('q', 'ende', 'exit', 'nein'):
+            print("Fifo schlägt die Augen auf und lauscht den fallenden Blättern. Bis zum nächsten Traum!")
+            break
+        elif 's' in b:
+            sonnen_azimut += 0.35
+            sonnen_hoehe = max(0.15, min(0.85, sonnen_hoehe + 0.08))
+            print("Die goldene Herbstsonne wandert tiefer zwischen die Eichen.")
+        elif 'n' in b:
+            params.mist_density = 0.45 if params.mist_density < 0.3 else 0.15
+            print(f"Ein Nebelschleier weht durch das Tal: Dichte nun {params.mist_density:.2f}.")
+        elif 'b' in b:
+            params.bloom_intensity = 0.0 if params.bloom_intensity > 0.1 else 0.55
+            status = "ausgeschaltet" if params.bloom_intensity == 0.0 else "eingeschaltet"
+            print(f"Lichtkrone und Bloom wurden {status}.")
+        else:
+            sonnen_azimut += 0.15
+
+if __name__ == '__main__':
     main()
