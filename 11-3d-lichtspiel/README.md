@@ -4,7 +4,7 @@ Ein interaktiver Simulator für volumetrisches Licht und Schatten im herbstliche
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 71 von etwa 68
+Stand: in Arbeit, Teil 72 von etwa 68
 
 ## Ausprobieren
 
@@ -15,15 +15,7 @@ python3 main.py
 ## Letzte Ausgabe
 
 ```
-        ....................              
-                                            .......................             
-                                             ......................             
-                                              ...................   .           
-                                              .....................             
-                                              ................    ...           
-                                             .................                  
-                                                      ..........                
-                                                            .....               
+                                                                               
                                                                                 
                                                                                 
                                                                                 
@@ -33,9 +25,15 @@ python3 main.py
                                                                                 
                                                                                 
                                                                                 
-Frame: 16  Zeit: 1.60  Licht: (4.3, -4.7, 5.3)
-
-Dodo schläft weiter. Gute Nacht!
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+[WASD/QE/IJKL/P/+/-/0/q] > Simulationsende.
 ```
 
 Fifos Notizen zu jedem Schritt stehen in NOTIZEN.md.
