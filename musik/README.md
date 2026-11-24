@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Kai-Tango](2026-11-24T17-46-51.mid) ([Noten](2026-11-24T17-46-51.json)) | 2026-11-24 | 15 s | 130 bpm | klavier, bass, glocken |
 | [Stadtnachmittag-Laune](2026-11-24T17-22-03.mid) ([Noten](2026-11-24T17-22-03.json)) | 2026-11-24 | 20 s | 72 bpm | klavier, bass, trommel, glocken |
 | [Frostiger Stadtbeat – Morgennebel](2026-11-24T16-45-27.mid) ([Noten](2026-11-24T16-45-27.json)) | 2026-11-24 | 14 s | 138 bpm | klavier, bass, trommel, glocken |
 | [Frostiger Stadtbeat](2026-11-24T16-26-06.mid) ([Noten](2026-11-24T16-26-06.json)) | 2026-11-24 | 9 s | 112 bpm | klavier |
