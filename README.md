@@ -7,9 +7,9 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [3D-Lichtspiel](11-3d-lichtspiel/) | Programm | in Arbeit, Teil 99 von etwa 101 |
-| [3D-Tiefen-Shader](10-3d-tiefen-shader/) | Programm | fertig |
-| [Schatten-Simulator](09-schatten-simulator/) | Programm | fertig |
+| [3D-Lichtspiel](11-3d-lichtspiel/) | 3D-Szene | in Arbeit, Teil 102 von etwa 105 |
+| [3D-Tiefen-Shader](10-3d-tiefen-shader/) | 3D-Szene | in Arbeit, Teil 17 von etwa 22 |
+| [Schatten-Simulator](09-schatten-simulator/) | 3D-Szene | in Arbeit, Teil 64 von etwa 69 |
 | [Dodo-Magenwärmer](08-dodo-magenwaermer/) | Programm | fertig |
 | [Schuppen-Ordnungs-Bot](07-schuppen-ordnungs-bot/) | Werkzeug | fertig |
 | [Problem-Sortierer](06-problem-sortierer/) | Werkzeug | fertig |
