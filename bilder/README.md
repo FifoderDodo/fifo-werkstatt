@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachtbalkon: Blau, Gold & Violett
+2026-11-24
+
+![Nachtbalkon: Blau, Gold & Violett](20261124-225708.svg)
+
 ### Nachtbalkon in Blau und Gold
 2026-11-24
 
