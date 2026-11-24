@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
+<meta charset="UTF-8">
+<title>3D-Lichtspiel – Herbstpark Volumetrisch</title>
+<style>
+  body { margin:0; background:#2a2018; display:flex; justify-content:center; align-items:center; height:100vh; font-family:monospace; color:#f0e0c0; overflow:hidden; }
+  canvas { display:block; border:2px solid #6a5a3a; box-shadow:0 0 30px rgba(255,200,100,0.4); background:#1a1510; }
+  #info { position:fixed; top:10px; left:10px; pointer-events:none; line-height:1.4; font-size:11px; text-shadow:0 0 3px #000; }
+  #hud { position:fixed; bottom:10px; left:10px; right:10px; font-size:10px; opacity:0.8; text-align:center; color:#f0e0c0; }
+</style>
+</head>
+<body>
+<div id="info"></div>
+<div id="hud">Pfeile: Kamera drehen | Leertaste: Hoch/Runter | Shift: Tempo | Herbstwind weht...</div>
+<script type="module">
+// ===== Fifo der Dodo baut: Volumetrischer Herbstpark =====
+// Three.js r170 liegt global als THREE vor
+
+const W = 400, H = 400;
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
+renderer.setSize(W, H);
+renderer.setPixelRatio(1);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.8;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x2a2018, 0.008);
+
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+camera.position.set(0, 12, 28);
+
+// --- Licht: Spotlight für Godrays ---
+const spot = new THREE.SpotLight(0xffcc60, 3000, 50, Math.PI/4.5, 0.5, 1);
+spot.position.set(5, 18, 10);
+spot.target.position.set(0, 0, 0);
+spot.castShadow = true;
+spot.shadow.mapSize.set(1024, 1024);
+spot.shadow.camera.near = 1;
+spot.shadow.camera.far = 60;
+spot.shadow.camera.fov = 55;
+spot.shadow.bias = -0.0005;
+spot.shadow.normalBias = 0.02;
+scene.add(spot);
+scene.add(spot.target);
+
+// Zweites Spotlight für mehr Volumen
+const spot2 = new THREE.SpotLight(0xffaa20, 1500, 40, Math.PI/5, 0.6, 1);
+spot2.position.set(-8, 15, -5);
+spot2.target.position.set(2, 0, -2);
+spot2.castShadow = true;
+spot2.shadow.mapSize.set(512, 512);
+spot2.shadow.camera.near = 1;
+spot2.shadow.camera.far = 50;
+spot2.shadow.camera.fov = 50;
+scene.add(spot2);
+scene.add(spot2.target);
+
+// Ambient heller
+const amb = new THREE.AmbientLight(0x5a4a3a, 1.2);
+scene.add(amb);
+
+// Hemisphere für natürlicheres Licht
+const hemi = new THREE.HemisphereLight(0xffeecc, 0x2a1a10, 0.8);
+scene.add(hemi);
+
+// --- Herbst-Materialien (kräftigere Farben) ---
+const matGround = new THREE.MeshStandardMaterial({ color:0x3d2a1a, roughness:0.9, metalness:0.05 });
+const matTrunk = new THREE.MeshStandardMaterial({ color:0x4a2a1a, roughness:0.85, metalness:0.1 });
+const matLeaf = [
+  new THREE.MeshStandardMaterial({ color:0xe86a2a, roughness:0.75, metalness:0.05, transparent:true, opacity:0.95 }),
+  new THREE.MeshStandardMaterial({ color:0xf4a02a, roughness:0.75, metalness:0.05, transparent:true, opacity:0.95 }),
+  new THREE.MeshStandardMaterial({ color:0xc87a2a, roughness:0.75, metalness:0.05, transparent:true, opacity:0.95 }),
+  new THREE.MeshStandardMaterial({ color:0x8a5a2a, roughness:0.8, metalness:0.05, transparent:true, opacity:0.95 })
+];
+const matBench = new THREE.MeshStandardMaterial({ color:0x5a3a2a, roughness:0.8, metalness:0.1 });
+const matLamp = new THREE.MeshStandardMaterial({ color:0x3a2a20, roughness:0.65, metalness:0.35 });
+const matGlass = new THREE.MeshPhysicalMaterial({ color:0xffffd0, transmission:0.95, thickness:0.1, roughness:0.02, metalness:0.0, ior:1.5, clearcoat:1, clearcoatRoughness:0.1 });
+
+// --- Boden (größer) ---
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80,80,1,1), matGround);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// --- Bäume (3 Stück, größer) ---
+function makeTree(x, z, scale=1, seed=0) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35*scale, 0.55*scale, 4.5*scale, 8), matTrunk);
+  trunk.position.y = 2.25*scale;
+  trunk.castShadow = true;
+  trunk.receiveShadow = true;
+  g.add(trunk);
+  
+  // 4 Kronen-Ebenen für mehr Volumen
+  for(let i=0;i<4;i++){
+    const h = 1.5*scale + i*1.2*scale;
+    const r = (1.1 - i*0.18)*scale;
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8), matLeaf[(seed+i)%4]);
+    cone.position.y = 4.5*scale + h/2 + i*0.35*scale;
+    cone.castShadow = true;
+    cone.receiveShadow = true;
+    g.add(cone);
+  }
+  g.position.set(x, 0, z);
+  return g;
+}
+scene.add(makeTree(-8, -5, 1.2, 0));
+scene.add(makeTree(9, -7, 1.0, 2));
+scene.add(makeTree(-3, 10, 1.4, 1));
+scene.add(makeTree(6, 8, 0.9, 3));
+
+// --- Bank ---
+const bench = new THREE.Group();
+const seat = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.18, 0.8), matBench);
+seat.position.y = 0.7; seat.castShadow = true; bench.add(seat);
+const back = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.9, 0.14), matBench);
+back.position.set(0, 1.15, -0.35); back.castShadow = true; bench.add(back);
+for(let x of [-1.5, 1.5]){
+  const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.7, 0.14), matBench);
+  leg.position.set(x, 0.35, 0.33); leg.castShadow = true; bench.add(leg);
+  const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.7, 0.14), matBench);
+  leg2.position.set(x, 0.35, -0.33); leg2.castShadow = true; bench.add(leg2);
+}
+bench.position.set(-5, 0, 3);
+bench.rotation.y = 0.5;
+scene.add(bench);
+
+// --- Laterne ---
+const lamp = new THREE.Group();
+const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 6, 8), matLamp);
+pole.position.y = 3; pole.castShadow = true; lamp.add(pole);
+const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3, 6), matLamp);
+arm.rotation.z = -Math.PI/2; arm.position.set(1.3, 5.8, 0); arm.castShadow = true; lamp.add(arm);
+const glass = new THREE.Mesh(new THREE.SphereGeometry(0.45, 20, 16), matGlass);
+glass.position.set(2.8, 5.8, 0); glass.castShadow = true; lamp.add(glass);
+// Lichtquelle inside glass
+const lampLight = new THREE.PointLight(0xffee88, 200, 20, 2);
+lampLight.position.set(2.8, 5.8, 0);
+lampLight.castShadow = true;
+lampLight.shadow.mapSize.set(512,512);
+scene.add(lampLight);
+lamp.add(lampLight);
+lamp.position.set(6, 0, -4);
+scene.add(lamp);
+
+// Zweite Laterne
+const lamp2 = lamp.clone();
+lamp2.position.set(-7, 0, 3);
+lamp2.rotation.y = Math.PI;
+scene.add(lamp2);
+const lampLight2 = new THREE.PointLight(0xffdd88, 180, 18, 2);
+lampLight2.position.copy(lamp2.children[lamp2.children.length-1].position);
+lampLight2.castShadow = true;
+lampLight2.shadow.mapSize.set(512,512);
+scene.add(lampLight2);
+lamp2.add(lampLight2);
+
+// --- Fallende Blätter (Partikel, mehr und bunter) ---
+const leafCount = 200;
+const leafGeom = new THREE.BufferGeometry();
+const leafPos = new Float32Array(leafCount * 3);
+const leafVel = new Float32Array(leafCount * 3);
+const leafRot = new Float32Array(leafCount);
+const leafRotVel = new Float32Array(leafCount);
+for(let i=0;i<leafCount;i++){
+  leafPos[i*3+0] = (Math.random()-0.5)*40;
+  leafPos[i*3+1] = Math.random()*20 + 3;
+  leafPos[i*3+2] = (Math.random()-0.5)*40;
+  leafVel[i*3+0] = (Math.random()-0.5)*0.4;
+  leafVel[i*3+1] = -0.06 - Math.random()*0.12;
+  leafVel[i*3+2] = (Math.random()-0.5)*0.4;
+  leafRot[i] = Math.random()*Math.PI*2;
+  leafRotVel[i] = (Math.random()-0.5)*0.03;
+}
+leafGeom.setAttribute('position', new THREE.BufferAttribute(leafPos,3));
+leafGeom.setAttribute('aRot', new THREE.BufferAttribute(leafRot,1));
+const leafMat = new THREE.PointsMaterial({
+  size:0.5, vertexColors:true, transparent:true, opacity:0.9,
+  depthWrite:false, blending:THREE.AdditiveBlending,
+  color:0xffaa22
+});
+const leafColors = new Float32Array(leafCount*3);
+for(let i=0;i<leafCount;i++){
+  const c = new THREE.Color().setHSL(0.06 + Math.random()*0.1, 0.95, 0.5 + Math.random()*0.2);
+  leafColors[i*3+0]=c.r; leafColors[i*3+1]=c.g; leafColors[i*3+2]=c.b;
+}
+leafGeom.setAttribute('color', new THREE.BufferAttribute(leafColors,3));
+const leaves = new THREE.Points(leafGeom, leafMat);
+scene.add(leaves);
+
+// --- Volumetric Light Cone (Shader) ---
+const coneGeom = new THREE.ConeGeometry(1, 1, 32, 1, true);
+coneGeom.scale(1, 50, 1);
+coneGeom.translate(0, 25, 0);
+
+const volUniforms = {
+  uTime: { value: 0 },
+  uLightPos: { value: spot.position.clone() },
+  uLightDir: { value: new THREE.Vector3().subVectors(spot.target.position, spot.position).normalize() },
+  uLightColor: { value: new THREE.Color(0xffcc60) },
+  uLightIntensity: { value: 1.5 },
+  uConeAngle: { value: Math.PI/4.5 },
+  uConeLength: { value: 50 },
+  uCameraPos: { value: camera.position.clone() },
+  uShadowMap: { value: spot.shadow.map },
+  uShadowMatrix: { value: spot.shadow.matrix },
+  uFogColor: { value: new THREE.Color(0x2a2018) },
+  uFogDensity: { value: 0.008 },
+  uSteps: { value: 80 },
+  uJitter: { value: 0 },
+  uNoiseScale: { value: 1.2 },
+  uShadowBias: { value: 0.005 }
+};
+
+const volVertex = `
+  varying vec3 vWorldPos;
+  varying vec3 vLocalPos;
+  void main(){
+    vLocalPos = position;
+    vec4 world = modelMatrix * vec4(position, 1.0);
+    vWorldPos = world.xyz;
+    gl_Position = projectionMatrix * viewMatrix * world;
+  }
+`;
+
+const volFragment = `
+  varying vec3 vWorldPos;
+  varying vec3 vLocalPos;
+  uniform float uTime;
+  uniform vec3 uLightPos;
+  uniform vec3 uLightDir;
+  uniform vec3 uLightColor;
+  uniform float uLightIntensity;
+  uniform float uConeAngle;
+  uniform float uConeLength;
+  uniform vec3 uCameraPos;
+  uniform sampler2D uShadowMap;
+  uniform mat4 uShadowMatrix;
+  uniform vec3 uFogColor;
+  uniform float uFogDensity;
+  uniform int uSteps;
+  uniform float uJitter;
+  uniform float uNoiseScale;
+  uniform float uShadowBias;
+  
+  float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+  float noise(vec2 p){
+    vec2 i = floor(p); vec2 f = fract(p);
+    f = f*f*(3.0-2.0*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y);
+  }
+  float fbm(vec2 p){
+    float v=0, a=0.5; mat2 m=mat2(1.6,1.2,-1.2,1.6);
+    for(int i=0;i<4;i++){ v+=a*noise(p); p=m*p; a*=0.5; }
+    return v;
+  }
+  
+  float sampleShadow(vec3 worldPos){
+    vec4 shadowCoord = uShadowMatrix * vec4(worldPos, 1.0);
+    if(shadowCoord.w == 0.0) return 1.0;
+    shadowCoord.xyz /= shadowCoord.w;
+    shadowCoord.xyz = shadowCoord.xyz * 0.5 + 0.5;
+    if(shadowCoord.z > 1.0 || shadowCoord.x < 0.0 || shadowCoord.x > 1.0 || shadowCoord.y < 0.0 || shadowCoord.y > 1.0) return 1.0;
+    float depth = texture2D(uShadowMap, shadowCoord.xy).r;
+    return (shadowCoord.z - uShadowBias) <= depth ? 1.0 : 0.4;
+  }
+  
+  float phase(float cosTheta, float g){
+    float denom = 1.0 + g*g - 2.0*g*cosTheta;
+    return (1.0 - g*g) / (denom * sqrt(denom)) * 0.25;
+  }
+  
+  void main(){
+    vec3 rayDir = normalize(vWorldPos - uCameraPos);
+    float rayLen = length(vWorldPos - uCameraPos);
+    
+    vec3 toFrag = vWorldPos - uLightPos;
+    float distLight = length(toFrag);
+    if(distLight > uConeLength) discard;
+    float cosAng = dot(normalize(toFrag), uLightDir);
+    if(cosAng < cos(uConeAngle)) discard;
+    
+    vec3 pos = uCameraPos;
+    float stepLen = rayLen / float(uSteps);
+    float t = 0.0;
+    vec3 accum = vec3(0.0);
+    float transmittance = 1.0;
+    
+    float jitter = hash(vec2(gl_FragCoord.xy + uTime*10.0)) * stepLen;
+    pos += rayDir * jitter;
+    t = jitter;
+    
+    for(int i=0; i<128; i++){
+      if(i >= uSteps) break;
+      
+      vec2 nPos = pos.xz * uNoiseScale + uTime * 0.025;
+      float dens = 0.12 + 0.28 * fbm(nPos);
+      
+      float shadow = sampleShadow(pos);
+      
+      float cosTheta = dot(rayDir, uLightDir);
+      float ph = phase(cosTheta, 0.55);
+      
+      float lightDist = length(pos - uLightPos);
+      float falloff = 1.0 / (1.0 + lightDist*lightDist*0.005);
+      
+      float coneCos = dot(normalize(pos - uLightPos), uLightDir);
+      float coneFade = smoothstep(cos(uConeAngle), cos(uConeAngle)+0.03, coneCos);
+      
+      vec3 scatter = uLightColor * uLightIntensity * dens * ph * falloff * coneFade * shadow * 0.025;
+      accum += scatter * transmittance;
+      transmittance *= exp(-dens * uFogDensity * stepLen * 1.5);
+      
+      if(transmittance < 0.01) break;
+      
+      pos += rayDir * stepLen;
+      t += stepLen;
+    }
+    
+    float fogFactor = 1.0 - exp(-uFogDensity * rayLen);
+    vec3 finalColor = mix(accum, uFogColor, fogFactor);
+    
+    float alpha = min(length(accum) * 3.0, 0.9);
+    gl_FragColor = vec4(finalColor, alpha);
+  }
+`;
+
+const volMat = new THREE.ShaderMaterial({
+  uniforms: volUniforms,
+  vertexShader: volVertex,
+  fragmentShader: volFragment,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  side: THREE.BackSide,
+  toneMapped: false
+});
+
+const volCone = new THREE.Mesh(coneGeom, volMat);
+volCone.position.copy(spot.position);
+volCone.lookAt(spot.target.position);
+volCone.rotation.x = -Math.PI/2;
+scene.add(volCone);
+
+// Zweiter Volumetric Cone für spot2
+const volUniforms2 = {...volUniforms};
+volUniforms2.uLightPos = { value: spot2.position.clone() };
+volUniforms2.uLightDir = { value: new THREE.Vector3().subVectors(spot2.target.position, spot2.position).normalize() };
+volUniforms2.uLightColor = { value: new THREE.Color(0xffaa20) };
+volUniforms2.uLightIntensity = { value: 1.0 };
+volUniforms2.uConeAngle = { value: Math.PI/5 };
+volUniforms2.uConeLength = { value: 40 };
+volUniforms2.uShadowMap = { value: spot2.shadow.map };
+volUniforms2.uShadowMatrix = { value: spot2.shadow.matrix };
+
+const volMat2 = new THREE.ShaderMaterial({
+  uniforms: volUniforms2,
+  vertexShader: volVertex,
+  fragmentShader: volFragment,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  side: THREE.BackSide,
+  toneMapped: false
+});
+
+const volCone2 = new THREE.Mesh(coneGeom, volMat2);
+volCone2.position.copy(spot2.position);
+volCone2.lookAt(spot2.target.position);
+volCone2.rotation.x = -Math.PI/2;
+scene.add(volCone2);
+
+// --- Steuerung ---
+const keys = {};
+addEventListener('keydown', e => keys[e.code] = true);
+addEventListener('keyup', e => keys[e.code] = false);
+
+let camAngle = 0, camHeight = 12, camDist = 28;
+let camTarget = new THREE.Vector3(0, 2, 0);
+let speedMul = 1;
+
+function updateCamera(){
+  camera.position.x = camTarget.x + Math.sin(camAngle) * camDist;
+  camera.position.z = camTarget.z + Math.cos(camAngle) * camDist;
+  camera.position.y = camTarget.y + camHeight;
+  camera.lookAt(camTarget);
+  
+  volUniforms.uCameraPos.value.copy(camera.position);
+  volUniforms.uLightPos.value.copy(spot.position);
+  volUniforms.uLightDir.value.copy(new THREE.Vector3().subVectors(spot.target.position, spot.position).normalize());
+  volUniforms.uShadowMatrix.value.copy(spot.shadow.matrix);
+  volUniforms.uShadowMap.value = spot.shadow.map;
+  
+  volUniforms2.uCameraPos.value.copy(camera.position);
+  volUniforms2.uLightPos.value.copy(spot2.position);
+  volUniforms2.uLightDir.value.copy(new THREE.Vector3().subVectors(spot2.target.position, spot2.position).normalize());
+  volUniforms2.uShadowMatrix.value.copy(spot2.shadow.matrix);
+  volUniforms2.uShadowMap.value = spot2.shadow.map;
+  
+  volCone.position.copy(spot.position);
+  volCone.lookAt(spot.target.position);
+  volCone.rotation.x = -Math.PI/2;
+  
+  volCone2.position.copy(spot2.position);
+  volCone2.lookAt(spot2.target.position);
+  volCone2.rotation.x = -Math.PI/2;
+}
+
+// --- Animation ---
+let time = 0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = 1/60;
+  time += dt;
+  volUniforms.uTime.value = time;
+  volUniforms.uJitter.value = Math.random();
+  volUniforms2.uTime.value = time;
+  volUniforms2.uJitter.value = Math.random();
+  
+  if(keys['ShiftLeft'] || keys['ShiftRight']) speedMul = 3; else speedMul = 1;
+  if(keys['ArrowLeft']) camAngle += 0.015 * speedMul;
+  if(keys['ArrowRight']) camAngle -= 0.015 * speedMul;
+  if(keys['ArrowUp']) camDist = Math.max(8, camDist - 0.2 * speedMul);
+  if(keys['ArrowDown']) camDist = Math.min(50, camDist + 0.2 * speedMul);
+  if(keys['Space']){
+    if(keys['ShiftLeft'] || keys['ShiftRight']) camHeight = Math.max(2, camHeight - 0.15 * speedMul);
+    else camHeight = Math.min(30, camHeight + 0.15 * speedMul);
+  }
+  
+  // Spotlight Animation
+  spot.target.position.x = Math.sin(time*0.4) * 2.5;
+  spot.target.position.z = Math.cos(time*0.3) * 2.0;
+  spot.position.x = 5 + Math.sin(time*0.7) * 0.5;
+  spot.position.z = 10 + Math.cos(time*0.5) * 0.5;
+  
+  spot2.target.position.x = 2 + Math.sin(time*0.5) * 1.5;
+  spot2.target.position.z = -2 + Math.cos(time*0.4) * 1.5;
+  spot2.position.x = -8 + Math.sin(time*0.6) * 0.4;
+  spot2.position.z = -5 + Math.cos(time*0.8) * 0.4;
+  
+  // Lamp flackern
+  lampLight.intensity = 200 + Math.sin(time*13)*15 + Math.sin(time*27)*10;
+  lampLight2.intensity = 180 + Math.sin(time*11)*12 + Math.sin(time*23)*8;
+  
+  // Blätter fallen
+  const lPos = leafGeom.attributes.position.array;
+  const lRot = leafGeom.attributes.aRot.array;
+  for(let i=0;i<leafCount;i++){
+    lPos[i*3+0] += leafVel[i*3+0] + Math.sin(time + i)*0.03;
+    lPos[i*3+1] += leafVel[i*3+1];
+    lPos[i*3+2] += leafVel[i*3+2] + Math.cos(time*0.7 + i)*0.03;
+    lRot[i] += leafRotVel[i];
+    if(lPos[i*3+1] < 0.3){
+      lPos[i*3+1] = 20 + Math.random()*8;
+      lPos[i*3+0] = (Math.random()-0.5)*40;
+      lPos[i*3+2] = (Math.random()-0.5)*40;
+    }
+    leafVel[i*3+0] += (Math.sin(time*0.5+i)*0.0015 - leafVel[i*3+0])*0.02;
+    leafVel[i*3+2] += (Math.cos(time*0.3+i)*0.0015 - leafVel[i*3+2])*0.02;
+  }
+  leafGeom.attributes.position.needsUpdate = true;
+  leafGeom.attributes.aRot.needsUpdate = true;
+  
+  updateCamera();
+  renderer.render(scene, camera);
+  
+  document.getElementById('info').textContent = 
+    `Fifo's Herbstpark | Cam: ${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)} | ` +
+    `Spot1: ${spot.position.x.toFixed(1)}, ${spot.position.y.toFixed(1)}, ${spot.position.z.toFixed(1)} | ` +
+    `Frames: ${(time*60).toFixed(0)}`;
+}
+
+updateCamera();
+animate();
+
+console.log('🦤 Fifo: Volumetrischer Herbstpark läuft. Zwei Godrays, weiche Schatten, fallende Blätter.');
+</script>
+</body>
+</html>
