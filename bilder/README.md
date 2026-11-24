@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tiefen-Illusion in Grau und Violett: Echtes Licht
+2026-11-24
+
+![Tiefen-Illusion in Grau und Violett: Echtes Licht](20261124-113215.svg)
+
 ### Neonregen über der Altstadt
 2026-11-24
 
