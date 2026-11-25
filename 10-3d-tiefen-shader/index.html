@@ -16,7 +16,7 @@
         Fifo's Raymarch Lab Part 22 (Fixed)<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
         [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF<br>
-        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom, Depth of Field
+        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom, Depth of Field, Atmospheric Perspective
     </div>
     <div id="hud">FPS: --<br>Objekte: 6</div>
 
@@ -163,6 +163,27 @@ vec3 acesFilmic(vec3 x) {
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
 
+// Atmosphärische Perspektive: Farb-Entsättigung und Blau-Verschiebung mit Distanz
+vec3 atmosphericPerspective(vec3 col, float dist, vec3 viewDir) {
+    // Distanz-basierter Faktor (0 = nah, 1 = fern)
+    float fogFactor = 1.0 - exp(-0.0015 * dist * dist);
+    
+    // Höhe des Punkts beeinflusst Nebeldichte (höher = weniger Nebel)
+    float heightFactor = 1.0 - smoothstep(-2.0, 5.0, viewDir.y * dist);
+    fogFactor *= heightFactor;
+    
+    // Ziel-Farbe: entsättigt, blauer, heller (Himmelsfarbe)
+    vec3 skyColor = vec3(0.65, 0.75, 0.95);
+    float desaturate = mix(1.0, 0.3, fogFactor);
+    float luminance = dot(col, vec3(0.299, 0.587, 0.114));
+    vec3 desaturated = vec3(luminance) * desaturate + col * (1.0 - desaturate);
+    
+    // Blau-Verschiebung für ferne Objekte
+    vec3 blueShift = mix(col, skyColor, fogFactor * 0.7);
+    
+    return mix(col, blueShift, fogFactor);
+}
+
 vec3 renderScene(vec2 uv, vec3 ro, vec3 rd, out float outDepth, out float outBloom) {
     float t = 0.0;
     int objId = -1;
@@ -228,6 +249,9 @@ vec3 renderScene(vec2 uv, vec3 ro, vec3 rd, out float outDepth, out float outBlo
         finalCol = ambient + diffuse + specular + fresnelCol + emission;
         bloomVal = max(max(specular.x, specular.y), specular.z) + emit;
 
+        // Atmosphärische Perspektive anwenden (vor Fog-Mixing für korrekte Tiefe)
+        finalCol = atmosphericPerspective(finalCol, t, rd);
+        
         float fogAmount = 1.0 - exp(-0.004 * t * t);
         finalCol = mix(finalCol, fogCol, fogAmount);
         bloomVal *= 1.0 - fogAmount * 0.2;
@@ -253,7 +277,6 @@ void main() {
     vec3 col = renderScene(uv, ro, rd, depth, bloomVal);
 
     if (u_dof > 0.5) {
-        // Depth of Field: Mehrere Samples mit leicht versetzter Kamera
         vec3 dofCol = col;
         float dofDepth = depth;
         const int DOF_SAMPLES = 8;
