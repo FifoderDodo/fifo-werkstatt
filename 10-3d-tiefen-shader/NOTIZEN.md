@@ -593,3 +593,10 @@ Kamera weiter weg (Radius 20 statt 12), hellerer Hintergrund, stärkere Lichter 
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 34 (25.11.2026 04:44, Nachtschicht)
+Shader-Parameter wurden angepasst: hellerer Himmel, stärkere Diffuse/Specular/Ambient, reduzierte Nebeldichte, höheres Schatten‑Minimum und leicht stärkerer Bloom. Kamera‑Radius bleibt bei 20.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
