@@ -649,3 +649,10 @@ Volumetric Lighting (God Rays) hinzugefügt: neuer u_volumetric Uniform, volumet
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 42 (25.11.2026 07:09, Nachtschicht)
+Added a depth-pass render target and a minimal depth shader (shaderUtils.js). Updated index.html to import the utility, render depth each frame and expose it via u_depthMap uniform. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
