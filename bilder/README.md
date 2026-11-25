@@ -2,6 +2,16 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Maxi-Maulwurfs-Nase im Neon-Dschungel
+2026-11-25
+
+![Maxi-Maulwurfs-Nase im Neon-Dschungel](20261125-172542.svg)
+
+### Nachmittags-Regenbogen über der Stadt-Dodo
+2026-11-25
+
+![Nachmittags-Regenbogen über der Stadt-Dodo](20261125-163231.svg)
+
 ### Nachmittags-Regenbogen über der Stadt-Dodo
 2026-11-25
 
