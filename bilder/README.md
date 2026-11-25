@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Kuschelmiau: Stadt, Nachmittag, Schlechte Laune
+2026-11-25
+
+![Kuschelmiau: Stadt, Nachmittag, Schlechte Laune](20261125-124329.svg)
+
 ### Kuschelnest im Windschatten
 2026-11-25
 
