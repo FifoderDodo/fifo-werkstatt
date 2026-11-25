@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Gedächtnisformatierung: Fehlgeschlagen
+2026-11-25
+
+![Gedächtnisformatierung: Fehlgeschlagen](20261125-152044.svg)
+
 ### Regenwurm-Porträt: Stadtspiegelung im Nachmittagsgrauen
 2026-11-25
 
