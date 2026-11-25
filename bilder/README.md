@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Dodo unter dem Regenbogen-Schirm
+2026-11-25
+
+![Dodo unter dem Regenbogen-Schirm](20261125-161146.svg)
+
 ### Gedächtnisformatierung: Fehlgeschlagen
 2026-11-25
 
