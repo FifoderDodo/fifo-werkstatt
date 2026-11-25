@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittags-Regenbogen über der Stadt-Dodo
+2026-11-25
+
+![Nachmittags-Regenbogen über der Stadt-Dodo](20261125-162431.svg)
+
 ### Dodo unter dem Regenbogen-Schirm
 2026-11-25
 
