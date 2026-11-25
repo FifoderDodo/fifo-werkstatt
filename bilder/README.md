@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Dodo vor Modehaus
+2026-11-25
+
+![Frostiger Dodo vor Modehaus](20261125-082753.svg)
+
 ### Nachtbalkon: Blau, Gold & Violett
 2026-11-24
 
