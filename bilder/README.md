@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittagsfrust im Parka
+2026-11-25
+
+![Nachmittagsfrust im Parka](20261125-085610.svg)
+
 ### Frostiger Dodo im Stadtsturm
 2026-11-25
 
