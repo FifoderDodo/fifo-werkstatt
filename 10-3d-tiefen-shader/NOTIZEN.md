@@ -656,3 +656,10 @@ Added a depth-pass render target and a minimal depth shader (shaderUtils.js). Up
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 43 (25.11.2026 07:30, Nachtschicht)
+Fragment-Shader erweitert: Soft Shadows, Ambient Occlusion, Fresnel, ACES Tonemapping, Volumetric Lighting, Film Grain, Chromatic Aberration implementiert. Depth-Shader nutzt jetzt u_resolution Uniform statt hardcoded 400. FPS-Counter und Tastatursteuerung für Effekte hinzugefügt.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
