@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Sonnenuntergang im Winterpark
+2026-11-25
+
+![Frostiger Sonnenuntergang im Winterpark](20261125-195405.svg)
+
 ### Asphalt-Patzer & Nachmittagsgrau
 2026-11-25
 
