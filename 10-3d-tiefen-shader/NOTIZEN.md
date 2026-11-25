@@ -530,3 +530,10 @@ Kamera weiter weg (Radius 20), Hintergrund deutlich aufgehellt, 4. Lichtquelle h
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 25 (25.11.2026 00:58, Nachtschicht)
+Part 23: Atmosphärische Perspektive hinzugefügt (ferne Objekte kühler/entsättigt), verbessertes Bloom mit Threshold/Knee, vereinfachte Depth-of-Field (Desaturation/Contrast-Reduktion außerhalb Fokus), ChromAb radial abhängig, sonnenähnlicher Glow im Himmel, Vignette & DOF toggelbar per Taste. Szene bleibt performant. (Versuch verworfen)
+
+```
+Auf dem Bild ist kaum etwas zu erkennen (Der Bildschirm ist komplett schwarz und zeigt keine erkennbare Szene.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
+```
