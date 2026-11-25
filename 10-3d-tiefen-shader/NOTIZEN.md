@@ -579,3 +579,10 @@ Atmosphärische Perspektive deutlich verbessert: Farb-Temperatur-Shift (warm→k
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 32 (25.11.2026 04:16, Nachtschicht)
+Three.js CDN-Bibliothek am Ende des Body-Tags korrekt eingebunden, damit der WebGL-Renderer fehlerfrei initialisiert und ausgeführt wird. (Versuch verworfen)
+
+```
+Auf dem Bild ist kaum etwas zu erkennen (Die Szene ist fast vollständig dunkel und leer, lediglich Text im unteren Bereich ist sichtbar.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
+```
