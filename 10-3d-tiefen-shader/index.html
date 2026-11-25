@@ -178,24 +178,42 @@ vec3 acesFilmic(vec3 x) {
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
 
-// Atmosphärische Perspektive: Farb-Entsättigung und Blau-Verschiebung mit Distanz
+// Verbesserte atmosphärische Perspektive: Farb-Temperatur-Shift, mehrfache Streuung, Höhen-Abhängigkeit
 vec3 atmosphericPerspective(vec3 col, float dist, vec3 ro, vec3 rd) {
-    // Distanz-basierter Faktor (0 = nah, 1 = fern)
-    float fogFactor = 1.0 - exp(-0.0015 * dist * dist);
+    // Distanz-basierter Faktor (0 = nah, 1 = fern) - quadratisch für natürlicheres Abfallen
+    float fogFactor = 1.0 - exp(-0.0012 * dist * dist);
     
     // Welt-Höhe des Punkts beeinflusst Nebeldichte (höher = weniger Nebel)
     float worldHeight = ro.y + rd.y * dist;
-    float heightFactor = 1.0 - smoothstep(-2.0, 5.0, worldHeight);
+    float heightFactor = 1.0 - smoothstep(-1.0, 6.0, worldHeight);
     fogFactor *= heightFactor;
     
-    // Ziel-Farbe: entsättigt, blauer, heller (Himmelsfarbe)
-    vec3 skyColor = vec3(0.65, 0.75, 0.95);
-    float desaturate = mix(1.0, 0.3, fogFactor);
+    // Blickwinkel: Horizont = mehr Atmosphäre, Zenit = weniger
+    float viewAngleFactor = 1.0 - abs(rd.y) * 0.3;
+    fogFactor *= viewAngleFactor;
+    
+    // Himmelsfarben für verschiedene Höhen
+    vec3 skyZenith = vec3(0.55, 0.7, 0.95);
+    vec3 skyHorizon = vec3(0.85, 0.9, 0.98);
+    vec3 skyColor = mix(skyZenith, skyHorizon, 1.0 - max(rd.y, 0.0));
+    
+    // Farb-Temperatur: nah = wärmer, fern = kälter (blauer)
+    vec3 warmTint = vec3(1.02, 0.98, 0.92);
+    vec3 coolTint = vec3(0.92, 0.96, 1.05);
+    vec3 tempShift = mix(warmTint, coolTint, fogFactor * 0.6);
+    col *= tempShift;
+    
+    // Entsättigung mit Distanz (ferne Objekte verlieren Farbigkeit)
+    float desaturate = mix(1.0, 0.35, fogFactor);
     float luminance = dot(col, vec3(0.299, 0.587, 0.114));
     vec3 desaturated = vec3(luminance) * desaturate + col * (1.0 - desaturate);
     
-    // Blau-Verschiebung für ferne Objekte
-    vec3 blueShift = mix(col, skyColor, fogFactor * 0.7);
+    // Blau-Verschiebung für ferne Objekte (aerial perspective)
+    vec3 blueShift = mix(desaturated, skyColor, fogFactor * 0.65);
+    
+    // Subtile Helligkeitszunahme (Luftlicht)
+    float airlight = fogFactor * 0.15;
+    blueShift += vec3(airlight) * skyColor;
     
     return mix(col, blueShift, fogFactor);
 }
