@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostschnecke im Raureif
+2026-11-25
+
+![Frostschnecke im Raureif](20261125-111059.svg)
+
 ### Warmer Schatten im Kalten
 2026-11-25
 
