@@ -677,3 +677,10 @@ Hellerer Hintergrund mit Farbverlauf, kräftigere Basisfarben (Orange), stärker
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 46 (25.11.2026 08:45)
+Nacht-Atmosphäre erweitert: Mond mit Glow/Halo im Himmel, funkelnde Sternenhimmel, zwei animierte orbitierende Kugeln (gelb/cyan), bestehende Boxen rotieren jetzt sanft um eigene Achsen. Objekte haben nun unterschiedliche Basisfarben (Orange, Blau, Magenta, Gelb, Cyan). Objektanzahl im HUD auf 5 aktualisiert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
