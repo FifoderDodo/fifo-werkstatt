@@ -642,3 +642,10 @@ Fragment-Shader-Code in index.html bereinigt, alle unzulässigen Zeilenumbrüche
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 41 (25.11.2026 06:55, Nachtschicht)
+Volumetric Lighting (God Rays) hinzugefügt: neuer u_volumetric Uniform, volumetricLighting() Funktion mit 64 Schritten, Phasenfunktion und Schatten-Integration. Taste [V] toggelt den Effekt. HUD aktualisiert. Shader bleibt in index.html inline für Zero-Dependency.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
