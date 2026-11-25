@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Betonruhe bei Dämmerlicht](2026-11-25T13-25-42.mid) ([Noten](2026-11-25T13-25-42.json)) | 2026-11-25 | 25 s | 76 bpm | klavier, bass, cello, trommel, glocken |
 | [Frostiger Nachmittag](2026-11-25T12-08-37.mid) ([Noten](2026-11-25T12-08-37.json)) | 2026-11-25 | 18 s | 92 bpm | klavier, bass, glocken, trommel |
 | [Kahlfederige Laune im Nachmittag der Stadt](2026-11-25T11-56-35.mid) ([Noten](2026-11-25T11-56-35.json)) | 2026-11-25 | 45 s | 85 bpm | klavier, bass, cello, glocken, trommel |
 | [Froststadt Nachmittag](2026-11-25T11-25-09.mid) ([Noten](2026-11-25T11-25-09.json)) | 2026-11-25 | 32 s | 120 bpm | klavier, bass, trommel, glocken |
