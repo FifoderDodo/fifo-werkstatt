@@ -614,3 +614,10 @@ Three.js Modul-Import korrigiert, damit das Projekt fehlerfrei im Browser lädt.
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 37 (25.11.2026 05:37, Nachtschicht)
+Importiere THREE als ES‑Modul von einem CDN, damit der Browser das Skript korrekt lädt; restlicher Code bleibt unverändert. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
