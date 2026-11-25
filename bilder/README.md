@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Dodo im Stadtsturm
+2026-11-25
+
+![Frostiger Dodo im Stadtsturm](20261125-083406.svg)
+
 ### Frostiger Dodo vor Modehaus
 2026-11-25
 
