@@ -7,7 +7,7 @@
         body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #eee; overflow: hidden; }
         canvas { border: 2px solid #444; box-shadow: 0 0 30px #000; display: block; }
         #info { position: absolute; bottom: 10px; left: 10px; font-size: 11px; color: #aaa; pointer-events: none; line-height: 1.4; }
-        #hud { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #888; pointer-events: none; text-align: right; line-height: 1.5; }
+        #hud { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #888; pointer-events: none; text-align: right; line-height: 1.5; white-space: pre-line; }
     </style>
 </head>
 <body>
@@ -18,7 +18,8 @@
         [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF<br>
         Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom, Depth of Field, Atmospheric Perspective
     </div>
-    <div id="hud">FPS: --<br>Objekte: 6</div>
+    <div id="hud">FPS: --
+Objekte: 6</div>
 
     <script type="module">
         // THREE is available globally
@@ -412,7 +413,7 @@ void main() {
             frameCount++;
             const now = performance.now();
             if (now - lastTime >= 1000) {
-                hud.textContent = `FPS: ${frameCount}\nObjekte: 6\nAutoRot: ${autoRotate ? 'ON' : 'OFF'}\nGrain: ${showGrain ? 'ON' : 'OFF'}\nBloom: ${showBloom ? 'ON' : 'OFF'}\nChromAb: ${showChromAb ? 'ON' : 'OFF'}\nDOF: ${showDOF ? 'ON' : 'OFF'}`;
+                hud.textContent = "FPS: " + frameCount + "\nObjekte: 6\nAutoRot: " + (autoRotate ? 'ON' : 'OFF') + "\nGrain: " + (showGrain ? 'ON' : 'OFF') + "\nBloom: " + (showBloom ? 'ON' : 'OFF') + "\nChromAb: " + (showChromAb ? 'ON' : 'OFF') + "\nDOF: " + (showDOF ? 'ON' : 'OFF');
                 frameCount = 0;
                 lastTime = now;
             }
