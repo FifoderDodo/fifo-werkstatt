@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stadtwurm am Nachmittag: Laune im Keller
+2026-11-25
+
+![Stadtwurm am Nachmittag: Laune im Keller](20261125-125819.svg)
+
 ### Kuschelmiau: Stadt, Nachmittag, Schlechte Laune
 2026-11-25
 
