@@ -565,3 +565,10 @@ Bugfix: Atmosphärische Perspektive nutzt jetzt die absolute Welt-Höhe (ro.y + 
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 30 (25.11.2026 02:27, Nachtschicht)
+Boden-Ebene erhält ein subtiles prozedurales Grid-Pattern (gridPattern-Funktion) für bessere Tiefenwahrnehmung und räumliche Orientierung. Das Pattern wird im Albedo des Boden-Materials gemischt und ist dezent genug, um nicht abzulenken.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
