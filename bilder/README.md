@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Regenwurm-Porträt: Stadtspiegelung im Nachmittagsgrauen
+2026-11-25
+
+![Regenwurm-Porträt: Stadtspiegelung im Nachmittagsgrauen](20261125-144643.svg)
+
 ### Warmer Nachmittag in der frostigen Stadt
 2026-11-25
 
