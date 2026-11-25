@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Launige Stadt im Nachmittag](2026-11-25T22-59-12.mid) ([Noten](2026-11-25T22-59-12.json)) | 2026-11-25 | 56 s | 68 bpm | klavier, bass, cello, glocken, floete |
 | [Frostiger Dodo-Abend](2026-11-25T22-44-14.mid) ([Noten](2026-11-25T22-44-14.json)) | 2026-11-25 | 33 s | 58 bpm | klavier, bass, geige, glocken |
 | [Dodo Schlummer am Nachmittag](2026-11-25T22-28-04.mid) ([Noten](2026-11-25T22-28-04.json)) | 2026-11-25 | 25 s | 76 bpm | klavier, bass, harfe, floete |
 | [Betonfrust in C](2026-11-25T21-07-15.mid) ([Noten](2026-11-25T21-07-15.json)) | 2026-11-25 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
