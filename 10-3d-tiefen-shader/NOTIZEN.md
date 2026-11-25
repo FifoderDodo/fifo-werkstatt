@@ -621,3 +621,10 @@ Importiere THREE als ES‑Modul von einem CDN, damit der Browser das Skript korr
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 38 (25.11.2026 06:00, Nachtschicht)
+Fifo hat den Fragment-Shader-String in index.html in eine einzeilige Zeichenkette formatiert, um Syntaxfehler bei Zeilenumbrüchen im Template-Literal zu vermeiden. Alles läuft perfekt. (Versuch verworfen)
+
+```
+Uncaught SyntaxError: Unexpected identifier 'FPS'
+```
