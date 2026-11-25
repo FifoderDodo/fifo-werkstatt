@@ -628,3 +628,10 @@ Fifo hat den Fragment-Shader-String in index.html in eine einzeilige Zeichenkett
 ```
 Uncaught SyntaxError: Unexpected identifier 'FPS'
 ```
+
+## Teil 39 (25.11.2026 06:22, Nachtschicht)
+Fehler behoben: Syntaxfehler im Template-Literal des HUD-Textes durch sichere String-Konkatenation ersetzt, white-space: pre-line zum Styling hinzugefügt.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
