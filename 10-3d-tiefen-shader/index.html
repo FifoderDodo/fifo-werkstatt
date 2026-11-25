@@ -2,7 +2,7 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
     <meta charset="UTF-8">
-    <title>Fifos 3D-Tiefen-Shader Part 47</title>
+    <title>Fifos 3D-Tiefen-Shader Part 48</title>
     <style>
         body { margin: 0; background: #2a2a4e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #fff; overflow: hidden; }
         canvas { border: 2px solid #666; box-shadow: 0 0 30px #000; display: block; }
@@ -13,7 +13,7 @@
 <body>
     <canvas id="glcanvas" width="400" height="400"></canvas>
     <div id="info">
-        Fifo's Raymarch Lab Part 47 (Moon + Stars + Animated Objects)<br>
+        Fifo's Raymarch Lab Part 48 (Atmospheric Lighting + Vibrant Gradients)<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
         [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF | [V] Volumetric
     </div>
@@ -155,6 +155,63 @@ float stars(vec2 uv, float time) {
     return star * twinkle * smoothstep(0.02, 0.0, dist);
 }
 
+// Atmospheric scattering helper
+vec3 atmosphereColor(float height, float sunDot) {
+    // Rayleigh scattering - blue sky, orange horizon
+    vec3 zenith = vec3(0.05, 0.1, 0.25);
+    vec3 horizon = vec3(0.6, 0.35, 0.2);
+    vec3 nightZenith = vec3(0.02, 0.03, 0.08);
+    vec3 nightHorizon = vec3(0.15, 0.1, 0.2);
+    
+    float dayFactor = smoothstep(-0.2, 0.3, sunDot);
+    vec3 skyColor = mix(
+        mix(nightZenith, nightHorizon, pow(1.0 - height, 2.0)),
+        mix(zenith, horizon, pow(1.0 - height, 1.5)),
+        dayFactor
+    );
+    
+    // Add sun/moon glow
+    float glow = pow(max(sunDot, 0.0), 128.0);
+    vec3 sunColor = vec3(1.0, 0.85, 0.6) * glow * 3.0;
+    
+    return skyColor + sunColor;
+}
+
+// Volumetric fog with color
+vec3 volumetricFog(vec3 ro, vec3 rd, float tMax, vec3 lightDir, vec3 moonDir, float time) {
+    vec3 fogColor = vec3(0.0);
+    float density = 0.0;
+    vec3 p = ro;
+    float stepSize = max(tMax / 32.0, 0.1);
+    
+    for(int i=0; i<32; i++) {
+        float d = map(p);
+        if(d < 0.01) break;
+        
+        float h = p.y * 0.1 + 0.5;
+        float layerDensity = exp(-h * 1.5) * 0.3;
+        
+        // Light scattering
+        float sunDot = max(dot(rd, lightDir), 0.0);
+        float moonDot = max(dot(rd, moonDir), 0.0);
+        
+        vec3 scatterColor = vec3(0.0);
+        scatterColor += vec3(1.0, 0.7, 0.4) * pow(sunDot, 8.0) * 0.15;  // warm sun scatter
+        scatterColor += vec3(0.4, 0.6, 1.0) * pow(moonDot, 16.0) * 0.08; // cool moon scatter
+        
+        // Ambient fog color based on height
+        vec3 ambientFog = mix(vec3(0.3, 0.2, 0.15), vec3(0.1, 0.15, 0.3), h);
+        
+        fogColor += (ambientFog + scatterColor) * layerDensity * stepSize;
+        density += layerDensity * stepSize;
+        
+        p += rd * stepSize;
+        if(length(p - ro) > tMax) break;
+    }
+    
+    return fogColor * (1.0 - exp(-density));
+}
+
 void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
     vec3 ro = u_camPos;
@@ -166,6 +223,8 @@ void main() {
     vec3 rd = normalize((r * uv.x + u * uv.y) * tan(fov * 0.5) + f);
     
     vec3 moonDir = normalize(vec3(0.3, 0.8, -0.5));
+    vec3 sunDir = normalize(vec3(-0.4, 0.6, 0.3));
+    
     float moonDot = max(dot(rd, moonDir), 0.0);
     float moonGlow = pow(moonDot, 256.0) * 2.5;
     float moonHalo = pow(moonDot, 32.0) * 0.3;
@@ -182,8 +241,12 @@ void main() {
         t += d;
     }
     
-    vec3 skyBase = mix(vec3(0.15, 0.2, 0.35), vec3(0.4, 0.5, 0.7), rd.y * 0.5 + 0.5);
-    vec3 col = skyBase + vec3(moonGlow) + vec3(moonHalo) * vec3(1.0, 0.95, 0.8) + vec3(starField);
+    // Atmospheric sky with height-based gradient
+    float height = rd.y * 0.5 + 0.5;
+    float sunDot = max(dot(rd, sunDir), 0.0);
+    vec3 skyBase = atmosphereColor(height, sunDot);
+    
+    vec3 col = skyBase + vec3(moonGlow) + vec3(moonHalo) * vec3(1.0, 0.95, 0.85) + vec3(starField);
     float depth = 1.0;
     
     if(t < MAX_DIST) {
@@ -191,7 +254,7 @@ void main() {
         vec3 n = calcNormal(p);
         depth = t / MAX_DIST;
         
-        vec3 lightDir = normalize(vec3(2.0, 3.0, -1.0));
+        vec3 lightDir = sunDir;
         vec3 moonLightDir = moonDir;
         vec3 viewDir = -rd;
         
@@ -203,6 +266,7 @@ void main() {
         float moonDiff = max(dot(n, moonLightDir), 0.0) * 0.4;
         float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
         
+        // Determine object color
         vec3 baseCol;
         if (length(p) < 2.5) {
             baseCol = vec3(1.0, 0.55, 0.35);
@@ -217,34 +281,63 @@ void main() {
         if (dOrbit1 < 0.01) baseCol = vec3(1.0, 0.9, 0.4);
         if (dOrbit2 < 0.01) baseCol = vec3(0.4, 1.0, 0.8);
         
-        vec3 ambientCol = vec3(0.2, 0.3, 0.5);
+        // Atmospheric lighting with color temperature
+        vec3 sunLightColor = vec3(1.0, 0.92, 0.75);      // warm sunlight
+        vec3 moonLightColor = vec3(0.6, 0.75, 1.0);      // cool moonlight
+        vec3 ambientSkyColor = vec3(0.15, 0.25, 0.45);   // blue ambient
+        vec3 ambientGroundColor = vec3(0.3, 0.2, 0.15);  // warm ground bounce
         
-        col = baseCol * (diff * shadow + moonDiff * moonShadow) * ao * 1.5;
-        col += ambientCol * ao * 0.8;
-        col += vec3(1.0, 0.9, 0.7) * fresnel * 0.4;
-        col += vec3(1.0, 0.95, 0.8) * moonDiff * moonShadow * 0.3;
+        // Ambient occlusion influences ambient color mixing
+        vec3 ambientCol = mix(ambientSkyColor, ambientGroundColor, max(dot(n, vec3(0,1,0)), 0.0));
         
+        // Subsurface scattering hint for organic feel
+        float ssr = pow(1.0 - max(dot(n, lightDir), 0.0), 2.0) * 0.1;
+        
+        // Main lighting
+        col = baseCol * (diff * shadow * sunLightColor + moonDiff * moonShadow * moonLightColor) * ao * 1.6;
+        col += baseCol * ssr * vec3(1.0, 0.6, 0.4) * shadow;
+        col += ambientCol * ao * 0.9;
+        col += vec3(1.0, 0.9, 0.7) * fresnel * 0.35;
+        col += vec3(1.0, 0.95, 0.85) * moonDiff * moonShadow * 0.25;
+        
+        // Rim lighting from opposite direction
+        vec3 rimDir = normalize(vec3(-lightDir.x, 0.3, -lightDir.z));
+        float rim = pow(max(dot(n, rimDir), 0.0), 4.0) * 0.4;
+        col += vec3(0.3, 0.5, 0.8) * rim * (1.0 - shadow) * ao;
+        
+        // Volumetric fog integration
         if(u_volumetric > 0.5) {
-            float vol = 0.0;
-            float vt = 0.0;
-            for(int i=0; i<16; i++) {
-                vec3 vp = ro + rd * vt;
-                float vd = map(vp);
-                if(vd < 0.01) break;
-                float l = exp(-vd * 0.3);
-                vol += l * 0.03;
-                vt += max(vd, 0.1);
-                if(vt > t) break;
-            }
-            col += vec3(0.8, 0.6, 0.4) * vol * shadow;
-            col += vec3(0.6, 0.7, 1.0) * vol * moonShadow * 0.2;
+            vec3 volFog = volumetricFog(ro, rd, t, lightDir, moonLightDir, u_time);
+            // Fog affects object color based on distance
+            float fogFactor = 1.0 - exp(-t * 0.02);
+            col = mix(col, col + volFog * baseCol, fogFactor * 0.5);
+            col += volFog * 0.3;
         }
+        
+        // Distance fog / aerial perspective
+        float aerialPerspective = 1.0 - exp(-t * 0.015);
+        vec3 farColor = mix(vec3(0.2, 0.3, 0.5), vec3(0.4, 0.35, 0.3), sunDot);
+        col = mix(col, farColor, aerialPerspective * 0.4);
     }
     
-    col = acesFilmic(col * 1.5);
+    // Post-process color grading for vibrant gradients
+    // Slight contrast boost in shadows
+    col = col * (1.0 + 0.15 * (1.0 - col));
+    
+    // Color grading: lift shadows toward blue, highlights toward warm
+    vec3 shadows = vec3(0.05, 0.08, 0.15);
+    vec3 highlights = vec3(1.0, 0.98, 0.9);
+    col = mix(shadows, col, smoothstep(0.0, 0.3, luminance(col)));
+    col = mix(col, highlights, smoothstep(0.85, 1.0, luminance(col))) * 0.05 + col * 0.95;
+    
+    col = acesFilmic(col * 1.4);
+    
+    // Subtle vignette for depth
+    float vig = 1.0 - 0.15 * length(uv);
+    col *= vig;
     
     if(u_grain > 0.5) {
-        float gr = (noise(gl_FragCoord.xy * 0.5 + u_time * 10.0) - 0.5) * 0.015;
+        float gr = (noise(gl_FragCoord.xy * 0.5 + u_time * 10.0) - 0.5) * 0.012;
         col += gr;
     }
     
