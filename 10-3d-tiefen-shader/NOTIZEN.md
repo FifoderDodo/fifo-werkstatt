@@ -698,3 +698,10 @@ Atmosphärische Beleuchtung deutlich verbessert: Mehrstufiger Sky-Gradient mit R
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 49 (25.11.2026 10:34)
+Part 49 fertiggestellt: Farbliche Nuancen und sanfter Mondschein verfeinert (Mond-Glanz, kühles Mond-Gegenlicht, zarter Sternenhimmel, saubere Leuchtkraftberechnung mit luminance()). Shader-Code in raymarchShader.js ausgelagert, wodurch alle Dateien unter der 300-Zeilen-Grenze bleiben und direkt lauffähig sind. (Versuch verworfen)
+
+```
+Auf dem Bild ist kaum etwas zu erkennen (Der Bildschirm ist fast vollständig schwarz, lediglich Text ist am unteren Rand sichtbar.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
+```
