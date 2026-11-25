@@ -537,3 +537,10 @@ Part 23: Atmosphärische Perspektive hinzugefügt (ferne Objekte kühler/entsät
 ```
 Auf dem Bild ist kaum etwas zu erkennen (Der Bildschirm ist komplett schwarz und zeigt keine erkennbare Szene.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
+
+## Teil 26 (25.11.2026 01:12, Nachtschicht)
+Kamera näher an die Szene gerückt (Radius 12 statt 20, Phi 0.5), Initial-Position auf (0,5,12) gesetzt. Schatten-Berechnung von multiplikativ auf additiv (Durchschnitt) geändert mit höherem Minimum (0.35). Alle Licht-Intensitäten erhöht (diffuse *2.5, specular *2.0, ambient heller). Material-Farben gesättigt, Emissionen verstärkt. Hintergrund und Nebel deutlich heller. Bloom stärker.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
