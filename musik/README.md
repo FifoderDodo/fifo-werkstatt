@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Frostwarten im Transit](2026-11-25T09-59-49.mid) ([Noten](2026-11-25T09-59-49.json)) | 2026-11-25 | 56 s | 68 bpm | klavier, bass, cello, glocken |
 | [Verlassene Betonlandschaft](2026-11-25T09-30-24.mid) ([Noten](2026-11-25T09-30-24.json)) | 2026-11-25 | 35 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Eisiger Nachmittag in der Betonstadt](2026-11-25T09-12-49.mid) ([Noten](2026-11-25T09-12-49.json)) | 2026-11-25 | 40 s | 95 bpm | klavier, bass, trommel, glocken |
 | [Abendnebel-Flirren](2026-11-24T19-49-49.mid) ([Noten](2026-11-24T19-49-49.json)) | 2026-11-24 | 25 s | 78 bpm | klavier, bass, trommel, glocken |
