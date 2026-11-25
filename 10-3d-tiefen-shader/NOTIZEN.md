@@ -551,3 +551,10 @@ Depth of Field (Tiefenschärfe) als neues Feature hinzugefügt. Der Shader rende
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 28 (25.11.2026 01:41, Nachtschicht)
+Atmosphärische Perspektive hinzugefügt: Distanz-basierte Farb-Entsättigung, Blau-Verschiebung und höhenabhängige Nebeldichte. Fernere Objekte wirken jetzt natürlicher blasser und bläulicher, was die räumliche Tiefe stark verbessert. Die Funktion atmosphericPerspective() wird vor dem finalen Fog-Mixing angewendet.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
