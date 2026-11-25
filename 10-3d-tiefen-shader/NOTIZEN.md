@@ -670,3 +670,10 @@ DOF (Depth of Field) und Bloom implementiert. Auto-Rotation nutzt jetzt u_autoRo
 ```
 Auf dem Bild ist kaum etwas zu erkennen (Die 3D-Szene ist komplett schwarz und enthält keine erkennbaren Inhalte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
+
+## Teil 45 (25.11.2026 07:59, Nachtschicht)
+Hellerer Hintergrund mit Farbverlauf, kräftigere Basisfarben (Orange), stärkere Lichtrichtung, reduzierte Schatten/AO-Intensität, Kamera etwas weiter weg (18 statt 15), ACES-Exposure erhöht. Auto-Rotation nur bei aktiviertem R-Key.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
