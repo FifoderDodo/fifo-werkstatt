@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Stadthitze Flaue](2026-11-25T18-49-26.mid) ([Noten](2026-11-25T18-49-26.json)) | 2026-11-25 | 25 s | 68 bpm | klavier, bass, trommel, gitarre, cello |
 | [Grauer Asphaltwind](2026-11-25T15-58-49.mid) ([Noten](2026-11-25T15-58-49.json)) | 2026-11-25 | 36 s | 108 bpm | klavier, bass, trommel, glocken, cello |
 | [Kakerlaken-Detox am Nachmittag](2026-11-25T15-04-44.mid) ([Noten](2026-11-25T15-04-44.json)) | 2026-11-25 | 28 s | 104 bpm | klavier, cello, marimba, synth_lead, trommel |
 | [Betonruhe bei Dämmerlicht](2026-11-25T13-25-42.mid) ([Noten](2026-11-25T13-25-42.json)) | 2026-11-25 | 25 s | 76 bpm | klavier, bass, cello, trommel, glocken |
