@@ -572,3 +572,10 @@ Boden-Ebene erhält ein subtiles prozedurales Grid-Pattern (gridPattern-Funktion
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 31 (25.11.2026 02:41, Nachtschicht)
+Atmosphärische Perspektive deutlich verbessert: Farb-Temperatur-Shift (warm→kühl mit Distanz), Höhen- und Blickwinkel-abhängige Nebeldichte, mehrfache Streuung (Airlight), natürlichere Entsättigung und Blau-Verschiebung. Erzeugt weichere Farbverläufe und stärkere Tiefenwahrnehmung.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
