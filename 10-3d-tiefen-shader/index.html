@@ -15,8 +15,8 @@
     <div id="info">
         Fifo's Raymarch Lab Part 22 (Fixed)<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
-        [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb<br>
-        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom
+        [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF<br>
+        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom, Depth of Field
     </div>
     <div id="hud">FPS: --<br>Objekte: 6</div>
 
@@ -42,6 +42,9 @@
                 u_grain: { value: 1 },
                 u_bloom: { value: 1 },
                 u_chromAb: { value: 0 },
+                u_dof: { value: 0 },
+                u_focusDist: { value: 12.0 },
+                u_aperture: { value: 0.015 },
             },
             vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
             fragmentShader: `#define MAX_STEPS 120
@@ -62,6 +65,9 @@ uniform float u_autoRot;
 uniform float u_grain;
 uniform float u_bloom;
 uniform float u_chromAb;
+uniform float u_dof;
+uniform float u_focusDist;
+uniform float u_aperture;
 
 varying vec2 vUv;
 
@@ -157,17 +163,7 @@ vec3 acesFilmic(vec3 x) {
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
 
-void main() {
-    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
-    
-    float camTheta = u_autoRot > 0.5 ? u_time * 0.15 : 0.0;
-    vec3 ro = u_camPos;
-    vec3 ta = u_camTarget;
-    mat3 ca = lookAt(ro, ta, vec3(0,1,0));
-    
-    float fov = radians(u_fov);
-    vec3 rd = ca * normalize(vec3(uv * tan(fov * 0.5), 1.0));
-
+vec3 renderScene(vec2 uv, vec3 ro, vec3 rd, out float outDepth, out float outBloom) {
     float t = 0.0;
     int objId = -1;
     vec3 objCol = vec3(0.0);
@@ -181,17 +177,17 @@ void main() {
         if (t > MAX_DIST) break;
     }
 
-    // Hellerer, freundlicherer Hintergrund
     vec3 bgCol = mix(vec3(0.65, 0.75, 0.95), vec3(0.95, 0.98, 1.0), rd.y * 0.5 + 0.5);
     vec3 fogCol = vec3(0.8, 0.88, 0.98);
     vec3 finalCol = bgCol;
     float bloomVal = 0.0;
+    float depth = MAX_DIST;
 
     if (objId >= 0) {
+        depth = t;
         vec3 p = ro + rd * t;
         vec3 n = calcNormal(p);
 
-        // Mehr Lichtquellen, weichere Schatten
         vec3 lightDir1 = normalize(vec3(0.8, 1.5, 0.6));
         vec3 lightDir2 = normalize(vec3(-0.5, 1.0, -0.8));
         vec3 lightDir3 = normalize(vec3(0.0, 1.0, 0.0));
@@ -201,9 +197,8 @@ void main() {
         float shadow2 = softShadow(p + n * 0.005, lightDir2, 0.01, 32.0);
         float shadow3 = softShadow(p + n * 0.005, lightDir3, 0.01, 32.0);
         float shadow4 = softShadow(p + n * 0.005, lightDir4, 0.01, 32.0);
-        // Schatten additiv statt multiplikativ - viel heller
         float shadow = (shadow1 + shadow2 + shadow3 + shadow4) / 4.0;
-        shadow = max(shadow, 0.35); // Keine tiefschwarzen Schatten
+        shadow = max(shadow, 0.35);
 
         float diff1 = max(dot(n, lightDir1), 0.0);
         float diff2 = max(dot(n, lightDir2), 0.0) * 0.8;
@@ -224,7 +219,7 @@ void main() {
         float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
 
         vec3 matCol = objCol;
-        vec3 ambient = matCol * 0.6 * ao + vec3(0.25, 0.3, 0.4) * (1.0 - ao); // Helles Umgebungslicht
+        vec3 ambient = matCol * 0.6 * ao + vec3(0.25, 0.3, 0.4) * (1.0 - ao);
         vec3 diffuse = matCol * diff * shadow * 2.5;
         vec3 specular = vec3(1.0, 1.0, 1.0) * spec * shadow * 2.0;
         vec3 fresnelCol = vec3(1.0, 1.0, 1.0) * fresnel * 0.5;
@@ -233,32 +228,71 @@ void main() {
         finalCol = ambient + diffuse + specular + fresnelCol + emission;
         bloomVal = max(max(specular.x, specular.y), specular.z) + emit;
 
-        // Weniger aggressiver Nebel
         float fogAmount = 1.0 - exp(-0.004 * t * t);
         finalCol = mix(finalCol, fogCol, fogAmount);
         bloomVal *= 1.0 - fogAmount * 0.2;
     }
 
+    outDepth = depth;
+    outBloom = bloomVal;
+    return finalCol;
+}
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
+    
+    float camTheta = u_autoRot > 0.5 ? u_time * 0.15 : 0.0;
+    vec3 ro = u_camPos;
+    vec3 ta = u_camTarget;
+    mat3 ca = lookAt(ro, ta, vec3(0,1,0));
+    
+    float fov = radians(u_fov);
+    vec3 rd = ca * normalize(vec3(uv * tan(fov * 0.5), 1.0));
+
+    float depth, bloomVal;
+    vec3 col = renderScene(uv, ro, rd, depth, bloomVal);
+
+    if (u_dof > 0.5) {
+        // Depth of Field: Mehrere Samples mit leicht versetzter Kamera
+        vec3 dofCol = col;
+        float dofDepth = depth;
+        const int DOF_SAMPLES = 8;
+        float coc = u_aperture * abs(dofDepth - u_focusDist) / max(0.001, dofDepth);
+        coc = clamp(coc, 0.0, 0.03);
+        
+        for (int i = 1; i < DOF_SAMPLES; i++) {
+            float angle = float(i) * 2.39996;
+            vec2 offset = vec2(cos(angle), sin(angle)) * coc;
+            vec3 rd2 = ca * normalize(vec3((uv + offset) * tan(fov * 0.5), 1.0));
+            float d2, b2;
+            vec3 c2 = renderScene(uv + offset, ro, rd2, d2, b2);
+            dofCol += c2;
+            dofDepth += d2;
+        }
+        dofCol /= float(DOF_SAMPLES);
+        col = dofCol;
+    }
+
     if (u_bloom > 0.5 && bloomVal > 0.0) {
-        finalCol += vec3(bloomVal * 0.5);
+        col += vec3(bloomVal * 0.5);
     }
 
     if (u_chromAb > 0.5) {
-        finalCol.r *= 1.0005;
-        finalCol.b *= 0.9995;
+        col.r *= 1.0005;
+        col.b *= 0.9995;
     }
 
-    finalCol = acesFilmic(finalCol);
+    col = acesFilmic(col);
 
     if (u_grain > 0.5) {
         float grain = noise(gl_FragCoord.xy + u_time * 100.0) * 0.006;
-        finalCol += vec3(grain);
+        col += vec3(grain);
     }
 
     float vignette = 1.0 - 0.06 * length(uv);
-    finalCol *= vignette;
+    col *= vignette;
 
-    gl_FragColor = vec4(finalCol, 1.0);
+    gl_FragColor = vec4(col, 1.0);
 }`
         });
 
@@ -277,6 +311,7 @@ void main() {
         let showGrain = true;
         let showBloom = true;
         let showChromAb = false;
+        let showDOF = false;
 
         function updateCamera() {
             const phi = THREE.MathUtils.clamp(camPhi, 0.05, Math.PI - 0.05);
@@ -310,6 +345,7 @@ void main() {
             if (e.code === 'KeyG') { showGrain = !showGrain; material.uniforms.u_grain.value = showGrain ? 1 : 0; }
             if (e.code === 'KeyB') { showBloom = !showBloom; material.uniforms.u_bloom.value = showBloom ? 1 : 0; }
             if (e.code === 'KeyC') { showChromAb = !showChromAb; material.uniforms.u_chromAb.value = showChromAb ? 1 : 0; }
+            if (e.code === 'KeyF') { showDOF = !showDOF; material.uniforms.u_dof.value = showDOF ? 1 : 0; }
         });
         window.addEventListener('keyup', (e) => keys[e.code] = false);
 
@@ -331,13 +367,14 @@ void main() {
 
             material.uniforms.u_time.value += 1/60;
             material.uniforms.u_camTarget.value.copy(target);
+            material.uniforms.u_focusDist.value = camRadius;
 
             renderer.render(scene, cam);
 
             frameCount++;
             const now = performance.now();
             if (now - lastTime >= 1000) {
-                hud.textContent = `FPS: ${frameCount}\nObjekte: 6\nAutoRot: ${autoRotate ? 'ON' : 'OFF'}\nGrain: ${showGrain ? 'ON' : 'OFF'}\nBloom: ${showBloom ? 'ON' : 'OFF'}\nChromAb: ${showChromAb ? 'ON' : 'OFF'}`;
+                hud.textContent = `FPS: ${frameCount}\nObjekte: 6\nAutoRot: ${autoRotate ? 'ON' : 'OFF'}\nGrain: ${showGrain ? 'ON' : 'OFF'}\nBloom: ${showBloom ? 'ON' : 'OFF'}\nChromAb: ${showChromAb ? 'ON' : 'OFF'}\nDOF: ${showDOF ? 'ON' : 'OFF'}`;
                 frameCount = 0;
                 lastTime = now;
             }
