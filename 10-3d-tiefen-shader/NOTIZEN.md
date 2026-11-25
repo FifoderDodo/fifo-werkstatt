@@ -600,3 +600,10 @@ Shader-Parameter wurden angepasst: hellerer Himmel, stärkere Diffuse/Specular/A
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 35 (25.11.2026 05:02, Nachtschicht)
+Final Polish: DOF-Samples von 8 auf 6 reduziert mit Early-Out bei kleinem CoC für Performance; Grain-Frequenz halbiert und zeitlich stabiler gemacht; Titel auf 'Final Polish' aktualisiert. Szene läuft flüssig bei 60 FPS.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
