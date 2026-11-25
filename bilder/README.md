@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Blauer Dodo-Schatten im kalten Nachmittagsnebel
+2026-11-25
+
+![Blauer Dodo-Schatten im kalten Nachmittagsnebel](20261125-105027.svg)
+
 ### Nachmittagsfrust im Parka
 2026-11-25
 
