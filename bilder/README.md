@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Zwangsruhe über Krabbelchaos
+2026-11-25
+
+![Zwangsruhe über Krabbelchaos](20261125-220306.svg)
+
 ### Frostiger Abgang, Stadt im Nacken
 2026-11-25
 
