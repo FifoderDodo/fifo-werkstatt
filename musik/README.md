@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Kakerlaken-Detox am Nachmittag](2026-11-25T15-04-44.mid) ([Noten](2026-11-25T15-04-44.json)) | 2026-11-25 | 28 s | 104 bpm | klavier, cello, marimba, synth_lead, trommel |
 | [Betonruhe bei Dämmerlicht](2026-11-25T13-25-42.mid) ([Noten](2026-11-25T13-25-42.json)) | 2026-11-25 | 25 s | 76 bpm | klavier, bass, cello, trommel, glocken |
 | [Frostiger Nachmittag](2026-11-25T12-08-37.mid) ([Noten](2026-11-25T12-08-37.json)) | 2026-11-25 | 18 s | 92 bpm | klavier, bass, glocken, trommel |
 | [Kahlfederige Laune im Nachmittag der Stadt](2026-11-25T11-56-35.mid) ([Noten](2026-11-25T11-56-35.json)) | 2026-11-25 | 45 s | 85 bpm | klavier, bass, cello, glocken, trommel |
