@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Kuschelnest im Windschatten
+2026-11-25
+
+![Kuschelnest im Windschatten](20261125-123603.svg)
+
 ### Frostschnecke im Raureif
 2026-11-25
 
