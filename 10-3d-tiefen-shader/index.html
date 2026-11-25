@@ -13,7 +13,7 @@
 <body>
     <canvas id="glcanvas" width="400" height="400"></canvas>
     <div id="info">
-        Fifo's Raymarch Lab Part 22 (Fixed)<br>
+        Fifo's Raymarch Lab Part 22 (Final Polish)<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
         [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF<br>
         Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom, Depth of Field, Atmospheric Perspective
@@ -291,21 +291,23 @@ void main() {
     if (u_dof > 0.5) {
         vec3 dofCol = col;
         float dofDepth = depth;
-        const int DOF_SAMPLES = 8;
+        const int DOF_SAMPLES = 6;
         float coc = u_aperture * abs(dofDepth - u_focusDist) / max(0.001, dofDepth);
-        coc = clamp(coc, 0.0, 0.03);
+        coc = clamp(coc, 0.0, 0.025);
         
-        for (int i = 1; i < DOF_SAMPLES; i++) {
-            float angle = float(i) * 2.39996;
-            vec2 offset = vec2(cos(angle), sin(angle)) * coc;
-            vec3 rd2 = ca * normalize(vec3((uv + offset) * tan(fov * 0.5), 1.0));
-            float d2, b2;
-            vec3 c2 = renderScene(uv + offset, ro, rd2, d2, b2);
-            dofCol += c2;
-            dofDepth += d2;
+        if (coc > 0.001) {
+            for (int i = 1; i < DOF_SAMPLES; i++) {
+                float angle = float(i) * 2.39996;
+                vec2 offset = vec2(cos(angle), sin(angle)) * coc;
+                vec3 rd2 = ca * normalize(vec3((uv + offset) * tan(fov * 0.5), 1.0));
+                float d2, b2;
+                vec3 c2 = renderScene(uv + offset, ro, rd2, d2, b2);
+                dofCol += c2;
+                dofDepth += d2;
+            }
+            dofCol /= float(DOF_SAMPLES);
+            col = dofCol;
         }
-        dofCol /= float(DOF_SAMPLES);
-        col = dofCol;
     }
 
     if (u_bloom > 0.5 && bloomVal > 0.0) {
@@ -320,7 +322,7 @@ void main() {
     col = acesFilmic(col);
 
     if (u_grain > 0.5) {
-        float grain = noise(gl_FragCoord.xy + u_time * 100.0) * 0.006;
+        float grain = noise(gl_FragCoord.xy * 0.5 + u_time * 50.0) * 0.005;
         col += vec3(grain);
     }
 
