@@ -663,3 +663,10 @@ Fragment-Shader erweitert: Soft Shadows, Ambient Occlusion, Fresnel, ACES Tonema
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 44 (25.11.2026 07:45, Nachtschicht)
+DOF (Depth of Field) und Bloom implementiert. Auto-Rotation nutzt jetzt u_autoRot Uniform. Chromatic Aberration korrigiert (nutzt Tiefendifferenz statt falschem Sampling). Depth-Shader speichert Depth in R und G für Bloom-Sampling. Titel auf Part 24 aktualisiert. (Versuch verworfen)
+
+```
+Auf dem Bild ist kaum etwas zu erkennen (Die 3D-Szene ist komplett schwarz und enthält keine erkennbaren Inhalte.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
+```
