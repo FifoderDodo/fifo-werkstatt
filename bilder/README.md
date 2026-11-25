@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Abgang, Stadt im Nacken
+2026-11-25
+
+![Frostiger Abgang, Stadt im Nacken](20261125-212107.svg)
+
 ### Genervter Feierabend auf der Wildwiese
 2026-11-25
 
