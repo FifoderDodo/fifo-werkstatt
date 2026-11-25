@@ -164,12 +164,13 @@ float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
 
 // Atmosphärische Perspektive: Farb-Entsättigung und Blau-Verschiebung mit Distanz
-vec3 atmosphericPerspective(vec3 col, float dist, vec3 viewDir) {
+vec3 atmosphericPerspective(vec3 col, float dist, vec3 ro, vec3 rd) {
     // Distanz-basierter Faktor (0 = nah, 1 = fern)
     float fogFactor = 1.0 - exp(-0.0015 * dist * dist);
     
-    // Höhe des Punkts beeinflusst Nebeldichte (höher = weniger Nebel)
-    float heightFactor = 1.0 - smoothstep(-2.0, 5.0, viewDir.y * dist);
+    // Welt-Höhe des Punkts beeinflusst Nebeldichte (höher = weniger Nebel)
+    float worldHeight = ro.y + rd.y * dist;
+    float heightFactor = 1.0 - smoothstep(-2.0, 5.0, worldHeight);
     fogFactor *= heightFactor;
     
     // Ziel-Farbe: entsättigt, blauer, heller (Himmelsfarbe)
@@ -247,10 +248,13 @@ vec3 renderScene(vec2 uv, vec3 ro, vec3 rd, out float outDepth, out float outBlo
         vec3 emission = matCol * emit;
 
         finalCol = ambient + diffuse + specular + fresnelCol + emission;
-        bloomVal = max(max(specular.x, specular.y), specular.z) + emit;
+        
+        // Bloom-Schwellenwert: nur helle Bereiche (Emission + starkes Spekulär)
+        float bright = max(max(specular.x, specular.y), specular.z) + emit;
+        bloomVal = smoothstep(0.8, 1.5, bright) * bright;
 
         // Atmosphärische Perspektive anwenden (vor Fog-Mixing für korrekte Tiefe)
-        finalCol = atmosphericPerspective(finalCol, t, rd);
+        finalCol = atmosphericPerspective(finalCol, t, ro, rd);
         
         float fogAmount = 1.0 - exp(-0.004 * t * t);
         finalCol = mix(finalCol, fogCol, fogAmount);
