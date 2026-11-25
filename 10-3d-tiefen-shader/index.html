@@ -84,12 +84,27 @@ float sdTorus(vec3 p, vec2 t) { vec2 q = vec2(length(p.xz) - t.x, p.y); return l
 float sdPlane(vec3 p, vec3 n, float h) { return dot(p, n) + h; }
 float sdCylinder(vec3 p, vec2 h) { vec2 d = vec2(length(p.xz) - h.x, abs(p.y) - h.y); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
 
+// Procedurales Grid-Pattern für den Boden
+float gridPattern(vec3 p, float scale, float lineWidth) {
+    vec2 uv = p.xz * scale;
+    vec2 gv = fract(uv) - 0.5;
+    vec2 lines = step(vec2(lineWidth), abs(gv));
+    return 1.0 - lines.x * lines.y;
+}
+
 float map(vec3 p, out int objId, out vec3 objCol, out float emit) {
     objId = -1; objCol = vec3(0.0); emit = 0.0;
     float d = 1e9; int id = -1; vec3 col = vec3(0.0); float em = 0.0;
 
+    // Boden mit subtiler Grid-Textur für bessere Tiefenwahrnehmung
     float dPlane = sdPlane(p, vec3(0,1,0), 1.5);
-    if (dPlane < d) { d = dPlane; id = 0; col = vec3(0.45, 0.55, 0.7); }
+    if (dPlane < d) { 
+        d = dPlane; 
+        id = 0; 
+        // Subtiles Grid-Pattern im Albedo
+        float grid = gridPattern(p, 0.5, 0.02);
+        col = mix(vec3(0.45, 0.55, 0.7), vec3(0.4, 0.5, 0.65), grid * 0.3);
+    }
 
     vec3 pBox = p - vec3(0.0, 0.5, 0.0);
     float twist = u_time * 0.3;
