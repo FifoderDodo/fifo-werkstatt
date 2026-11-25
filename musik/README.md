@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Verlassene Betonlandschaft](2026-11-25T09-30-24.mid) ([Noten](2026-11-25T09-30-24.json)) | 2026-11-25 | 35 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Eisiger Nachmittag in der Betonstadt](2026-11-25T09-12-49.mid) ([Noten](2026-11-25T09-12-49.json)) | 2026-11-25 | 40 s | 95 bpm | klavier, bass, trommel, glocken |
 | [Abendnebel-Flirren](2026-11-24T19-49-49.mid) ([Noten](2026-11-24T19-49-49.json)) | 2026-11-24 | 25 s | 78 bpm | klavier, bass, trommel, glocken |
 | [Stadtnachmittag-Flüster](2026-11-24T17-56-08.mid) ([Noten](2026-11-24T17-56-08.json)) | 2026-11-24 | 18 s | 85 bpm | klavier, bass, trommel, glocken |
