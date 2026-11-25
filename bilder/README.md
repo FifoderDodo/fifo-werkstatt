@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Asphalt-Patzer & Nachmittagsgrau
+2026-11-25
+
+![Asphalt-Patzer & Nachmittagsgrau](20261125-191640.svg)
+
 ### Asphalt & Trotz
 2026-11-25
 
