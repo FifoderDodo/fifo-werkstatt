@@ -2,7 +2,7 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
     <meta charset="UTF-8">
-    <title>Fifos 3D-Tiefen-Shader Part 23</title>
+    <title>Fifos 3D-Tiefen-Shader Part 24</title>
     <style>
         body { margin: 0; background: #2a2a4e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #fff; overflow: hidden; }
         canvas { border: 2px solid #666; box-shadow: 0 0 30px #000; display: block; }
@@ -13,12 +13,12 @@
 <body>
     <canvas id="glcanvas" width="400" height="400"></canvas>
     <div id="info">
-        Fifo's Raymarch Lab Part 23 (Soft Shadows + AO + Fresnel + ACES)<br>
+        Fifo's Raymarch Lab Part 24 (Moon + Stars + Animated Objects)<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
         [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF | [V] Volumetric
     </div>
     <div id="hud">FPS: 60
-Objekte: 6</div>
+Objekte: 5</div>
 
     <script type="module">
         import { createDepthShader } from "./shaderUtils.js";
@@ -76,11 +76,29 @@ varying vec2 vUv;
 
 float sdSphere(vec3 p, float r) { return length(p) - r; }
 float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0); }
+float sdCapsule(vec3 p, vec3 a, vec3 b, float r) { vec3 pa = p - a; vec3 ba = b - a; float h = clamp(dot(pa,ba)/dot(ba,ba), 0.0, 1.0); return length(pa - ba*h) - r; }
+
+mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+mat3 rotX(float a) { float c = cos(a), s = sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
 
 float map(vec3 p) {
     float d = sdSphere(p, 2.0);
-    d = min(d, sdBox(p - vec3(3.0, 0.0, 0.0), vec3(1.5)));
-    d = min(d, sdBox(p - vec3(-3.0, 0.0, 0.0), vec3(1.5)));
+    
+    vec3 p1 = p - vec3(3.0, 0.0, 0.0);
+    p1 = rotY(u_time * 0.3) * p1;
+    d = min(d, sdBox(p1, vec3(1.5)));
+    
+    vec3 p2 = p - vec3(-3.0, 0.0, 0.0);
+    p2 = rotY(-u_time * 0.25) * rotX(u_time * 0.15) * p2;
+    d = min(d, sdBox(p2, vec3(1.5)));
+    
+    // Two new small orbiting spheres
+    vec3 orbit1 = vec3(sin(u_time) * 4.0, 1.5 + sin(u_time * 0.7) * 0.8, cos(u_time) * 4.0);
+    d = min(d, sdSphere(p - orbit1, 0.6));
+    
+    vec3 orbit2 = vec3(sin(u_time * 1.3 + 2.0) * 3.5, 2.0 + cos(u_time * 0.5) * 1.0, cos(u_time * 1.3 + 2.0) * 3.5);
+    d = min(d, sdSphere(p - orbit2, 0.5));
+    
     return d;
 }
 
@@ -128,6 +146,17 @@ vec3 acesFilmic(vec3 x) {
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
 
+// Star field noise
+float stars(vec2 uv, float time) {
+    vec2 gv = fract(uv) - 0.5;
+    vec2 id = floor(uv);
+    float h = hash(id);
+    float star = smoothstep(0.98, 1.0, h);
+    float twinkle = 0.5 + 0.5 * sin(time * 2.0 + h * 6.28);
+    float dist = length(gv);
+    return star * twinkle * smoothstep(0.02, 0.0, dist);
+}
+
 void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
     vec3 ro = u_camPos;
@@ -138,6 +167,16 @@ void main() {
     float fov = radians(u_fov);
     vec3 rd = normalize((r * uv.x + u * uv.y) * tan(fov * 0.5) + f);
     
+    // Moon direction (fixed in sky)
+    vec3 moonDir = normalize(vec3(0.3, 0.8, -0.5));
+    float moonDot = max(dot(rd, moonDir), 0.0);
+    float moonGlow = pow(moonDot, 256.0) * 2.5;
+    float moonHalo = pow(moonDot, 32.0) * 0.3;
+    
+    // Star field
+    vec2 starUv = rd.xz * 3.0 + u_time * 0.01;
+    float starField = stars(starUv, u_time) * (1.0 - rd.y * 0.5);
+    
     float t = 0.0;
     float d = 0.0;
     for(int i = 0; i < MAX_STEPS; i++) {
@@ -147,8 +186,9 @@ void main() {
         t += d;
     }
     
-    // Brighter sky background with gradient
-    vec3 col = mix(vec3(0.15, 0.2, 0.35), vec3(0.4, 0.5, 0.7), rd.y * 0.5 + 0.5);
+    // Brighter sky background with gradient + moon + stars
+    vec3 skyBase = mix(vec3(0.15, 0.2, 0.35), vec3(0.4, 0.5, 0.7), rd.y * 0.5 + 0.5);
+    vec3 col = skyBase + vec3(moonGlow) + vec3(moonHalo) * vec3(1.0, 0.95, 0.8) + vec3(starField);
     float depth = 1.0;
     
     if(t < MAX_DIST) {
@@ -157,21 +197,39 @@ void main() {
         depth = t / MAX_DIST;
         
         vec3 lightDir = normalize(vec3(2.0, 3.0, -1.0));
+        vec3 moonLightDir = moonDir;
         vec3 viewDir = -rd;
         
         float shadow = softShadow(p + n * 0.01, lightDir, 0.1, 30.0, 16.0);
+        float moonShadow = softShadow(p + n * 0.01, moonLightDir, 0.1, 50.0, 8.0);
         float ao = ambientOcclusion(p, n);
         
         float diff = max(dot(n, lightDir), 0.0);
+        float moonDiff = max(dot(n, moonLightDir), 0.0) * 0.4;
         float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
         
-        // Stronger, more vibrant colors
-        vec3 baseCol = vec3(1.0, 0.55, 0.35);
+        // Determine object color by position
+        vec3 baseCol;
+        if (length(p) < 2.5) {
+            baseCol = vec3(1.0, 0.55, 0.35); // Main sphere - warm orange
+        } else if (p.x > 0.0) {
+            baseCol = vec3(0.4, 0.7, 1.0); // Right box - cool blue
+        } else {
+            baseCol = vec3(0.8, 0.4, 0.6); // Left box - magenta
+        }
+        
+        // Orbiting spheres get special colors
+        float dOrbit1 = sdSphere(p - vec3(sin(u_time) * 4.0, 1.5 + sin(u_time * 0.7) * 0.8, cos(u_time) * 4.0), 0.6);
+        float dOrbit2 = sdSphere(p - vec3(sin(u_time * 1.3 + 2.0) * 3.5, 2.0 + cos(u_time * 0.5) * 1.0, cos(u_time * 1.3 + 2.0) * 3.5), 0.5);
+        if (dOrbit1 < 0.01) baseCol = vec3(1.0, 0.9, 0.4); // Yellow glow
+        if (dOrbit2 < 0.01) baseCol = vec3(0.4, 1.0, 0.8); // Cyan glow
+        
         vec3 ambientCol = vec3(0.2, 0.3, 0.5);
         
-        col = baseCol * diff * shadow * ao * 1.5;
+        col = baseCol * (diff * shadow + moonDiff * moonShadow) * ao * 1.5;
         col += ambientCol * ao * 0.8;
         col += vec3(1.0, 0.9, 0.7) * fresnel * 0.4;
+        col += vec3(1.0, 0.95, 0.8) * moonDiff * moonShadow * 0.3;
         
         if(u_volumetric > 0.5) {
             float vol = 0.0;
@@ -186,6 +244,7 @@ void main() {
                 if(vt > t) break;
             }
             col += vec3(0.8, 0.6, 0.4) * vol * shadow;
+            col += vec3(0.6, 0.7, 1.0) * vol * moonShadow * 0.2;
         }
     }
     
@@ -270,7 +329,7 @@ void main() {
             renderer.render(scene, cam);
             
             document.getElementById('hud').textContent = `FPS: ${Math.round(1/dt)}
-Objekte: 3`;
+Objekte: 5`;
         }
         animate();
 
