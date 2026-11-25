@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Betonfrust in C](2026-11-25T21-07-15.mid) ([Noten](2026-11-25T21-07-15.json)) | 2026-11-25 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Betonfrust am Vorabend](2026-11-25T20-32-40.mid) ([Noten](2026-11-25T20-32-40.json)) | 2026-11-25 | 31 s | 92 bpm | klavier, bass, cello, trommel |
 | [Stadtflimmern](2026-11-25T19-03-43.mid) ([Noten](2026-11-25T19-03-43.json)) | 2026-11-25 | 17 s | 112 bpm | klavier, cello, marimba, synth_lead, trommel, glocken |
 | [Stadthitze Flaue](2026-11-25T18-49-26.mid) ([Noten](2026-11-25T18-49-26.json)) | 2026-11-25 | 25 s | 68 bpm | klavier, bass, trommel, gitarre, cello |
