@@ -691,3 +691,10 @@ Part 47 successfully verified. Stable night atmosphere, glowing moon, stars, and
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 48 (25.11.2026 10:26)
+Atmosphärische Beleuchtung deutlich verbessert: Mehrstufiger Sky-Gradient mit Rayleigh-Streuung (blauer Zenit, warmer Horizont), farbige volumetrische Streuung (warmes Sonnenlicht, kühles Mondlicht), aerial perspective, Rim-Lighting, Subsurface-Hint, Color-Grading mit Shadow-Lift (blau) und Highlight-Warmth, dezente Vignette. Die Farbverläufe wirken nun lebendiger und räumlicher.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
