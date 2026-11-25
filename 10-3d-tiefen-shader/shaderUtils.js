@@ -5,6 +5,7 @@ export function createDepthShader() {
         uniform vec3 u_camTarget;
         uniform float u_fov;
         uniform float u_time;
+        uniform vec2 u_resolution;
         varying vec2 vUv;
         float sdSphere(vec3 p, float r) { return length(p) - r; }
         float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0); }
@@ -15,7 +16,7 @@ export function createDepthShader() {
             return d;
         }
         void main() {
-            vec2 uv = (gl_FragCoord.xy - 0.5 * vec2(400.0)) / 400.0;
+            vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
             vec3 ro = u_camPos;
             vec3 ta = u_camTarget;
             vec3 f = normalize(ta - ro);
