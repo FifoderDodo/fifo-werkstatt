@@ -607,3 +607,10 @@ Final Polish: DOF-Samples von 8 auf 6 reduziert mit Early-Out bei kleinem CoC f�
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 36 (25.11.2026 05:17, Nachtschicht)
+Three.js Modul-Import korrigiert, damit das Projekt fehlerfrei im Browser lädt. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
