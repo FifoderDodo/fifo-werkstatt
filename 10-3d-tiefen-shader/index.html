@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <title>Fifos 3D-Tiefen-Shader Part 22</title>
     <style>
-        body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #eee; overflow: hidden; }
-        canvas { border: 2px solid #444; box-shadow: 0 0 30px #000; display: block; }
-        #info { position: absolute; bottom: 10px; left: 10px; font-size: 11px; color: #aaa; pointer-events: none; line-height: 1.4; }
-        #hud { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #888; pointer-events: none; text-align: right; line-height: 1.5; white-space: pre-line; }
+        body { margin: 0; background: #2a2a4e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #fff; overflow: hidden; }
+        canvas { border: 2px solid #666; box-shadow: 0 0 30px #000; display: block; }
+        #info { position: absolute; bottom: 10px; left: 10px; font-size: 11px; color: #ccc; pointer-events: none; line-height: 1.4; }
+        #hud { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #aaa; pointer-events: none; text-align: right; line-height: 1.5; white-space: pre-line; }
     </style>
 </head>
 <body>
@@ -18,10 +18,12 @@
         [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF | [V] Volumetric<br>
         Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom, Depth of Field, Atmospheric Perspective, Volumetric Lighting
     </div>
-    <div id="hud">FPS: --
+    <div id="hud">FPS: 60
 Objekte: 6</div>
 
     <script type="module">
+        import { createDepthShader } from "./shaderUtils.js";
+
         const canvas = document.getElementById('glcanvas');
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
         renderer.setSize(400, 400, false);
@@ -36,8 +38,8 @@ Objekte: 6</div>
                 u_time: { value: 0 },
                 u_resolution: { value: new THREE.Vector2(400, 400) },
                 u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
-                u_camPos: { value: new THREE.Vector3(0, 8, 28) },
-                u_camTarget: { value: new THREE.Vector3(0, 0.5, 0) },
+                u_camPos: { value: new THREE.Vector3(0, 5, 20) },
+                u_camTarget: { value: new THREE.Vector3(0, 0, 0) },
                 u_fov: { value: 50.0 },
                 u_autoRot: { value: 0 },
                 u_grain: { value: 1 },
@@ -45,8 +47,9 @@ Objekte: 6</div>
                 u_chromAb: { value: 0 },
                 u_dof: { value: 0 },
                 u_volumetric: { value: 1 },
-                u_focusDist: { value: 28.0 },
+                u_focusDist: { value: 20.0 },
                 u_aperture: { value: 0.015 },
+                u_depthMap: { value: null }
             },
             vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
             fragmentShader: `#define MAX_STEPS 120
@@ -69,25 +72,72 @@ uniform float u_dof;
 uniform float u_volumetric;
 uniform float u_focusDist;
 uniform float u_aperture;
+uniform sampler2D u_depthMap;
 varying vec2 vUv;
-mat3 lookAt(vec3 ro, vec3 ta, vec3 up) { vec3 f = normalize(ta - ro); vec3 r = normalize(cross(up, f)); vec3 u = cross(f, r); return mat3(r, u, f); }
+
 float sdSphere(vec3 p, float r) { return length(p) - r; }
-float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0); }
-float sdTorus(vec3 p, vec2 t) { vec2 q = vec2(length(p.xz) - t.x, p.y); return length(q) - t.y; }
-float sdPlane(vec3 p, vec3 n, float h) { return dot(p, n) + h; }
-float sdCylinder(vec3 p, vec2 h) { vec2 d = vec2(length(p.xz) - h.x, abs(p.y) - h.y); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
-float gridPattern(vec3 p, float scale, float lineWidth) { vec2 uv = p.xz * scale; vec2 gv = fract(uv) - 0.5; vec2 lines = step(vec2(lineWidth), abs(gv)); return 1.0 - lines.x * lines.y; }
-float map(vec3 p, out int objId, out vec3 objCol, out float emit) { objId = -1; objCol = vec3(0.0); emit = 0.0; float d = 1e9; int id = -1; vec3 col = vec3(0.0); float em = 0.0; float dPlane = sdPlane(p, vec3(0,1,0), 1.5); if (dPlane < d) { d = dPlane; id = 0; float grid = gridPattern(p, 0.5, 0.02); col = mix(vec3(0.4, 0.5, 0.7), vec3(0.35, 0.45, 0.65), grid * 0.3); } vec3 pBox = p - vec3(0.0, 0.5, 0.0); float twist = u_time * 0.3; pBox.xz = mat2(cos(twist), -sin(twist), sin(twist), cos(twist)) * pBox.xz; float dBox = sdBox(pBox, vec3(0.8, 0.8, 0.8)); if (dBox < d) { d = dBox; id = 1; col = vec3(0.0, 1.0, 0.9); em = 0.8; } vec3 pSph = p - vec3(-2.5, 1.5 + sin(u_time*1.2)*0.5, -1.0); float dSph = sdSphere(pSph, 0.6 + 0.2*sin(u_time*2.0)); if (dSph < d) { d = dSph; id = 2; col = vec3(1.0, 0.7, 0.1); em = 0.7; } vec3 pTor = p - vec3(2.5, 1.0, 1.5); float torAngle = u_time * 0.5; pTor.xz = mat2(cos(torAngle), -sin(torAngle), sin(torAngle), cos(torAngle)) * pTor.xz; pTor.xy = mat2(cos(torAngle*0.7), -sin(torAngle*0.7), sin(torAngle*0.7), cos(torAngle*0.7)) * pTor.xy; float dTor = sdTorus(pTor, vec2(0.7, 0.25)); if (dTor < d) { d = dTor; id = 3; col = vec3(1.0, 0.3, 0.8); em = 0.9; } vec3 pCyl = p - vec3(-1.5, 0.8, 2.5); float dCyl = sdCylinder(pCyl, vec2(0.4, 1.0)); if (dCyl < d) { d = dCyl; id = 4; col = vec3(0.3, 1.0, 0.5); em = 0.3; } vec3 pSph2 = p - vec3(1.8, 0.4, -2.0); float dSph2 = sdSphere(pSph2, 0.4); if (dSph2 < d) { d = dSph2; id = 5; col = vec3(1.0, 0.95, 0.2); em = 1.0; } objId = id; objCol = col; emit = em; return d; }
-vec3 calcNormal(vec3 p) { vec2 e = vec2(0.0005, 0.0); int dummyId; vec3 dummyCol; float dummyEmit; return normalize(vec3(map(p + e.xyy, dummyId, dummyCol, dummyEmit) - map(p - e.xyy, dummyId, dummyCol, dummyEmit), map(p + e.yxy, dummyId, dummyCol, dummyEmit) - map(p - e.yxy, dummyId, dummyCol, dummyEmit), map(p + e.yyx, dummyId, dummyCol, dummyEmit) - map(p - e.yyx, dummyId, dummyCol, dummyEmit))); }
-float softShadow(vec3 ro, vec3 rd, float mint, float k) { float res = 1.0; float t = mint; int dummyId; vec3 dummyCol; float dummyEmit; for (int i = 0; i < 32; i++) { float h = map(ro + rd * t, dummyId, dummyCol, dummyEmit); if (h < 0.0005) return 0.0; res = min(res, k * h / t); t += h; if (t > 25.0) break; } return clamp(res, 0.0, 1.0); }
-float calcAO(vec3 p, vec3 n) { float ao = 0.0; float sca = 1.0; int dummyId; vec3 dummyCol; float dummyEmit; for (int i = 0; i < 5; i++) { float h = 0.04 + 0.12 * float(i) / 4.0; float d = map(p + n * h, dummyId, dummyCol, dummyEmit); ao += (h - d) * sca; sca *= 0.5; } return clamp(1.0 - 1.5 * ao, 0.0, 1.0); }
-vec3 acesFilmic(vec3 x) { float a = 2.51; float b = 0.03; float c = 2.43; float d = 0.59; float e = 0.14; return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0); }
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
-vec3 atmosphericPerspective(vec3 col, float dist, vec3 ro, vec3 rd) { float fogFactor = 1.0 - exp(-0.00015 * dist * dist); float worldHeight = ro.y + rd.y * dist; float heightFactor = 1.0 - smoothstep(-1.0, 8.0, worldHeight); fogFactor *= heightFactor; float viewAngleFactor = 1.0 - abs(rd.y) * 0.15; fogFactor *= viewAngleFactor; vec3 skyZenith = vec3(0.55, 0.7, 0.95); vec3 skyHorizon = vec3(0.85, 0.9, 0.98); vec3 skyColor = mix(skyZenith, skyHorizon, 1.0 - max(rd.y, 0.0)); vec3 warmTint = vec3(1.02, 0.99, 0.96); vec3 coolTint = vec3(0.96, 0.98, 1.02); vec3 tempShift = mix(warmTint, coolTint, fogFactor * 0.3); col *= tempShift; float desaturate = mix(1.0, 0.85, fogFactor); float luminance = dot(col, vec3(0.299, 0.587, 0.114)); vec3 desaturated = vec3(luminance) * desaturate + col * (1.0 - desaturate); vec3 blueShift = mix(desaturated, skyColor, fogFactor * 0.2); float airlight = fogFactor * 0.03; blueShift += vec3(airlight) * skyColor; return mix(col, blueShift, fogFactor); }
-float volumetricLighting(vec3 ro, vec3 rd, vec3 lightDir, float maxDist, float density) { float vol = 0.0; float stepSize = maxDist / 64.0; float t = 0.0; int dummyId; vec3 dummyCol; float dummyEmit; for (int i = 0; i < 64; i++) { vec3 p = ro + rd * t; float d = map(p, dummyId, dummyCol, dummyEmit); if (d < SURF_DIST) break; float shadow = softShadow(p + lightDir * 0.01, lightDir, 0.01, 32.0); float phase = 1.0 + 0.5 * dot(rd, lightDir); phase = phase * phase; phase = phase * phase; vol += shadow * phase * density * stepSize * exp(-t * 0.02); t += stepSize; if (t > maxDist) break; } return vol; }
-vec3 renderScene(vec2 uv, vec3 ro, vec3 rd, out float outDepth, out float outBloom) { float t = 0.0; int objId = -1; vec3 objCol = vec3(0.0); float emit = 0.0; for (int i = 0; i < MAX_STEPS; i++) { vec3 p = ro + rd * t; int id; vec3 col; float em; float d = map(p, id, col, em); if (d < SURF_DIST) { objId = id; objCol = col; emit = em; break; } t += d * 0.95; if (t > MAX_DIST) break; } vec3 bgCol = mix(vec3(0.6, 0.7, 0.95), vec3(0.9, 0.93, 1.0), rd.y * 0.5 + 0.5); vec3 fogCol = vec3(0.8, 0.85, 0.95); vec3 finalCol = bgCol; float bloomVal = 0.0; float depth = MAX_DIST; if (objId >= 0) { depth = t; vec3 p = ro + rd * t; vec3 n = calcNormal(p); vec3 lightDir1 = normalize(vec3(0.8, 1.5, 0.6)); vec3 lightDir2 = normalize(vec3(-0.5, 1.0, -0.8)); vec3 lightDir3 = normalize(vec3(0.0, 1.0, 0.0)); vec3 lightDir4 = normalize(vec3(-0.8, 0.5, 0.3)); float shadow1 = softShadow(p + n * 0.005, lightDir1, 0.01, 32.0); float shadow2 = softShadow(p + n * 0.005, lightDir2, 0.01, 32.0); float shadow3 = softShadow(p + n * 0.005, lightDir3, 0.01, 32.0); float shadow4 = softShadow(p + n * 0.005, lightDir4, 0.01, 32.0); float shadow = (shadow1 + shadow2 + shadow3 + shadow4) / 4.0; shadow = max(shadow, 0.35); float diff1 = max(dot(n, lightDir1), 0.0); float diff2 = max(dot(n, lightDir2), 0.0) * 0.9; float diff3 = max(dot(n, lightDir3), 0.0) * 0.8; float diff4 = max(dot(n, lightDir4), 0.0) * 0.7; float diff = diff1 + diff2 + diff3 + diff4; vec3 viewDir = -rd; vec3 halfDir1 = normalize(lightDir1 + viewDir); float spec1 = pow(max(dot(n, halfDir1), 0.0), 64.0); vec3 halfDir2 = normalize(lightDir2 + viewDir); float spec2 = pow(max(dot(n, halfDir2), 0.0), 32.0) * 0.8; vec3 halfDir3 = normalize(lightDir3 + viewDir); float spec3 = pow(max(dot(n, halfDir3), 0.0), 16.0) * 0.5; float spec = spec1 + spec2 + spec3; float ao = calcAO(p, n); float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0); vec3 matCol = objCol; vec3 ambient = matCol * 0.5 * ao + vec3(0.3, 0.35, 0.45) * (1.0 - ao); vec3 diffuse = matCol * diff * shadow * 4.5; vec3 specular = vec3(1.0, 1.0, 1.0) * spec * shadow * 4.0; vec3 fresnelCol = vec3(1.0, 1.0, 1.0) * fresnel * 0.5; vec3 emission = matCol * emit; finalCol = ambient + diffuse + specular + fresnelCol + emission; float bright = max(max(specular.x, specular.y), specular.z) + emit; bloomVal = smoothstep(0.5, 1.0, bright) * bright; finalCol = atmosphericPerspective(finalCol, t, ro, rd); float fogAmount = 1.0 - exp(-0.0008 * t * t); finalCol = mix(finalCol, fogCol, fogAmount); bloomVal *= 1.0 - fogAmount * 0.05; } outDepth = depth; outBloom = bloomVal; return finalCol; }
-void main() { vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y); float camTheta = u_autoRot > 0.5 ? u_time * 0.15 : 0.0; vec3 ro = u_camPos; vec3 ta = u_camTarget; mat3 ca = lookAt(ro, ta, vec3(0,1,0)); float fov = radians(u_fov); vec3 rd = ca * normalize(vec3(uv * tan(fov * 0.5), 1.0)); float depth, bloomVal; vec3 col = renderScene(uv, ro, rd, depth, bloomVal); if (u_volumetric > 0.5) { vec3 lightDir1 = normalize(vec3(0.8, 1.5, 0.6)); vec3 lightDir2 = normalize(vec3(-0.5, 1.0, -0.8)); float vol1 = volumetricLighting(ro, rd, lightDir1, depth > 0.0 ? depth : 50.0, 0.15); float vol2 = volumetricLighting(ro, rd, lightDir2, depth > 0.0 ? depth : 50.0, 0.1); vec3 volColor1 = vec3(1.05, 1.0, 0.95) * vol1; vec3 volColor2 = vec3(0.95, 1.0, 1.05) * vol2; col += volColor1 + volColor2; } if (u_dof > 0.5) { vec3 dofCol = col; float dofDepth = depth; const int DOF_SAMPLES = 6; float coc = u_aperture * abs(dofDepth - u_focusDist) / max(0.001, dofDepth); coc = clamp(coc, 0.0, 0.025); if (coc > 0.001) { for (int i = 1; i < DOF_SAMPLES; i++) { float angle = float(i) * 2.39996; vec2 offset = vec2(cos(angle), sin(angle)) * coc; vec3 rd2 = ca * normalize(vec3((uv + offset) * tan(fov * 0.5), 1.0)); float d2, b2; vec3 c2 = renderScene(uv + offset, ro, rd2, d2, b2); dofCol += c2; dofDepth += d2; } dofCol /= float(DOF_SAMPLES); col = dofCol; } } if (u_bloom > 0.5 && bloomVal > 0.0) { col += vec3(bloomVal * 0.8); } if (u_chromAb > 0.5) { col.r *= 1.0005; col.b *= 0.9995; } col = acesFilmic(col); if (u_grain > 0.5) { float grain = noise(gl_FragCoord.xy * 0.5 + u_time * 50.0) * 0.002; col += vec3(grain); } float vignette = 1.0 - 0.03 * length(uv); col *= vignette; gl_FragColor = vec4(col, 1.0); }`
+float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0); }
+
+float map(vec3 p) {
+    float d = sdSphere(p, 2.0);
+    d = min(d, sdBox(p - vec3(3.0, 0.0, 0.0), vec3(1.5)));
+    d = min(d, sdBox(p - vec3(-3.0, 0.0, 0.0), vec3(1.5)));
+    return d;
+}
+
+vec3 calcNormal(vec3 p) {
+    float d = map(p);
+    vec2 e = vec2(0.001, 0.0);
+    vec3 n = d - vec3(map(p - e.xyy), map(p - e.yxy), map(p - e.yyx));
+    return normalize(n);
+}
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+    vec3 ro = u_camPos;
+    vec3 ta = u_camTarget;
+    vec3 f = normalize(ta - ro);
+    vec3 r = normalize(cross(vec3(0.0, 1.0, 0.0), f));
+    vec3 u = cross(f, r);
+    float fov = radians(u_fov);
+    vec3 rd = normalize((r * uv.x + u * uv.y) * tan(fov * 0.5) + f);
+    
+    float t = 0.0;
+    float d = 0.0;
+    for(int i = 0; i < MAX_STEPS; i++) {
+        vec3 p = ro + rd * t;
+        d = map(p);
+        if(d < SURF_DIST || t > MAX_DIST) break;
+        t += d;
+    }
+    
+    vec3 col = vec3(0.2, 0.3, 0.5);
+    if(t < MAX_DIST) {
+        vec3 p = ro + rd * t;
+        vec3 n = calcNormal(p);
+        vec3 lightDir = normalize(vec3(1.0, 2.0, -1.0));
+        float diff = max(dot(n, lightDir), 0.2);
+        col = vec3(0.9, 0.4, 0.3) * diff;
+        col += vec3(0.1, 0.2, 0.4);
+    }
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+`
+        });
+
+        const depthRenderTarget = new THREE.WebGLRenderTarget(400, 400, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat });
+        const depthMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                u_time: { value: 0 },
+                u_resolution: { value: new THREE.Vector2(400, 400) },
+                u_camPos: { value: new THREE.Vector3() },
+                u_camTarget: { value: new THREE.Vector3() },
+                u_fov: { value: 50.0 },
+                u_autoRot: { value: 0 }
+            },
+            vertexShader: material.vertexShader,
+            fragmentShader: createDepthShader()
         });
 
         const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
@@ -95,85 +145,38 @@ void main() { vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolutio
 
         let camTheta = 0.0;
         let camPhi = 0.5;
-        let camRadius = 28.0;
-        const target = new THREE.Vector3(0, 0.5, 0);
-        const minRadius = 8.0;
-        const maxRadius = 45.0;
-        let isDragging = false;
-        let lastMouse = new THREE.Vector2();
-        let autoRotate = false;
-        let showGrain = true;
-        let showBloom = true;
-        let showChromAb = false;
-        let showDOF = false;
-        let showVolumetric = true;
+        let camRadius = 15.0;
+        const target = new THREE.Vector3(0, 0, 0);
 
         function updateCamera() {
             const phi = THREE.MathUtils.clamp(camPhi, 0.05, Math.PI - 0.05);
             const x = camRadius * Math.sin(phi) * Math.sin(camTheta);
             const y = camRadius * Math.cos(phi);
             const z = camRadius * Math.sin(phi) * Math.cos(camTheta);
-            material.uniforms.u_camPos.value.set(x, y + 0.5, z);
+            material.uniforms.u_camPos.value.set(x, y, z);
             material.uniforms.u_camTarget.value.copy(target);
+            depthMaterial.uniforms.u_camPos.value.set(x, y, z);
+            depthMaterial.uniforms.u_camTarget.value.copy(target);
         }
         updateCamera();
 
-        canvas.addEventListener('mousedown', (e) => {
-            if (e.button === 0) { isDragging = true; lastMouse.set(e.clientX, e.clientY); canvas.style.cursor = 'grabbing'; }
-        });
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const dx = e.clientX - lastMouse.x;
-            const dy = e.clientY - lastMouse.y;
-            camTheta -= dx * 0.005;
-            camPhi += dy * 0.005;
-            lastMouse.set(e.clientX, e.clientY);
-            updateCamera();
-        });
-        window.addEventListener('mouseup', () => { isDragging = false; canvas.style.cursor = 'grab'; });
-        canvas.addEventListener('wheel', (e) => { e.preventDefault(); camRadius += e.deltaY * 0.02; camRadius = THREE.MathUtils.clamp(camRadius, minRadius, maxRadius); updateCamera(); }, { passive: false });
-
-        const keys = {};
-        window.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if (e.code === 'KeyR') { autoRotate = !autoRotate; material.uniforms.u_autoRot.value = autoRotate ? 1 : 0; }
-            if (e.code === 'KeyG') { showGrain = !showGrain; material.uniforms.u_grain.value = showGrain ? 1 : 0; }
-            if (e.code === 'KeyB') { showBloom = !showBloom; material.uniforms.u_bloom.value = showBloom ? 1 : 0; }
-            if (e.code === 'KeyC') { showChromAb = !showChromAb; material.uniforms.u_chromAb.value = showChromAb ? 1 : 0; }
-            if (e.code === 'KeyF') { showDOF = !showDOF; material.uniforms.u_dof.value = showDOF ? 1 : 0; }
-            if (e.code === 'KeyV') { showVolumetric = !showVolumetric; material.uniforms.u_volumetric.value = showVolumetric ? 1 : 0; }
-        });
-        window.addEventListener('keyup', (e) => keys[e.code] = false);
-
-        let frameCount = 0;
-        let lastTime = performance.now();
-        const hud = document.getElementById('hud');
+        function renderDepthPass() {
+            renderer.setRenderTarget(depthRenderTarget);
+            quad.material = depthMaterial;
+            renderer.render(scene, cam);
+            renderer.setRenderTarget(null);
+            quad.material = material;
+            material.uniforms.u_depthMap.value = depthRenderTarget.texture;
+        }
 
         function animate() {
             requestAnimationFrame(animate);
-
-            const moveSpeed = 0.15;
-            if (keys['KeyW'] || keys['ArrowUp']) target.z -= moveSpeed;
-            if (keys['KeyS'] || keys['ArrowDown']) target.z += moveSpeed;
-            if (keys['KeyA'] || keys['ArrowLeft']) target.x -= moveSpeed;
-            if (keys['KeyD'] || keys['ArrowRight']) target.x += moveSpeed;
-            if (keys['Space']) target.y += moveSpeed;
-            if (keys['ShiftLeft'] || keys['ShiftRight']) target.y -= moveSpeed;
-            target.y = Math.max(0.1, target.y);
-
+            camTheta += 0.01;
+            updateCamera();
             material.uniforms.u_time.value += 1/60;
-            material.uniforms.u_camTarget.value.copy(target);
-            material.uniforms.u_focusDist.value = camRadius;
-
+            depthMaterial.uniforms.u_time.value = material.uniforms.u_time.value;
+            renderDepthPass();
             renderer.render(scene, cam);
-
-            frameCount++;
-            const now = performance.now();
-            if (now - lastTime >= 1000) {
-                hud.textContent = "FPS: " + frameCount + "\nObjekte: 6\nAutoRot: " + (autoRotate ? 'ON' : 'OFF') + "\nGrain: " + (showGrain ? 'ON' : 'OFF') + "\nBloom: " + (showBloom ? 'ON' : 'OFF') + "\nChromAb: " + (showChromAb ? 'ON' : 'OFF') + "\nDOF: " + (showDOF ? 'ON' : 'OFF') + "\nVolumetric: " + (showVolumetric ? 'ON' : 'OFF');
-                frameCount = 0;
-                lastTime = now;
-            }
         }
         animate();
     </script>
