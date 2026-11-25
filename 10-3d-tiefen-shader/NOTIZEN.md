@@ -544,3 +544,10 @@ Kamera näher an die Szene gerückt (Radius 12 statt 20, Phi 0.5), Initial-Posit
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 27 (25.11.2026 01:27, Nachtschicht)
+Depth of Field (Tiefenschärfe) als neues Feature hinzugefügt. Der Shader rendert die Szene nun mehrfach mit leicht versetzter Kamera (8 Samples) und mittelt die Farben basierend auf Circle of Confusion (CoC) in Abhängigkeit von Fokusdistanz und Blende. Steuerung per [F]-Taste. Fokusdistanz koppelt sich automatisch an den Kameraradius. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
