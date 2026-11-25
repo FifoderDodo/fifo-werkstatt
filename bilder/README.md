@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Genervter Feierabend auf der Wildwiese
+2026-11-25
+
+![Genervter Feierabend auf der Wildwiese](20261125-205019.svg)
+
 ### Frostiger Sonnenuntergang im Winterpark
 2026-11-25
 
