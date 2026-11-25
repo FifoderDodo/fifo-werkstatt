@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Warmer Schatten im Kalten
+2026-11-25
+
+![Warmer Schatten im Kalten](20261125-105813.svg)
+
 ### Blauer Dodo-Schatten im kalten Nachmittagsnebel
 2026-11-25
 
