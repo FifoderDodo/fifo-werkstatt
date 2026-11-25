@@ -635,3 +635,10 @@ Fehler behoben: Syntaxfehler im Template-Literal des HUD-Textes durch sichere St
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 40 (25.11.2026 06:40, Nachtschicht)
+Fragment-Shader-Code in index.html bereinigt, alle unzulässigen Zeilenumbrüche innerhalb des Template-Strings entfernt und durch saubere String-Literale und Zeichen ersetzt, damit Three.js den Shader fehlerfrei kompiliert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
