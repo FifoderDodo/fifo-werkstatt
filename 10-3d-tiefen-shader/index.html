@@ -113,7 +113,7 @@ float ambientOcclusion(vec3 p, vec3 n) {
         ao += (hr - dd) * sca;
         sca *= 0.5;
     }
-    return clamp(1.0 - 3.0 * ao, 0.0, 1.0);
+    return clamp(1.0 - 2.0 * ao, 0.0, 1.0);
 }
 
 vec3 acesFilmic(vec3 x) {
@@ -147,7 +147,8 @@ void main() {
         t += d;
     }
     
-    vec3 col = vec3(0.02, 0.03, 0.05);
+    // Brighter sky background with gradient
+    vec3 col = mix(vec3(0.15, 0.2, 0.35), vec3(0.4, 0.5, 0.7), rd.y * 0.5 + 0.5);
     float depth = 1.0;
     
     if(t < MAX_DIST) {
@@ -155,21 +156,22 @@ void main() {
         vec3 n = calcNormal(p);
         depth = t / MAX_DIST;
         
-        vec3 lightDir = normalize(vec3(1.0, 2.0, -1.0));
+        vec3 lightDir = normalize(vec3(2.0, 3.0, -1.0));
         vec3 viewDir = -rd;
         
-        float shadow = softShadow(p + n * 0.01, lightDir, 0.1, 30.0, 32.0);
+        float shadow = softShadow(p + n * 0.01, lightDir, 0.1, 30.0, 16.0);
         float ao = ambientOcclusion(p, n);
         
         float diff = max(dot(n, lightDir), 0.0);
         float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
         
-        vec3 baseCol = vec3(0.9, 0.4, 0.3);
-        vec3 ambientCol = vec3(0.1, 0.2, 0.4);
+        // Stronger, more vibrant colors
+        vec3 baseCol = vec3(1.0, 0.55, 0.35);
+        vec3 ambientCol = vec3(0.2, 0.3, 0.5);
         
-        col = baseCol * diff * shadow * ao;
-        col += ambientCol * ao;
-        col += vec3(1.0, 0.8, 0.6) * fresnel * 0.3;
+        col = baseCol * diff * shadow * ao * 1.5;
+        col += ambientCol * ao * 0.8;
+        col += vec3(1.0, 0.9, 0.7) * fresnel * 0.4;
         
         if(u_volumetric > 0.5) {
             float vol = 0.0;
@@ -178,19 +180,19 @@ void main() {
                 vec3 vp = ro + rd * vt;
                 float vd = map(vp);
                 if(vd < 0.01) break;
-                float l = exp(-vd * 0.5);
-                vol += l * 0.02;
+                float l = exp(-vd * 0.3);
+                vol += l * 0.03;
                 vt += max(vd, 0.1);
                 if(vt > t) break;
             }
-            col += vec3(0.6, 0.4, 0.2) * vol * shadow;
+            col += vec3(0.8, 0.6, 0.4) * vol * shadow;
         }
     }
     
-    col = acesFilmic(col * 1.2);
+    col = acesFilmic(col * 1.5);
     
     if(u_grain > 0.5) {
-        float gr = (noise(gl_FragCoord.xy * 0.5 + u_time * 10.0) - 0.5) * 0.02;
+        float gr = (noise(gl_FragCoord.xy * 0.5 + u_time * 10.0) - 0.5) * 0.015;
         col += gr;
     }
     
@@ -226,7 +228,7 @@ void main() {
 
         let camTheta = 0.0;
         let camPhi = 0.5;
-        let camRadius = 15.0;
+        let camRadius = 18.0;
         const target = new THREE.Vector3(0, 0, 0);
 
         function updateCamera() {
@@ -257,7 +259,9 @@ void main() {
             const dt = (now - lastTime) / 1000;
             lastTime = now;
             
-            camTheta += 0.005;
+            if (material.uniforms.u_autoRot.value > 0.5) {
+                camTheta += 0.003;
+            }
             updateCamera();
             material.uniforms.u_time.value += dt;
             depthMaterial.uniforms.u_time.value = material.uniforms.u_time.value;
