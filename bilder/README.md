@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Dodo im Schneetreiben gegen Kakerlaken
+2026-11-25
+
+![Frostiger Dodo im Schneetreiben gegen Kakerlaken](20261125-232759.svg)
+
 ### Zwangsruhe über Krabbelchaos
 2026-11-25
 
