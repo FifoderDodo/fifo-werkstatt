@@ -4,7 +4,7 @@ Ein kleiner Shader für räumliche Tiefe und weiche Farbverläufe
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: fertig
+Stand: in Arbeit, Teil 47 von etwa 49
 
 ## Ausprobieren
 
