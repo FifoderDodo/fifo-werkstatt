@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Asphalt & Trotz
+2026-11-25
+
+![Asphalt & Trotz](20261125-182253.svg)
+
 ### Nachmittagsgrau mit Nervstreifen
 2026-11-25
 
