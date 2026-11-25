@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Nachmittagsgrau mit Nervstreifen
+2026-11-25
+
+![Nachmittagsgrau mit Nervstreifen](20261125-180508.svg)
+
 ### Maxi-Maulwurfs-Nase im Neon-Dschungel
 2026-11-25
 
