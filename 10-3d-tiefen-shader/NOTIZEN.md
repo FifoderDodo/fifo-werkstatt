@@ -684,3 +684,10 @@ Nacht-Atmosphäre erweitert: Mond mit Glow/Halo im Himmel, funkelnde Sternenhimm
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 47 (25.11.2026 10:14)
+Part 47 successfully verified. Stable night atmosphere, glowing moon, stars, and orbiting objects rendering cleanly.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
