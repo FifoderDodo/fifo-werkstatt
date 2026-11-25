@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Erster Frost über der Stadt
+2026-11-25
+
+![Erster Frost über der Stadt](20261125-140748.svg)
+
 ### Stadtwurm am Nachmittag: Laune im Keller
 2026-11-25
 
