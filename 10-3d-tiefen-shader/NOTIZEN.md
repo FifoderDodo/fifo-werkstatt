@@ -586,3 +586,10 @@ Three.js CDN-Bibliothek am Ende des Body-Tags korrekt eingebunden, damit der Web
 ```
 Auf dem Bild ist kaum etwas zu erkennen (Die Szene ist fast vollständig dunkel und leer, lediglich Text im unteren Bereich ist sichtbar.). Mach es sichtbar: Kamera weiter weg und auf die Mitte gerichtet, mehr Licht, hellerer Hintergrund, kräftige Farben.
 ```
+
+## Teil 33 (25.11.2026 04:30, Nachtschicht)
+Kamera weiter weg (Radius 20 statt 12), hellerer Hintergrund, stärkere Lichter (Diffuse 3.0, Specular 2.5, Ambient 0.7), kräftigere Objektfarben, reduzierte Nebeldichte (0.0008/0.003 statt 0.0012/0.004), höhere Schatten-Minimum (0.45), Bloom etwas stärker.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
