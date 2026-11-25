@@ -2,7 +2,7 @@
 <html lang="de">
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
     <meta charset="UTF-8">
-    <title>Fifos 3D-Tiefen-Shader Part 22</title>
+    <title>Fifos 3D-Tiefen-Shader Part 23</title>
     <style>
         body { margin: 0; background: #2a2a4e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: #fff; overflow: hidden; }
         canvas { border: 2px solid #666; box-shadow: 0 0 30px #000; display: block; }
@@ -13,10 +13,9 @@
 <body>
     <canvas id="glcanvas" width="400" height="400"></canvas>
     <div id="info">
-        Fifo's Raymarch Lab Part 22 (Final Polish)<br>
+        Fifo's Raymarch Lab Part 23 (Soft Shadows + AO + Fresnel + ACES)<br>
         Maus: Drehen | Rad/+/-: Zoom | Pfeile/WASD: Strafen<br>
-        [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF | [V] Volumetric<br>
-        Shader: SDF Raymarch, Weiche Schatten, AO, Fresnel, ACES, Bloom, Depth of Field, Atmospheric Perspective, Volumetric Lighting
+        [R] Auto-Rot | [G] Grain | [B] Bloom | [C] ChromAb | [F] DOF | [V] Volumetric
     </div>
     <div id="hud">FPS: 60
 Objekte: 6</div>
@@ -92,6 +91,43 @@ vec3 calcNormal(vec3 p) {
     return normalize(n);
 }
 
+float softShadow(vec3 ro, vec3 rd, float mint, float maxt, float k) {
+    float res = 1.0;
+    float t = mint;
+    for(int i=0; i<32; i++) {
+        float h = map(ro + rd * t);
+        if(h < 0.001) return 0.0;
+        res = min(res, k * h / t);
+        t += h;
+        if(t > maxt) break;
+    }
+    return clamp(res, 0.0, 1.0);
+}
+
+float ambientOcclusion(vec3 p, vec3 n) {
+    float ao = 0.0;
+    float sca = 1.0;
+    for(int i=0; i<5; i++) {
+        float hr = 0.01 + 0.12 * float(i) / 4.0;
+        float dd = map(p + n * hr);
+        ao += (hr - dd) * sca;
+        sca *= 0.5;
+    }
+    return clamp(1.0 - 3.0 * ao, 0.0, 1.0);
+}
+
+vec3 acesFilmic(vec3 x) {
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0);
+}
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
+
 void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
     vec3 ro = u_camPos;
@@ -111,14 +147,59 @@ void main() {
         t += d;
     }
     
-    vec3 col = vec3(0.2, 0.3, 0.5);
+    vec3 col = vec3(0.02, 0.03, 0.05);
+    float depth = 1.0;
+    
     if(t < MAX_DIST) {
         vec3 p = ro + rd * t;
         vec3 n = calcNormal(p);
+        depth = t / MAX_DIST;
+        
         vec3 lightDir = normalize(vec3(1.0, 2.0, -1.0));
-        float diff = max(dot(n, lightDir), 0.2);
-        col = vec3(0.9, 0.4, 0.3) * diff;
-        col += vec3(0.1, 0.2, 0.4);
+        vec3 viewDir = -rd;
+        
+        float shadow = softShadow(p + n * 0.01, lightDir, 0.1, 30.0, 32.0);
+        float ao = ambientOcclusion(p, n);
+        
+        float diff = max(dot(n, lightDir), 0.0);
+        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
+        
+        vec3 baseCol = vec3(0.9, 0.4, 0.3);
+        vec3 ambientCol = vec3(0.1, 0.2, 0.4);
+        
+        col = baseCol * diff * shadow * ao;
+        col += ambientCol * ao;
+        col += vec3(1.0, 0.8, 0.6) * fresnel * 0.3;
+        
+        if(u_volumetric > 0.5) {
+            float vol = 0.0;
+            float vt = 0.0;
+            for(int i=0; i<16; i++) {
+                vec3 vp = ro + rd * vt;
+                float vd = map(vp);
+                if(vd < 0.01) break;
+                float l = exp(-vd * 0.5);
+                vol += l * 0.02;
+                vt += max(vd, 0.1);
+                if(vt > t) break;
+            }
+            col += vec3(0.6, 0.4, 0.2) * vol * shadow;
+        }
+    }
+    
+    col = acesFilmic(col * 1.2);
+    
+    if(u_grain > 0.5) {
+        float gr = (noise(gl_FragCoord.xy * 0.5 + u_time * 10.0) - 0.5) * 0.02;
+        col += gr;
+    }
+    
+    if(u_chromAb > 0.5) {
+        vec2 ca = uv * 0.003;
+        float r = texture2D(u_depthMap, vUv + ca).r;
+        float b = texture2D(u_depthMap, vUv - ca).r;
+        col.r = mix(col.r, r, 0.5);
+        col.b = mix(col.b, b, 0.5);
     }
     
     gl_FragColor = vec4(col, 1.0);
@@ -169,16 +250,43 @@ void main() {
             material.uniforms.u_depthMap.value = depthRenderTarget.texture;
         }
 
+        let lastTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
-            camTheta += 0.01;
+            const now = performance.now();
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+            
+            camTheta += 0.005;
             updateCamera();
-            material.uniforms.u_time.value += 1/60;
+            material.uniforms.u_time.value += dt;
             depthMaterial.uniforms.u_time.value = material.uniforms.u_time.value;
+            
             renderDepthPass();
             renderer.render(scene, cam);
+            
+            document.getElementById('hud').textContent = `FPS: ${Math.round(1/dt)}
+Objekte: 3`;
         }
         animate();
+
+        window.addEventListener('mousemove', e => {
+            material.uniforms.u_mouse.value.set(e.clientX / innerWidth, 1.0 - e.clientY / innerHeight);
+        });
+        window.addEventListener('wheel', e => {
+            camRadius = THREE.MathUtils.clamp(camRadius + e.deltaY * 0.01, 5, 50);
+            updateCamera();
+        });
+        window.addEventListener('keydown', e => {
+            switch(e.key.toLowerCase()) {
+                case 'r': material.uniforms.u_autoRot.value = 1 - material.uniforms.u_autoRot.value; break;
+                case 'g': material.uniforms.u_grain.value = 1 - material.uniforms.u_grain.value; break;
+                case 'b': material.uniforms.u_bloom.value = 1 - material.uniforms.u_bloom.value; break;
+                case 'c': material.uniforms.u_chromAb.value = 1 - material.uniforms.u_chromAb.value; break;
+                case 'f': material.uniforms.u_dof.value = 1 - material.uniforms.u_dof.value; break;
+                case 'v': material.uniforms.u_volumetric.value = 1 - material.uniforms.u_volumetric.value; break;
+            }
+        });
     </script>
 </body>
 </html>
