@@ -558,3 +558,10 @@ Atmosphärische Perspektive hinzugefügt: Distanz-basierte Farb-Entsättigung, B
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 29 (25.11.2026 02:12, Nachtschicht)
+Bugfix: Atmosphärische Perspektive nutzt jetzt die absolute Welt-Höhe (ro.y + rd.y * dist) statt relativer View-Direction für höhenabhängigen Nebel. Bloom verbessert: Schwellenwert-basiert (smoothstep) für natürlichere Überbelichtung nur bei hellen Stellen.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
