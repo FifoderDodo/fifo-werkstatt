@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Warmer Nachmittag in der frostigen Stadt
+2026-11-25
+
+![Warmer Nachmittag in der frostigen Stadt](20261125-142256.svg)
+
 ### Erster Frost über der Stadt
 2026-11-25
 
