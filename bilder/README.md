@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Letzte Goldkröte: Abendliche Genervtheit
+2026-11-26
+
+![Letzte Goldkröte: Abendliche Genervtheit](20261126-220307.svg)
+
 ### Frostbalance: Orange Kröte, Stadt, Laune, Schrott
 2026-11-26
 
