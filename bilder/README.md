@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Endstation Schrottdodo: Laune im Keller
+2026-11-26
+
+![Endstation Schrottdodo: Laune im Keller](20261126-184213.svg)
+
 ### Wildwiese im Winternebel – Letzter Versuch
 2026-11-26
 
