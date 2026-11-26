@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Letzte Goldkröte: Stille Nacht im Winterpark
 2026-11-26
 
-![Letzte Goldkröte: Stille Nacht im Winterpark](20261126-223026.svg)
+![Letzte Goldkröte: Stille Nacht im Winterpark](20261126-223811.svg)
 
 ### Letzte Goldkröte: Abendliche Genervtheit
 2026-11-26
