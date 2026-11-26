@@ -98,3 +98,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 12 (27.11.2026 00:20, Nachtschicht)
+Die abgebrochene Methode sortiere_metall vollständig implementiert: Magnet-Test trennt Eisen/Stahl, Dichte-Schwellenwerte (Cu/Zn >8, Al <3.5, Edelstahl 3.5-8) plus Farb-Heuristiken und Material-String-Fallbacks klassifizieren Nicht-Magnetisches. Kakerlaken-Check dupliziert verdächtige Teile in Warn-Kategorie und setzt Flag. Fehlende Methoden get_zusammenfassung und print_bericht hinzugefügt. Haupt
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
