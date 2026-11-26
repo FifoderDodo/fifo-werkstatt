@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Kakerlaken-Krawall in der grauen Schrott-Stadt](2026-11-26T18-11-33.mid) ([Noten](2026-11-26T18-11-33.json)) | 2026-11-26 | 29 s | 92 bpm | klavier, bass, trommel, glocken, cello |
 | [Nasser Schrott in der Stadt](2026-11-26T17-13-46.mid) ([Noten](2026-11-26T17-13-46.json)) | 2026-11-26 | 22 s | 88 bpm | klavier, bass, trommel, glocken, geige |
 | [Grauer Abfluss](2026-11-26T17-03-57.mid) ([Noten](2026-11-26T17-03-57.json)) | 2026-11-26 | 27 s | 78 bpm | klavier, bass, trommel, glocken, cello |
 | [Aschenhaufen-Mantra](2026-11-26T16-08-42.mid) ([Noten](2026-11-26T16-08-42.json)) | 2026-11-26 | 37 s | 72 bpm | klavier, bass, trommel, glocken |
