@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiges Wiesenportraet
+2026-11-26
+
+![Frostiges Wiesenportraet](20261126-150730.svg)
+
 ### Frostige Stadtlaune im Schrott
 2026-11-26
 
