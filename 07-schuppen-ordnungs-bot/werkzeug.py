@@ -138,16 +138,106 @@ class MetallSortierer:
                 elif "gelb" in farbe or "gold" in farbe:
                     self.kategorien["messing"].append(teil)
                 else:
-                    # Hohe Dichte, nicht magnetisch, nicht kupfer/messing-farbig -> Edelstahl (austenitisch)
                     self.kategorien["edelstahl"].append(teil)
-            elif dichte > 2.0: # Aluminium liegt bei ~2.7
-                if dichte < 3.5: # Typisch Alu Bereich
-                    self.kategorien["aluminium"].append(teil)
-                else:
-                    # Dichte zwischen 3.5 und 8.0 (z.B. Titan, Nickel, oder ungenau gemessen)
-                    self.kategorien["sonstiges"].append(teil)
+            elif 2.5 <= dichte <= 3.0:
+                self.kategorien["aluminium"].append(teil)
+            elif dichte > 0:
+                self.kategorien["sonstiges"].append(teil)
             else:
-                # Sehr leicht (Kunststoff, Magnesium?) oder Fehler bei Volumen
                 self.kategorien["schrott"].append(teil)
         
         return self.kategorien
+
+
+if __name__ == "__main__":
+    # Testlauf für neuen_tag
+    print("=== Test neuer_tag ===")
+    test_daten_1 = {
+        "gestern": {"think": 12, "eat": 3},
+        "fehlschlaege": {"schrott_suchen": 2},
+        "stimmung": 10,
+        "wetter": "sonnig",
+        "kakerlaken_level": 2
+    }
+    ergebnis_1 = neuer_tag(test_daten_1)
+    print(f"Eingabe: {test_daten_1}")
+    print(f"Ausgabe: {ergebnis_1}")
+    print()
+    
+    test_daten_2 = {
+        "gestern": {},
+        "fehlschlaege": {},
+        "stimmung": -60,
+        "wetter": "regen",
+        "kakerlaken_level": 8
+    }
+    ergebnis_2 = neuer_tag(test_daten_2)
+    print(f"Eingabe: {test_daten_2}")
+    print(f"Ausgabe: {ergebnis_2}")
+    print()
+    
+    # Testlauf für MetallSortierer
+    print("=== Test MetallSortierer ===")
+    sorter = MetallSortierer()
+    
+    test_teile = [
+        {
+            "name": "Schraube M8",
+            "material": "Stahl",
+            "farbe": "silber",
+            "gewicht_g": 15,
+            "volumen_cm3": 2,
+            "fundort": "Werkbank"
+        },
+        {
+            "name": "Kupferrohr Rest",
+            "material": "Kupfer",
+            "farbe": "rot",
+            "gewicht_g": 300,
+            "volumen_cm3": 33,
+            "fundort": "Ecke hinter Karton"
+        },
+        {
+            "name": "Alu-Profil",
+            "material": "Aluminium",
+            "farbe": "silber",
+            "gewicht_g": 50,
+            "volumen_cm3": 18,
+            "fundort": "Regal"
+        },
+        {
+            "name": "Messing-Ventil",
+            "material": "Messing",
+            "farbe": "gold",
+            "gewicht_g": 200,
+            "volumen_cm3": 22,
+            "fundort": "Boden nähe Nest"
+        },
+        {
+            "name": "Edelstahl-Schale",
+            "material": "V2A",
+            "farbe": "silber",
+            "gewicht_g": 400,
+            "volumen_cm3": 50,
+            "fundort": "Spüle"
+        },
+        {
+            "name": "Unbekanntes Ding",
+            "material": "Plastik",
+            "farbe": "blau",
+            "gewicht_g": 10,
+            "volumen_cm3": 20,
+            "fundort": "irgendwo"
+        }
+    ]
+    
+    ergebnis_sort = sorter.sortiere_metall(test_teile)
+    
+    for kat, teile in ergebnis_sort.items():
+        if teile:
+            print(f"{kat}: {len(teile)} Teil(e)")
+            for t in teile:
+                warn = " 🪳" if t.get("kakerlaken_warnung") else ""
+                print(f"  - {t['name']} (Dichte: {sorter.gewicht_test(t):.1f} g/cm³){warn}")
+        else:
+            print(f"{kat}: leer")
