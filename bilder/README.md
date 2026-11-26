@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Frostiger Frust
 2026-11-26
 
-![Frostiger Frust](20261126-105034.svg)
+![Frostiger Frust](20261126-110204.svg)
 
 ### Stahlbogen gegen Viehzeug
 2026-11-26
