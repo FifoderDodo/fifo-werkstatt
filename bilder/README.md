@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Wildwiese im Winternebel – Letzter Versuch
+2026-11-26
+
+![Wildwiese im Winternebel – Letzter Versuch](20261126-175335.svg)
+
 ### Wildwiese im Winternebel
 2026-11-26
 
