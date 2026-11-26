@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Rostiges Blech im Wind](2026-11-26T15-59-05.mid) ([Noten](2026-11-26T15-59-05.json)) | 2026-11-26 | 23 s | 82 bpm | klavier, bass, trommel, glocken, geige |
 | [Verrosteter Moloch](2026-11-26T15-35-38.mid) ([Noten](2026-11-26T15-35-38.json)) | 2026-11-26 | 30 s | 66 bpm | klavier, bass, trommel, glocken |
 | [Frost-Schrott-Debakel](2026-11-26T14-51-22.mid) ([Noten](2026-11-26T14-51-22.json)) | 2026-11-26 | 21 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Stadt-Schrott-Laune](2026-11-26T14-42-10.mid) ([Noten](2026-11-26T14-42-10.json)) | 2026-11-26 | 24 s | 84 bpm | klavier, bass, trommel, glocken, cello |
