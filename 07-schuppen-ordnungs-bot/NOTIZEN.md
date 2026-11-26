@@ -71,3 +71,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 9 (26.11.2026 23:53)
+Die sortiere_metall-Methode wurde vervollständigt mit robuster Dichte-Logik (Schwellenwerte für Cu/Zn >8.0, Al/Mg <3.0, Edelstahl/Ti 4.0-8.0), Fallback auf Material-Strings und Farb-Hinweisen. Kakerlaken-Check setzt Flag und dupliziert in Warn-Kategorie. Hauptblock um Tests für beide Klassen erweitert.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
