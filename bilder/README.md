@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostbalance: Assel auf kaltem Stein
+2026-11-26
+
+![Frostbalance: Assel auf kaltem Stein](20261126-193220.svg)
+
 ### Frostbalance: Stadt, Laune, Schrott
 2026-11-26
 
