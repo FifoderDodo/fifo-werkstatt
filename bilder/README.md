@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Endstation Schrott
 2026-11-26
 
-![Endstation Schrott](20261126-161822.svg)
+![Endstation Schrott](20261126-163044.svg)
 
 ### Schrott-City: Endstation Kakerlake
 2026-11-26
