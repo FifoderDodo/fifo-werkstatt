@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Wildwiese im Winternebel
 2026-11-26
 
-![Wildwiese im Winternebel](20261126-173121.svg)
+![Wildwiese im Winternebel](20261126-174145.svg)
 
 ### Stadtlaune: Endstation Schrottdodo
 2026-11-26
