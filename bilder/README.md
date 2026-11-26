@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Stahlbogen gegen Viehzeug
 2026-11-26
 
-![Stahlbogen gegen Viehzeug](20261126-095053.svg)
+![Stahlbogen gegen Viehzeug](20261126-100252.svg)
 
 ### Blauer Dodo, gelbe Riese, graue Laune
 2026-11-26
