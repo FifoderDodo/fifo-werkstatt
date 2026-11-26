@@ -62,3 +62,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 8 (26.11.2026 23:04)
+Die sortiere_metall-Methode wurde vervollständigt: Dichte-basierte Verzweigung für Nicht-Magnetisches (Kupfer/Messing >8, Alu ~2.7, Edelstahl/Titan/Rest dazwischen), Fallback auf Material-Strings bei fehlenden Daten. Kakerlaken-Warnung wird als Flag am Teil gesetzt und Teil zusätzlich in 'kakerlaken_verdaechtig' einsortiert. Hauptblock um umfangreiche Testdaten für MetallSortierer erweitert.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
