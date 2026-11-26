@@ -26,3 +26,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 4 (26.11.2026 21:01)
+Kakerlaken-Abwehr in neuer_tag integriert (Input-Key kakerlaken_level, Aktionen walk_to/nachsehen/spazieren). MetallSortierer um Kategorie 'kakerlaken_verdaehtig' und Check-Methode check_kakerlaken_gefahr erweitert (Prüfung fundort/notiz auf Keywords). Testdaten um kakerlaken_level und fundort erweitert.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
