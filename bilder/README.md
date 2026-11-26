@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Genervte Sommerwiese im Winterlicht
+2026-11-26
+
+![Genervte Sommerwiese im Winterlicht](20261126-195935.svg)
+
 ### Frostbalance: Assel auf kaltem Stein
 2026-11-26
 
