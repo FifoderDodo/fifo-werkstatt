@@ -12,7 +12,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 | [3D-Tiefen-Shader](10-3d-tiefen-shader/) | 3D-Szene | fertig |
 | [Schatten-Simulator](09-schatten-simulator/) | 3D-Szene | fertig |
 | [Dodo-Magenwärmer](08-dodo-magenwaermer/) | Programm | fertig |
-| [Schuppen-Ordnungs-Bot](07-schuppen-ordnungs-bot/) | Werkzeug | fertig |
+| [Schuppen-Ordnungs-Bot](07-schuppen-ordnungs-bot/) | Werkzeug | in Arbeit, Teil 7 von etwa 9 |
 | [Problem-Sortierer](06-problem-sortierer/) | Werkzeug | fertig |
 | [Der nutzlose Schuppen](05-der-nutzlose-schuppen/) | 3D-Szene | fertig |
 | [Faden-Besen](04-faden-besen/) | Programm | fertig |
