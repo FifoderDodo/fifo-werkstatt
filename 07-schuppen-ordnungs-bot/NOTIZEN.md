@@ -80,3 +80,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 10 (26.11.2026 23:59)
+Die Methode sortiere_metall ist nun vollständig implementiert mit Magnet-Test, Dichte-Schwellenwerten (Cu/Zn >8, Al <3, Edelstahl 4-8), Fallbacks über Material-Strings und Farbe. Kakerlaken-Check dupliziert verdächtige Teile in Warn-Kategorie und setzt Flag. Klasse hat reset(), get_zusammenfassung() und print_bericht(). Hauptblock testet beide Komponenten.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
