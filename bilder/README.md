@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Frust – Eisblumenporträt
+2026-11-26
+
+![Frostiger Frust – Eisblumenporträt](20261126-113838.svg)
+
 ### Frostiger Frust
 2026-11-26
 
