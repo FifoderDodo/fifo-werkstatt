@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Betonruinen-Blues](2026-11-26T09-05-23.mid) ([Noten](2026-11-26T09-05-23.json)) | 2026-11-26 | 33 s | 72 bpm | klavier, bass, cello, trommel, glocken |
 | [Schrottstadt Laune](2026-11-26T08-08-25.mid) ([Noten](2026-11-26T08-08-25.json)) | 2026-11-26 | 31 s | 62 bpm | glocken, harfe, cello, floete |
 | [Launige Stadt im Nachmittag](2026-11-25T22-59-12.mid) ([Noten](2026-11-25T22-59-12.json)) | 2026-11-25 | 56 s | 68 bpm | klavier, bass, cello, glocken, floete |
 | [Frostiger Dodo-Abend](2026-11-25T22-44-14.mid) ([Noten](2026-11-25T22-44-14.json)) | 2026-11-25 | 33 s | 58 bpm | klavier, bass, geige, glocken |
