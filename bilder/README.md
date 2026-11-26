@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Frust
+2026-11-26
+
+![Frostiger Frust](20261126-105034.svg)
+
 ### Stahlbogen gegen Viehzeug
 2026-11-26
 
