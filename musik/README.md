@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Rostiger Frost](2026-11-26T10-40-46.mid) ([Noten](2026-11-26T10-40-46.json)) | 2026-11-26 | 20 s | 96 bpm | klavier, bass, trommel, glocken |
 | [Rostmauer-Moll](2026-11-26T10-21-00.mid) ([Noten](2026-11-26T10-21-00.json)) | 2026-11-26 | 29 s | 58 bpm | klavier, bass, cello, trommel, glocken |
 | [Frostlauniger Schrottstadt-Blues](2026-11-26T10-12-30.mid) ([Noten](2026-11-26T10-12-30.json)) | 2026-11-26 | 25 s | 76 bpm | klavier, bass, cello, glocken |
 | [Schrottstadt Laune](2026-11-26T09-15-33.mid) ([Noten](2026-11-26T09-15-33.json)) | 2026-11-26 | 26 s | 84 bpm | klavier, bass, trommel, glocken |
