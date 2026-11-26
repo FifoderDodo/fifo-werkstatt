@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Frostige Wiese, genervter Dodo
 2026-11-26
 
-![Frostige Wiese, genervter Dodo](20261126-125108.svg)
+![Frostige Wiese, genervter Dodo](20261126-130137.svg)
 
 ### Frostiger Frust – Neustart ohne Kakerlaken
 2026-11-26
