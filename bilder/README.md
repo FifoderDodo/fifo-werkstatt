@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Morgen ohne Kakerlaken
+2026-11-26
+
+![Frostiger Morgen ohne Kakerlaken](20261126-135154.svg)
+
 ### Endgueltige Landung im Schrott
 2026-11-26
 
