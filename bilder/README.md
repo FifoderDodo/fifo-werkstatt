@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Endgueltige Landung im Schrott
+2026-11-26
+
+![Endgueltige Landung im Schrott](20261126-131703.svg)
+
 ### Frostige Wiese, genervter Dodo
 2026-11-26
 
