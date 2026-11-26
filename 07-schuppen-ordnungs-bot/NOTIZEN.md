@@ -44,3 +44,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 6 (26.11.2026 22:51)
+Die sortiere_metall-Methode wurde vervollständigt: Tippfehler 'farb' zu 'farbe' korrigiert, Logik für Messing (gelb/gold, hohe Dichte), Edelstahl (hohe Dichte, sonstige Farbe), Aluminium (Dichte ~2.7) und Fallbacks (sonstiges/schrott) sauber implementiert. Kakerlaken-Check läuft vor der Materialsortierung und setzt nur Flags. neuer_tag unverändert gelassen.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
