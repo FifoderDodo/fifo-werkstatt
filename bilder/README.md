@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostbalance: Orange Kröte, Stadt, Laune, Schrott
+2026-11-26
+
+![Frostbalance: Orange Kröte, Stadt, Laune, Schrott](20261126-203757.svg)
+
 ### Genervte Sommerwiese im Winterlicht
 2026-11-26
 
