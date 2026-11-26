@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Frust – Neustart ohne Kakerlaken
+2026-11-26
+
+![Frostiger Frust – Neustart ohne Kakerlaken](20261126-120711.svg)
+
 ### Frostiger Frust – Eisblumenporträt
 2026-11-26
 
