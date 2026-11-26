@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Frost-Schrott-Debakel](2026-11-26T14-51-22.mid) ([Noten](2026-11-26T14-51-22.json)) | 2026-11-26 | 21 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Stadt-Schrott-Laune](2026-11-26T14-42-10.mid) ([Noten](2026-11-26T14-42-10.json)) | 2026-11-26 | 24 s | 84 bpm | klavier, bass, trommel, glocken, cello |
 | [Grauer Schrottstadt Blues](2026-11-26T14-22-09.mid) ([Noten](2026-11-26T14-22-09.json)) | 2026-11-26 | 25 s | 76 bpm | klavier, bass, trommel, glocken, cello |
 | [Rostmauer-Tristesse](2026-11-26T12-38-43.mid) ([Noten](2026-11-26T12-38-43.json)) | 2026-11-26 | 27 s | 70 bpm | klavier, bass, cello, trommel, glocken |
