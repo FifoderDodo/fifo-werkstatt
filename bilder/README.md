@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stadtlaune: Endstation Schrottdodo
+2026-11-26
+
+![Stadtlaune: Endstation Schrottdodo](20261126-172227.svg)
+
 ### Endstation Schrott
 2026-11-26
 
