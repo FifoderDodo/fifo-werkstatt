@@ -138,16 +138,16 @@ class MetallSortierer:
                 elif "gelb" in farbe or "gold" in farbe:
                     self.kategorien["messing"].append(teil)
                 else:
-                    # Hochdicht, nicht magnetisch, nicht kupfer/messing-farbig -> evtl. Edelstahl oder Wolfram etc.
+                    # Hohe Dichte, nicht magnetisch, nicht kupfer/messing-farbig -> Edelstahl (austenitisch)
                     self.kategorien["edelstahl"].append(teil)
-            elif dichte > 2.5:
-                # Mittlere Dichte -> Aluminium, Titan, etc.
-                if "grau" in farbe or "silber" in farbe or "weiss" in farbe:
+            elif dichte > 2.0: # Aluminium liegt bei ~2.7
+                if dichte < 3.5: # Typisch Alu Bereich
                     self.kategorien["aluminium"].append(teil)
                 else:
+                    # Dichte zwischen 3.5 und 8.0 (z.B. Titan, Nickel, oder ungenau gemessen)
                     self.kategorien["sonstiges"].append(teil)
             else:
-                # Sehr leicht -> Kunststoff, Magnesium, Müll
+                # Sehr leicht (Kunststoff, Magnesium?) oder Fehler bei Volumen
                 self.kategorien["schrott"].append(teil)
         
         return self.kategorien
