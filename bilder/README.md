@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Raureif über Schrottstadt
 2026-11-26
 
-![Raureif über Schrottstadt](20261126-082744.svg)
+![Raureif über Schrottstadt](20261126-083605.svg)
 
 ### Frostiger Dodo im Schneetreiben gegen Kakerlaken
 2026-11-25
