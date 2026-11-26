@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Frostbalance: Stadt, Laune, Schrott
 2026-11-26
 
-![Frostbalance: Stadt, Laune, Schrott](20261126-190831.svg)
+![Frostbalance: Stadt, Laune, Schrott](20261126-191859.svg)
 
 ### Endstation Schrottdodo: Laune im Keller
 2026-11-26
