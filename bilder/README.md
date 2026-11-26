@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Brunnenblick: Glitzernder Schrott im Grau
+2026-11-26
+
+![Brunnenblick: Glitzernder Schrott im Grau](20261126-151915.svg)
+
 ### Frostiges Wiesenportraet
 2026-11-26
 
