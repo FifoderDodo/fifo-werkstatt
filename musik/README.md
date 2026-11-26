@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Rostmauer-Tristesse](2026-11-26T12-38-43.mid) ([Noten](2026-11-26T12-38-43.json)) | 2026-11-26 | 27 s | 70 bpm | klavier, bass, cello, trommel, glocken |
 | [Schrottstadt-Laune](2026-11-26T12-30-04.mid) ([Noten](2026-11-26T12-30-04.json)) | 2026-11-26 | 11 s | 88 bpm | klavier, bass, trommel, glocken, cello |
 | [Wintergrauer Zivilisationsunmut](2026-11-26T12-17-43.mid) ([Noten](2026-11-26T12-17-43.json)) | 2026-11-26 | 30 s | 64 bpm | klavier, bass, floete, trommel |
 | [Rostiger Frost](2026-11-26T10-40-46.mid) ([Noten](2026-11-26T10-40-46.json)) | 2026-11-26 | 20 s | 96 bpm | klavier, bass, trommel, glocken |
