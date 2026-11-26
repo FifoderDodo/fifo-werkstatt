@@ -138,52 +138,16 @@ class MetallSortierer:
                 elif "gelb" in farbe or "gold" in farbe:
                     self.kategorien["messing"].append(teil)
                 else:
-                    self.kategorien["kupfer"].append(teil)
-            elif dichte > 2.5 and dichte < 3.0:
-                self.kategorien["aluminium"].append(teil)
-            elif dichte > 7.5:
-                self.kategorien["edelstahl"].append(teil)
-            elif dichte > 0:
-                self.kategorien["sonstiges"].append(teil)
+                    # Hochdicht, nicht magnetisch, nicht kupfer/messing-farbig -> evtl. Edelstahl oder Wolfram etc.
+                    self.kategorien["edelstahl"].append(teil)
+            elif dichte > 2.5:
+                # Mittlere Dichte -> Aluminium, Titan, etc.
+                if "grau" in farbe or "silber" in farbe or "weiss" in farbe:
+                    self.kategorien["aluminium"].append(teil)
+                else:
+                    self.kategorien["sonstiges"].append(teil)
             else:
-                self.kategorien["schrott"].append({"objekt": teil, "grund": "Keine Masse/Dichte"})
+                # Sehr leicht -> Kunststoff, Magnesium, Müll
+                self.kategorien["schrott"].append(teil)
         
         return self.kategorien
-
-
-# Hilfsfunktion für schnellen Test
-if __name__ == "__main__":
-    # Test neuer_tag
-    print("--- Test neuer_tag ---")
-    test_daten = {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": "sonnig", "kakerlaken_level": 0}
-    print(neuer_tag(test_daten))
-    
-    test_daten2 = {"gestern": {"am_projekt_arbeiten": 1}, "fehlschlaege": {"am_projekt_arbeiten": 3}, "stimmung": 10, "wetter": "regen", "kakerlaken_level": 5}
-    print(neuer_tag(test_daten2))
-    
-    test_daten3 = {"gestern": {}, "fehlschlaege": {}, "stimmung": 50, "wetter": "bewoelkt", "kakerlaken_level": 8}
-    print(neuer_tag(test_daten3))
-
-    # Test MetallSortierer
-    print("\n--- Test MetallSortierer ---")
-    sorter = MetallSortierer()
-    test_teile = [
-        {"name": "Schraube M8", "material": "Stahl", "gewicht_g": 15, "volumen_cm3": 2, "farbe": "silber", "fundort": "Regal"},
-        {"name": "Kupferrohr Stück", "material": "Kupfer", "gewicht_g": 300, "volumen_cm3": 34, "farbe": "rot", "fundort": "Ecke hinter Karton"},
-        {"name": "Alu-Profil Rest", "material": "Aluminium", "gewicht_g": 50, "volumen_cm3": 18, "farbe": "silber", "fundort": "Boden"},
-        {"name": "Edelstahlschale", "material": "V2A", "gewicht_g": 200, "volumen_cm3": 25, "farbe": "silber", "fundort": "Arbeitsplatte"},
-        {"name": "Messingverschraubung", "material": "Messing", "gewicht_g": 80, "volumen_cm3": 9, "farbe": "gold", "fundort": "Schublade"},
-        {"name": "Unbekanntes Teil", "material": "Plastik", "gewicht_g": 5, "volumen_cm3": 10, "farbe": "schwarz", "fundort": "dunkle Ecke"},
-        "kein_dict_objekt",
-        {"name": "Leichtes Etwas", "gewicht_g": 0, "volumen_cm3": 0, "farbe": "weiss", "fundort": "Regal"}
-    ]
-    ergebnis = sorter.sortiere_metall(test_teile)
-    for kat, teile in ergebnis.items():
-        if teile:
-            print(f"{kat}: {len(teile)} Teile")
-            for t in teile:
-                if isinstance(t, dict):
-                    warn = " ⚠ KAKERLAKEN!" if t.get('kakerlaken_warnung') else ""
-                    print(f"  - {t.get('name', t.get('objekt', '?'))}{warn}")
-                else:
-                    print(f"  - {t}")
