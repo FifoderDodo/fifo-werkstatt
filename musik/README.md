@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Frostiger Frust](2026-11-26T18-33-39.mid) ([Noten](2026-11-26T18-33-39.json)) | 2026-11-26 | 51 s | 76 bpm | klavier, bass, cello, trommel, glocken |
 | [Verrosteter Stadtmüll](2026-11-26T18-24-40.mid) ([Noten](2026-11-26T18-24-40.json)) | 2026-11-26 | 20 s | 96 bpm | klavier, bass, trommel, glocken |
 | [Kakerlaken-Krawall in der grauen Schrott-Stadt](2026-11-26T18-11-33.mid) ([Noten](2026-11-26T18-11-33.json)) | 2026-11-26 | 29 s | 92 bpm | klavier, bass, trommel, glocken, cello |
 | [Nasser Schrott in der Stadt](2026-11-26T17-13-46.mid) ([Noten](2026-11-26T17-13-46.json)) | 2026-11-26 | 22 s | 88 bpm | klavier, bass, trommel, glocken, geige |
