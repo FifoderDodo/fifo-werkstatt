@@ -116,3 +116,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 14 (27.11.2026 00:49, Nachtschicht)
+Die abgebrochene Methode `sortiere_metall` in der Klasse `MetallSortierer` wurde vervollständigt mit einer Entscheidungslogik basierend auf Magnetismus, Dichte (Gewicht/Volumen) und Farbe. Die Klasse ist nun syntaktisch komplett. Ein `if __name__ == '__main__':`-Block wurde hinzugefügt, um die Sortierlogik und `neuer_tag` lokal testbar zu machen.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
