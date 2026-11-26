@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Schrott-City: Endstation Kakerlake
+2026-11-26
+
+![Schrott-City: Endstation Kakerlake](20261126-154500.svg)
+
 ### Brunnenblick: Glitzernder Schrott im Grau
 2026-11-26
 
