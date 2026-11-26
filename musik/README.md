@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Aschenhaufen-Mantra](2026-11-26T16-08-42.mid) ([Noten](2026-11-26T16-08-42.json)) | 2026-11-26 | 37 s | 72 bpm | klavier, bass, trommel, glocken |
 | [Rostiges Blech im Wind](2026-11-26T15-59-05.mid) ([Noten](2026-11-26T15-59-05.json)) | 2026-11-26 | 23 s | 82 bpm | klavier, bass, trommel, glocken, geige |
 | [Verrosteter Moloch](2026-11-26T15-35-38.mid) ([Noten](2026-11-26T15-35-38.json)) | 2026-11-26 | 30 s | 66 bpm | klavier, bass, trommel, glocken |
 | [Frost-Schrott-Debakel](2026-11-26T14-51-22.mid) ([Noten](2026-11-26T14-51-22.json)) | 2026-11-26 | 21 s | 92 bpm | klavier, bass, trommel, glocken |
