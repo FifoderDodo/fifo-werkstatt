@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Blauer Dodo, gelbe Riese, graue Laune
 2026-11-26
 
-![Blauer Dodo, gelbe Riese, graue Laune](20261126-092755.svg)
+![Blauer Dodo, gelbe Riese, graue Laune](20261126-093955.svg)
 
 ### Raureif über Schrottstadt
 2026-11-26
