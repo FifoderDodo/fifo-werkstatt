@@ -134,3 +134,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 16 (27.11.2026 01:17, Nachtschicht)
+Die `sortiere_metall`-Methode wurde vollständig implementiert mit Entscheidungsbaum (Magnetismus, Dichte, Farbe). Die Klasse erhielt eine `get_berich`-Methode für lesbare Ausgabe. Der `__main__`-Block testet beide Komponenten ausführlich.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
