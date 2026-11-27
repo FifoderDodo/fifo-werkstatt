@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Frostiger Betonfrust](2026-11-27T15-40-37.mid) ([Noten](2026-11-27T15-40-37.json)) | 2026-11-27 | 31 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Betonfrust](2026-11-27T14-03-32.mid) ([Noten](2026-11-27T14-03-32.json)) | 2026-11-27 | 23 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Schrott-Stadt Laune](2026-11-27T13-52-25.mid) ([Noten](2026-11-27T13-52-25.json)) | 2026-11-27 | 15 s | 126 bpm | klavier, bass, trommel, glocken, gitarre |
 | [Kakerlaken-Stadtlaune im Frostschrott](2026-11-27T12-45-14.mid) ([Noten](2026-11-27T12-45-14.json)) | 2026-11-27 | 17 s | 116 bpm | klavier, bass, trommel, glocken, cello |
