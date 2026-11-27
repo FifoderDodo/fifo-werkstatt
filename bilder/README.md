@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Assel auf Froststein – Stadtlaune im Schrott
 2026-11-27
 
-![Assel auf Froststein – Stadtlaune im Schrott](20261127-195418.svg)
+![Assel auf Froststein – Stadtlaune im Schrott](20261127-200123.svg)
 
 ### Frostiger Dodo auf der Schrottbrücke
 2026-11-27
