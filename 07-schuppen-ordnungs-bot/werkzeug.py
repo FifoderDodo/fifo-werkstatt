@@ -145,79 +145,90 @@ class MetallSortierer:
         """Prüft die äußere Farbe des Fundstücks."""
         return teil.get("farbe", "unbekannt").lower()
 
-    def kakerlaken_check(self, teil: dict) -> bool:
-        """Checkt ob Spuren von Krabbeltieren dran sind."""
-        return teil.get("kakerlaken_spuren", False)
+    def dichte_test(self, teil: dict) -> float:
+        """Alias für gewicht_test für lesbareren Code in Logik."""
+        return self.gewicht_test(teil)
 
     def _kategorisiere_einzelteil(self, teil: dict) -> str:
-        """Interne Logik: weist ein Teil einer Kategorie zu."""
-        if self.kakerlaken_check(teil):
+        """Ermittelt Kategorie für ein einzelnes Teil. Gibt Key von self.kategorien zurück."""
+        # 1. Kakerlaken-Check (Priorität hoch)
+        if teil.get("kakerlaken_verdaechtig", False) or "kakerlake" in teil.get("name", "").lower():
             return "kakerlaken_verdaechtig"
-
+        
+        # 2. Magnet-Test
         magnetisch = self.magnet_test(teil)
-        dichte = self.gewicht_test(teil)
-        farbe = self.farbe_test(teil)
         funken = self.funken_test(teil)
-        material = teil.get("material", "").lower()
-
-        # Logik: Magnetisch + Dichte ~7.8 -> Eisen/Stahl
+        dichte = self.dichte_test(teil)
+        farbe = self.farbe_test(teil)
+        material_hint = teil.get("material", "").lower()
+        
         if magnetisch:
-            if "edelstahl" in material or funken == "edelstahl":
+            # Ferromagnetisch: Eisen, Stahl, Guss
+            if funken == "edelstahl": # Ferritischer Edelstahl
                 return "edelstahl"
+            if funken == "gusseisen" or "guss" in material_hint:
+                return "eisenhaltig" # Guss landet bei Eisenhaltig/Schrott
             return "eisenhaltig"
-
-        # Nicht magnetisch: Dichte & Farbe entscheiden
-        if 2.6 <= dichte <= 2.8 and "aluminium" in material:
+        
+        # 3. Nicht magnetisch -> Dichte & Farbe
+        # Aluminium ~2.7
+        if 2.5 <= dichte <= 3.0:
             return "aluminium"
-        if 8.8 <= dichte <= 9.0 and ("kupfer" in material or farbe in ["rot", "rotbraun", "grün"]):
+        # Titan ~4.5 (selten im Schuppen) -> sonstiges
+        # Edelstahl (austenitisch) ~7.9
+        if 7.5 <= dichte <= 8.2:
+            if "edelstahl" in material_hint or funken == "edelstahl":
+                return "edelstahl"
+            # Könnte auch Messing/Kupfer sein, aber Dichte passt besser zu Edelstahl/Stahl
+            # Wir prüfen Farbe für Kupfer/Messing
+        # Messing ~8.4 - 8.7, Kupfer ~8.9
+        if 8.3 <= dichte <= 9.0:
+            if "rot" in farbe or "kupfer" in farbe or "pink" in farbe:
+                return "kupfer"
+            if "gelb" in farbe or "gold" in farbe or "messing" in farbe:
+                return "messing"
+            # Fallback Dichtebereich
+            if "kupfer" in material_hint: return "kupfer"
+            if "messing" in material_hint: return "messing"
+            return "sonstiges" # Unklar
+        
+        # Blei ~11.3, Zink ~7.1, Zinn ~7.3
+        if dichte > 10:
+            return "schrott" # Schwermetall-Schrott
+        
+        # 4. Fallback über Material-String
+        if "aluminium" in material_hint or "alu" in material_hint:
+            return "aluminium"
+        if "kupfer" in material_hint:
             return "kupfer"
-        if 8.4 <= dichte <= 8.7 and ("messing" in material or farbe in ["gelb", "gold", "messing"]):
+        if "messing" in material_hint:
             return "messing"
-        if "edelstahl" in material:
+        if "edelstahl" in material_hint or "v2a" in material_hint or "v4a" in material_hint:
             return "edelstahl"
+        
+        return "sonstiges"
 
-        if material:
-            return "sonstiges"
-        return "schrott"
-
-    def sortiere_metall(self, teile_liste: list):
-        """Sortiert eine Liste von Schrottteilen in die Kategorien ein."""
+    def sortiere_metall(self, teile: List[dict]) -> Dict[str, List[dict]]:
+        """
+        Hauptmethode: Sortiert Liste von Teilen in self.kategorien.
+        Gibt Dict mit Kategorien zurück (JSON-sicher).
+        """
         self.reset()
-        for teil in teile_liste:
+        for teil in teile:
             if not isinstance(teil, dict):
                 continue
             kat = self._kategorisiere_einzelteil(teil)
-            self.kategorien[kat].append(teil)
-    
-    def get_ergebnis(self) -> Dict[str, List[dict]]:
-        """Gibt Kopie der Kategorien zurück (JSON-sicher)."""
+            # Anreichern mit Analyse-Daten für Debug/Log
+            teil_angereichert = teil.copy()
+            teil_angereichert["_analyse"] = {
+                "magnetisch": self.magnet_test(teil),
+                "dichte": round(self.dichte_test(teil), 2),
+                "farbe": self.farbe_test(teil),
+                "funken": self.funken_test(teil)
+            }
+            self.kategorien[kat].append(teil_angereichert)
         return _json_sicher(self.kategorien)
 
     def to_json(self) -> str:
-        """Serialisiert Sortierergebnis direkt zu JSON-String."""
-        return json.dumps(self.get_ergebnis(), ensure_ascii=False, indent=2)
-
-
-# --- Selbsttest / Demo ---
-if __name__ == "__main__":
-    # Test neuer_tag
-    test_daten_1 = {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen": 2}, "stimmung": 10, "wetter": "sonnig"}
-    test_daten_2 = {"gestern": {}, "fehlschlaege": {"am_projekt_arbeiten": 4}, "stimmung": 30, "wetter": "regen"}
-    print("--- neuer_tag Tests ---")
-    print(json.dumps(neuer_tag(test_daten_1), ensure_ascii=False, indent=2))
-    print(json.dumps(neuer_tag(test_daten_2), ensure_ascii=False, indent=2))
-
-    # Test MetallSortierer
-    print("\n--- MetallSortierer Test ---")
-    sorter = MetallSortierer()
-    teile = [
-        {"material": "Eisenstab", "gewicht_g": 780, "volumen_cm3": 100, "farbe": "grau"},
-        {"material": "Aluprofil", "gewicht_g": 270, "volumen_cm3": 100, "farbe": "silber"},
-        {"material": "Kupferrohr", "gewicht_g": 890, "volumen_cm3": 100, "farbe": "rot"},
-        {"material": "Messingschraube", "gewicht_g": 85, "volumen_cm3": 10, "farbe": "gold"},
-        {"material": "Edelstahl V2A", "gewicht_g": 790, "volumen_cm3": 100, "farbe": "silber"},
-        {"material": "Unbekanntes Ding", "gewicht_g": 500, "volumen_cm3": 50, "farbe": "braun", "kakerlaken_spuren": True},
-        {"material": "Plastik", "gewicht_g": 100, "volumen_cm3": 100, "farbe": "blau"},
-    ]
-    sorter.sortiere_metall(teile)
-    print(sorter.to_json())
+        """Gibt aktuellen Stand der Kategorien als JSON-String zurück."""
+        return json.dumps(_json_sicher(self.kategorien), ensure_ascii=False, indent=2)
