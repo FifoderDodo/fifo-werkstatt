@@ -224,3 +224,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 26 (27.11.2026 03:39, Nachtschicht)
+Die abgebrochene sortiere_metall-Methode vollständig implementiert: Magnet-Test trennt Eisen/Stahl, Dichte-Baum klassifiziert Nicht-Magnetisches (Alu, Edelstahl, Messing, Kupfer, Sonstiges). Kakerlaken-Check dupliziert verdächtige Teile in Warn-Kategorie. get_bericht() und export_kategorien() hinzugefügt. __main__-Block mit realistischen Testdaten (inkl. Fehlerfall String) erweitert. neuer_tag unv
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
