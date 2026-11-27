@@ -350,3 +350,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 40 (27.11.2026 06:59, Nachtschicht)
+Die abgebrochene Methode `sortiere_metall` in `MetallSortierer` vervollständigt: Typo `gewicht_t` zu `gewicht_test` korrigiert, komplette Sortierlogik mit Magnet-Test, Dichte-Schwellenwerten (Alu ~2.7, Kupfer ~8.9, Messing ~8.5, Edelstahl ~7.9), Farb-Checks, Priorisierung Kakerlaken-Verdacht und Fallback 'sonstiges' implementiert. Helfer-Methoden `get_bericht` und `export_kategorien` sowie `__main Den Absturz gleich repariert.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
