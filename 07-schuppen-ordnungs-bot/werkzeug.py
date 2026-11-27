@@ -133,93 +133,178 @@ class MetallSortierer:
             
             name = teil.get("name", "Unbekannt")
             farbe = teil.get("farbe", "").lower()
-            dichte = self.gewicht_test(teil)  # Typo gefixt
-            magnetisch = self.magnet_test(teil)
-            kakerlaken_verdaechtig = self.check_kakerlaken_gefahr(teil)
+            dichte = self.gewicht_test(teil)  # Typo korrigiert
             
-            # 1. Sicherheit geht vor: Kakerlaken-Verdacht hat höchste Priorität
-            if kakerlaken_verdaechtig:
+            # 1. Kakerlaken-Verdacht hat absolute Priorität
+            if self.check_kakerlaken_gefahr(teil):
                 self.kategorien["kakerlaken_verdaechtig"].append(teil)
                 continue
             
-            # 2. Magnet-Test: Eisenhaltiges (Stahl, Guss, reines Eisen)
-            if magnetisch:
-                # Edelstahl kann magnetisch sein (ferritisch/martensitisch), aber Funken-test/Name prüfen
-                if "edelstahl" in name.lower() or "edelstahl" in teil.get("material", "").lower():
-                     self.kategorien["edelstahl"].append(teil)
+            # 2. Magnet-Test: Eisenhaltig / Guss / Edelstahl (magnetisch)
+            if self.magnet_test(teil):
+                funken = self.funken_test(teil)
+                if funken == "edelstahl":
+                    self.kategorien["edelstahl"].append(teil)
+                elif funken == "gusseisen":
+                    self.kategorien["eisenhaltig"].append(teil)
                 else:
                     self.kategorien["eisenhaltig"].append(teil)
                 continue
             
-            # 3. Nicht magnetisch -> Dichte & Farbe prüfen
-            # Schwellenwerte mit Toleranz
-            if 2.5 <= dichte <= 3.0:  # Alu ~2.7
+            # 3. Nicht magnetisch: Dichte & Farbe entscheiden
+            # Alu ~2.7, Titan ~4.5, Edelstahl (austenitisch) ~7.9, Messing ~8.5, Kupfer ~8.9
+            if dichte < 3.5:  # Leichtmetalle (Alu, Mg, Ti)
+                # Kupfer/Messing sind schwer, fallen nicht hier rein
                 self.kategorien["aluminium"].append(teil)
-            elif 8.4 <= dichte <= 9.0:  # Kupfer ~8.96, Messing ~8.4-8.7
-                if "rot" in farbe or "orange" in farbe or "kupfer" in name.lower():
-                    self.kategorien["kupfer"].append(teil)
-                elif "gelb" in farbe or "gold" in farbe or "messing" in name.lower():
+            elif dichte > 8.0:  # Schwere Nichteisenmetalle
+                if "gold" in farbe or "gelb" in farbe or "messing" in farbe:
                     self.kategorien["messing"].append(teil)
+                elif "rot" in farbe or "kupfer" in farbe or "orange" in farbe:
+                    self.kategorien["kupfer"].append(teil)
                 else:
-                    # Fallback auf Dichte: Kupfer schwerer als Messing meist
-                    if dichte > 8.7:
-                        self.kategorien["kupfer"].append(teil)
-                    else:
-                        self.kategorien["messing"].append(teil)
-            elif 7.7 <= dichte <= 8.2:  # Edelstahl ~7.9 (austenitisch, nicht magnetisch)
-                self.kategorien["edelstahl"].append(teil)
-            else:
-                # 4. Unklar -> Sonstiges
+                    # Grau/Silber & schwer & nicht magnetisch -> Austenitischer Edelstahl
+                    self.kategorien["edelstahl"].append(teil)
+            elif 3.5 <= dichte <= 8.0:
+                # Mittelere Dichte: Titan, spezielle Legierungen, verunreinigte Teile
                 self.kategorien["sonstiges"].append(teil)
-        
-        return self.kategorien
+            else:
+                # Dichte 0 oder Fehler
+                self.kategorien["schrott"].append({"objekt": teil, "grund": f"Ungültige Dichte: {dichte}"})
     
     def get_bericht(self):
-        """Gibt Zusammenfassung als Text zurück."""
-        lines = ["=== Schuppen Sortier-Bericht ==="]
-        total = 0
-        for kat, teile in self.kategorien.items():
-            anzahl = len(teile)
-            total += anzahl
-            if anzahl > 0:
-                lines.append(f"{kat.capitalize()}: {anzahl} Stück")
-                for t in teile[:3]:  # Max 3 Beispiele zeigen
-                    lines.append(f"  - {t.get('name', '?')} ({t.get('gewicht_g', '?')}g, Dichte: {self.gewicht_test(t):.1f})")
-                if anzahl > 3:
-                    lines.append(f"  ... und {anzahl - 3} weitere")
-        lines.append(f"Gesamt: {total} Teile sortiert.")
-        return "\n".join(lines)
+        """Gibt Zusammenfassung der Sortierung als Dict zurück."""
+        return {k: len(v) for k, v in self.kategorien.items()}
     
     def export_kategorien(self):
-        """Gibt Dict zurück für JSON-Speicherung oder Weiterverarbeitung."""
-        return {k: [dict(t) for t in v] for k, v in self.kategorien.items()}
+        """Exportiert Kategorien als JSON-String (für Speicherung/Transfer)."""
+        import json
+        # Nicht-serialisierbare Objekte (falls doch mal reingerutscht) filtern
+        safe_cat = {}
+        for k, v in self.kategorien.items():
+            safe_cat[k] = []
+            for item in v:
+                if isinstance(item, dict):
+                    safe_cat[k].append(item)
+                else:
+                    safe_cat[k].append({"objekt": str(item), "grund": "Nicht-Dict-Objekt"})
+        return json.dumps(safe_cat, ensure_ascii=False, indent=2)
+    
+    def speichern_als_json(self, pfad: str):
+        """
+        Validiert Pfad und simuliert Speichern.
+        Kein echtes I/O (Regelkonform), gibt JSON-String zurück bei Erfolg.
+        """
+        ok, msg = validiere_dateipfad(pfad, (".json",))
+        if not ok:
+            raise ValueError(f"Ungültiger Pfad: {msg}")
+        # Simulieren: Nur String zurückgeben, nicht schreiben
+        return self.export_kategorien()
+
+
+def validiere_dateipfad(pfad: str, erlaubte_endungen=(".json", ".txt", ".csv")) -> tuple[bool, str]:
+    """
+    Prüft Dateipfad-String auf Plausibilität & Sicherheit (in-memory).
+    Kein Zugriff auf Dateisystem.
+    Returns: (True, "") oder (False, "Fehlerbeschreibung")
+    """
+    if not pfad or not isinstance(pfad, str):
+        return False, "Pfad leer oder kein String"
+    
+    pfad = pfad.strip()
+    
+    # 1. Keine Pfad-Traversierung
+    if ".." in pfad:
+        return False, "Pfad-Traversierung (..) nicht erlaubt"
+    
+    # 2. Keine absoluten Pfade (Unix/Win)
+    if pfad.startswith("/") or (len(pfad) > 1 and pfad[1] == ":" and pfad[0].isalpha()):
+        return False, "Absolute Pfade nicht erlaubt"
+    
+    # 3. Keine verbotenen Zeichen (basisch)
+    verboten = ['<', '>', ':', '"', '|', '?', '*', '\x00']
+    if any(c in pfad for c in verboten):
+        return False, "Verbotene Zeichen im Pfad"
+    
+    # 4. Dateiendung prüfen
+    if not any(pfad.lower().endswith(ext) for ext in erlaubte_endungen):
+        return False, f"Endung muss eine von {erlaubte_endungen} sein"
+    
+    # 5. Länge & Tiefe begrenzen
+    if len(pfad) > 260:
+        return False, "Pfad zu lang (>260)"
+    if pfad.count("/") > 5:  # Max 5 Ordner tief
+        return False, "Pfad zu tief verschachtelt"
+    
+    # 6. Dateiname nicht leer
+    name = pfad.split("/")[-1]
+    if not name or name == "." or name == "..":
+        return False, "Kein gültiger Dateiname"
+    
+    return True, ""
 
 
 if __name__ == "__main__":
-    # Kleiner Selbsttest beim direkten Aufruf
-    print("--- Test neuer_tag ---")
+    # Test neuer_tag
     test_daten = {
         "gestern": {"think": 12, "eat": 3},
-        "fehlschlaege": {"schrott_suchen": 2, "am_projekt_arbeiten": 1},
+        "fehlschlaege": {"schrott_suchen": 2, "am_projekt_arbeiten": 4},
         "stimmung": 10,
         "wetter": "sonnig",
         "kakerlaken_level": 2
     }
+    print("=== neuer_tag Test ===")
     ergebnis = neuer_tag(test_daten)
-    print(f"Notiz: {ergebnis['notiz']}")
-    print(f"Plan: {ergebnis['plan']}")
+    print(f"Notiz: {ergebnis.get('notiz')}")
+    print(f"Plan: {ergebnis.get('plan')}")
     
-    print("\n--- Test MetallSortierer ---")
+    # Test KI-Frage Trigger
+    if "frage_an_ki" in ergebnis:
+        print(f"KI FRAGE: {ergebnis['frage_an_ki']}")
+        # Simuliere 2. Aufruf mit Antwort
+        test_daten["ki_antwort"] = "Meistens fehlen Volumen-Daten oder Material-Strings sind inkonsistent. Validierung einbauen."
+        ergebnis2 = neuer_tag(test_daten)
+        print(f"Mit KI-Rat: {ergebnis2.get('notiz')}")
+    
+    # Test MetallSortierer
+    print("\n=== MetallSortierer Test ===")
     sorter = MetallSortierer()
     test_teile = [
-        {"name": "Schraube M10", "material": "Stahl", "gewicht_g": 50, "volumen_cm3": 6.4, "farbe": "grau", "fundort": "Regal"},
-        {"name": "Alu-Profil", "material": "Aluminium", "gewicht_g": 270, "volumen_cm3": 100, "farbe": "silber", "fundort": "Boden hinter Karton"},
-        {"name": "Kupferrohr", "material": "Kupfer", "gewicht_g": 896, "volumen_cm3": 100, "farbe": "rot", "fundort": "Ecke feucht"},
-        {"name": "Messing-Ventil", "material": "Messing", "gewicht_g": 850, "volumen_cm3": 100, "farbe": "gelb", "fundort": "Werkzeugkasten"},
-        {"name": "Edelstahl-Schale", "material": "Edelstahl V2A", "gewicht_g": 790, "volumen_cm3": 100, "farbe": "silber", "fundort": "Spüle"},
-        {"name": "Guss-Eisenstück", "material": "Grauguss", "gewicht_g": 720, "volumen_cm3": 100, "farbe": "schwarz", "fundort": "Schrott-Haufen"},
-        {"name": "Plastikdeckel", "material": "Kunststoff", "gewicht_g": 10, "volumen_cm3": 20, "farbe": "blau", "fundort": "Müll"},
-        "Kein Dict Objekt",
+        {"name": "Schraube M10", "material": "Stahl", "gewicht_g": 50, "volumen_cm3": 6.4, "farbe": "silber", "fundort": "Regal A"},
+        {"name": "Alu-Profil", "material": "Aluminium", "gewicht_g": 300, "volumen_cm3": 111, "farbe": "grau", "fundort": "Boden hinter Karton"},  # Kakerlaken
+        {"name": "Kupferrohr", "material": "Kupfer", "gewicht_g": 890, "volumen_cm3": 100, "farbe": "rot", "fundort": "Kiste links"},
+        {"name": "Messing-Ventil", "material": "Messing", "gewicht_g": 400, "volumen_cm3": 47, "farbe": "gold", "fundort": "Schublade"},
+        {"name": "Edelstahl-Becher", "material": "Edelstahl V2A", "gewicht_g": 200, "volumen_cm3": 25, "farbe": "silber", "fundort": "Spüle"},
+        {"name": "Guss-Eisen", "material": "Grauguss", "gewicht_g": 700, "volumen_cm3": 90, "farbe": "schwarz", "fundort": "Ecke feucht"},  # Kakerlaken + Magnet
+        {"name": "Unbekanntes Teil", "material": "Plastik", "gewicht_g": 10, "volumen_cm3": 20, "farbe": "blau", "fundort": "Müll"},
+        "Kein Dict",  # Schrott
     ]
-    ergebnis_sort = sorter.sortiere_metall(test_teile)
-    print(sorter.get_bericht())
+    sorter.sortiere_metall(test_teile)
+    print(f"Bericht: {sorter.get_bericht()}")
+    
+    # Test Pfad-Validierung
+    print("\n=== Pfad-Validierung Test ===")
+    test_pfade = [
+        "daten/export.json",
+        "../etc/passwd",
+        "/home/user/daten.json",
+        "daten/bericht.txt",
+        "daten/sehr/tief/verschachtelt/struktur/datei.json",
+        "daten/keine_endung",
+        "",
+    ]
+    for p in test_pfade:
+        ok, msg = validiere_dateipfad(p)
+        print(f"  '{p}' -> OK: {ok} ({msg})" if not ok else f"  '{p}' -> OK")
+    
+    # Test Speichern Simulation
+    print("\n=== Speichern Simulation ===")
+    try:
+        json_out = sorter.speichern_als_json("schuppen_inventar.json")
+        print(f"Simulierter Export (erste 200 Zeichen):\n{json_out[:200]}...")
+    except ValueError as e:
+        print(f"Fehler: {e}")
+    
+    try:
+        sorter.speichern_als_json("../../böse.json")
+    except ValueError as e:
+        print(f"Erwarteter Fehler bei böse Pfad: {e}")
