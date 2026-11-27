@@ -582,3 +582,13 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
 ```
+
+## Teil 65 (28.11.2026 00:14, Nachtschicht)
+MetallSortierer-Klasse vervollständigt: magnet_test, funken_test, dichte_test, _dichte_match, material_pruefung, sortiere, get_ergebnis implementiert. Logik nutzt 8% Dichtetoleranz, prüft Magnetismus/Funkenbild, erkennt Kakerlaken-Verdacht bei Lagerort. Ausgabe ist JSON-sicher durch _json_sicher. neuer_tag und Helfer unverlassen.
+
+```
+Test mit 2 Beispielen:
+Hinweis: Dein Werkzeug fragt die KI nie. Nutze frage_an_ki für sein Urteil statt fester Regeln (erst fragen, dann mit daten["ki_antwort"] entscheiden).
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
+```
