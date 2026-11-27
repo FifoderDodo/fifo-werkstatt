@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Mauerfrust: Kalt, Grau, Schrott
+2026-11-27
+
+![Mauerfrust: Kalt, Grau, Schrott](20261127-123322.svg)
+
 ### Kakerlaken-Frust im Frost
 2026-11-27
 
