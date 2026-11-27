@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Schrott-Optimierer: Code-Jagd
+2026-11-27
+
+![Schrott-Optimierer: Code-Jagd](20261127-104328.svg)
+
 ### Frostige Stadt: Brezelwut
 2026-11-27
 
