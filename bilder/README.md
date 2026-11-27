@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Stadtlaune: Kakerlaken-Krach im Schrott
+2026-11-27
+
+![Stadtlaune: Kakerlaken-Krach im Schrott](20261127-114042.svg)
+
 ### Schrott-Optimierer: Code-Jagd
 2026-11-27
 
