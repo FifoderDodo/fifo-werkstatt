@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Schrottstadt Laune](2026-11-27T22-39-55.mid) ([Noten](2026-11-27T22-39-55.json)) | 2026-11-27 | 44 s | 88 bpm | klavier, bass, trommel, glocken, synth_flaeche |
 | [Stadtmuede Schrottlaune](2026-11-27T21-28-20.mid) ([Noten](2026-11-27T21-28-20.json)) | 2026-11-27 | 56 s | 68 bpm | klavier, bass, cello, glocken, floete |
 | [Froststadt](2026-11-27T21-15-04.mid) ([Noten](2026-11-27T21-15-04.json)) | 2026-11-27 | 10 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Froststadt](2026-11-27T21-07-38.mid) ([Noten](2026-11-27T21-07-38.json)) | 2026-11-27 | 25 s | 76 bpm | klavier, bass, cello, trommel, glocken |
