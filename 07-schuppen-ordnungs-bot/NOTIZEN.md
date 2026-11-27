@@ -188,3 +188,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 22 (27.11.2026 02:42, Nachtschicht)
+MetallSortierer.sortiere_metall vervollständigt mit Dichte-Entscheidungsbaum für nicht-magnetische Metalle (Alu <3, Ti 4-5.5, Edelstahl 7.5-8.2, Messing 8.2-8.7, Kupfer >8.7). get_bericht() und export_kategorien() hinzugefügt. __main__-Block mit realistischen Testdaten (inkl. Fehlerfall String) erweitert. neuer_tag unverändert, läuft stabil.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
