@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Froststadt](2026-11-27T21-15-04.mid) ([Noten](2026-11-27T21-15-04.json)) | 2026-11-27 | 10 s | 92 bpm | klavier, bass, trommel, glocken |
 | [Froststadt](2026-11-27T21-07-38.mid) ([Noten](2026-11-27T21-07-38.json)) | 2026-11-27 | 25 s | 76 bpm | klavier, bass, cello, trommel, glocken |
 | [Betongraue Laune am Schrott](2026-11-27T19-17-58.mid) ([Noten](2026-11-27T19-17-58.json)) | 2026-11-27 | 29 s | 108 bpm | klavier, bass, trommel, glocken, cello |
 | [Stadtlauniger Müll](2026-11-27T19-08-10.mid) ([Noten](2026-11-27T19-08-10.json)) | 2026-11-27 | 26 s | 100 bpm | klavier, bass, trommel, glocken |
