@@ -145,71 +145,24 @@ class MetallSortierer:
             if "guss" in mat: return "gusseisen"
             return "unbekannt"
         except Exception:
-            return "unbekannt"
+            return "fehler"
 
-    def _kategorisiere_einzelteil(self, teil: dict) -> str:
-        """Bestimmt die passende Kategorie für ein einzelnes Schrott-Teil."""
-        try:
-            if not isinstance(teil, dict):
-                return "schrott"
-            
-            mat = str(teil.get("material", "")).lower()
-            if "kakerlake" in mat or teil.get("krabbelt", False):
-                return "kakerlaken_verdaechtig"
-            
-            if "kupfer" in mat:
-                return "kupfer"
-            if "messing" in mat:
-                return "messing"
-            if "aluminium" in mat or "alu" in mat:
-                return "aluminium"
-            
-            if self.magnet_test(teil):
-                funken = self.funken_test(teil)
-                if funken == "edelstahl":
-                    return "edelstahl"
-                return "eisenhaltig"
-            
-            if "metall" in mat or "schrott" in mat:
-                return "sonstiges"
-            
-            return "schrott"
-        except Exception:
-            return "schrott"
-
-    def sortiere_metall(self, teile_liste: list) -> Dict[str, List[dict]]:
-        """Sortiert eine Liste von Teilen in die Kategorien ein."""
+    def sortieren(self, teile_liste: List[dict]) -> Dict[str, Any]:
         self.reset()
-        try:
-            if not isinstance(teile_liste, list):
-                return _json_sicher(self.kategorien)
-            
-            for teil in teile_liste:
-                if isinstance(teil, dict):
-                    kat = self._kategorisiere_einzelteil(teil)
-                    if kat in self.kategorien:
-                        self.kategorien[kat].append(teil)
+        for teil in teile_liste:
+            try:
+                if self.magnet_test(teil):
+                    self.kategorien["eisenhaltig"].append(teil)
                 else:
-                    self.kategorien["schrott"].append({"material": str(teil)})
-        except Exception:
-            pass
+                    mat = str(teil.get("material", "")).lower()
+                    if "alu" in mat:
+                        self.kategorien["aluminium"].append(teil)
+                    elif "kupfer" in mat:
+                        self.kategorien["kupfer"].append(teil)
+                    elif "messing" in mat:
+                        self.kategorien["messing"].append(teil)
+                    else:
+                        self.kategorien["sonstiges"].append(teil)
+            except Exception:
+                self.kategorien["schrott"].append(teil)
         return _json_sicher(self.kategorien)
-
-    def to_json(self) -> str:
-        """Gibt den aktuellen Stand als JSON-String zurück."""
-        try:
-            return json.dumps(_json_sicher(self.kategorien), ensure_ascii=False, indent=2)
-        except Exception:
-            return "{}"
-
-
-if __name__ == "__main__":
-    # Kleiner Selbsttest beim Start
-    sorter = MetallSortierer()
-    probe = [
-        {"material": "Stahlträger alt", "gewicht": 15.0},
-        {"material": "Kupferkabel", "gewicht": 0.5},
-        {"material": "Unbekanntes Zeug"}
-    ]
-    ergebnis = sorter.sortiere_metall(probe)
-    print("MetallSortierer Test erfolgreich:", bool(ergebnis))
