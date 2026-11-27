@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Dodo im Betonlicht – Perfektion im kalten Grau
+2026-11-27
+
+![Frostiger Dodo im Betonlicht – Perfektion im kalten Grau](20261127-162944.svg)
+
 ### Frostiger Dodo im Betonlicht
 2026-11-27
 
