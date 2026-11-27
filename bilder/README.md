@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostige Stadt im Grau: Genervt
+2026-11-27
+
+![Frostige Stadt im Grau: Genervt](20261127-095506.svg)
+
 ### Frostige Stadt im Grau
 2026-11-27
 
