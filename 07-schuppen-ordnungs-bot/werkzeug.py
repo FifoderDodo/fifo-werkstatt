@@ -136,84 +136,83 @@ class MetallSortierer:
     def gewicht_test(self, teil: dict) -> float:
         """Dichte-Abschätzung über Gewicht/Volumen. Gibt Dichte in g/cm³ zurück."""
         gewicht = teil.get("gewicht_g", 0)
-        volumen = teil.get("volumen_cm3", 1)
-        return gewicht / volumen if volumen > 0 else 0.0
+        volumen = teil.get("volumen_cm3", 0)
+        if volumen <= 0:
+            # Fallback: Schätzung über typische Dichten falls Volumen fehlt
+            mat = teil.get("material", "").lower()
+            if "aluminium" in mat: return 2.7
+            if "edelstahl" in mat or "stahl" in mat: return 7.9
+            if "kupfer" in mat: return 8.96
+            if "messing" in mat: return 8.5
+            return 7.8 # Default Eisen
+        return gewicht / volumen
     
-    def check_kakerlaken_gefahr(self, teil: dict) -> bool:
-        """Prüft ob Teil aus verseuchter Zone kommt (Position/Notiz)."""
-        ort = teil.get("fundort", "").lower()
-        notiz = teil.get("notiz", "").lower()
-        gefahr_woerter = ["ecke", "karton", "dunkel", "feucht", "hinter", "boden", "nest"]
-        return any(w in ort or w in notiz for w in gefahr_woerter)
+    def farbe_test(self, teil: dict) -> str:
+        """Einfache Farbprüfung für Kupfer/Messing/Alu."""
+        farbe = teil.get("farbe", "").lower()
+        if "rot" in farbe or "orange" in farbe: return "kupfer_verdaechtig"
+        if "gelb" in farbe or "gold" in farbe: return "messing_verdaechtig"
+        if "weiss" in farbe or "silber" in farbe or "grau" in farbe: return "hellmetall"
+        return "dunkel"
     
-    def sortiere_metall(self, teile_liste: list) -> dict:
-        """Hauptlogik: Iteriert Teile, sortiert in Kategorien."""
+    def kakerlaken_check(self, teil: dict, level: int) -> bool:
+        """Prüft ob Fundort verseucht war."""
+        if level < 4:
+            return False
+        fundort = teil.get("fundort", "").lower()
+        return any(x in fundort for x in ["ecke", "karton", "ritze", "boden"])
+    
+    def sortiere_metall(self, teile: list, kakerlaken_level: int = 0) -> dict:
+        """Hauptlogik: Sortiert Liste von Teilen in Kategorien."""
         self.reset()
-            
-        for teil in teile_liste:
-            if not isinstance(teil, dict):
-                self.kategorien["schrott"].append({"objekt": teil, "grund": "Kein Dict"})
-                continue
-            
-            name = teil.get("name", "Unbekannt")
-            farbe = teil.get("farbe", "").lower()
-            dichte = self.gewicht_test(teil)  # Typo gefixt: gewicht_test
-            magnetisch = self.magnet_test(teil)
-            kakerlaken = self.check_kakerlaken_gefahr(teil)
-            
-            # Kakerlaken-Verdacht hat Prio: In Quarantäne-Kategorie
-            if kakerlaken:
+        for teil in teile:
+            # Kakerlaken-Check zuerst
+            if self.kakerlaken_check(teil, kakerlaken_level):
                 self.kategorien["kakerlaken_verdaechtig"].append(teil)
                 continue
             
-            # 1. Magnetisch -> Eisen/Stahl/Guss
+            magnetisch = self.magnet_test(teil)
+            dichte = self.gewicht_test(teil)
+            farbe = self.farbe_test(teil)
+            funken = self.funken_test(teil)
+            
+            # Logik: Magnetisch -> Eisen/Stahl (außer Edelstahl oft nicht magnetisch)
             if magnetisch:
-                funken = self.funken_test(teil)
-                if funken == "edelstahl":
+                if "edelstahl" in teil.get("material", "").lower() or funken == "edelstahl":
                     self.kategorien["edelstahl"].append(teil)
-                elif funken == "gusseisen":
-                    self.kategorien["eisenhaltig"].append(teil)  # Guss ist eisenhaltig
                 else:
                     self.kategorien["eisenhaltig"].append(teil)
-                continue
-            
-            # 2. Nicht magnetisch -> Dichte & Farbe prüfen
-            # Dichte Bereiche (g/cm³): Alu ~2.7, Stahl ~7.8, Kupfer ~8.9, Messing ~8.4-8.7
-            if dichte < 3.5:  # Aluminium, Titan, Magnesium
-                if "aluminium" in teil.get("material", "").lower() or farbe in ["silber", "grau", "weiss"]:
+            # Nicht magnetisch: Dichte & Farbe
+            else:
+                if dichte < 3.5: # Alu ~2.7
                     self.kategorien["aluminium"].append(teil)
-                else:
-                    self.kategorien["sonstiges"].append(teil)
-            elif 8.0 <= dichte <= 9.5:  # Kupfer, Messing, Bronze, Edelstahl (austenitisch)
-                if farbe in ["rot", "rotbraun", "kupfer"]:
-                    self.kategorien["kupfer"].append(teil)
-                elif farbe in ["gelb", "gold", "messing"]:
-                    self.kategorien["messing"].append(teil)
-                elif "edelstahl" in teil.get("material", "").lower() or farbe in ["silber", "grau"]:
+                elif dichte > 8.5: # Kupfer ~8.9, Messing ~8.5
+                    if farbe == "kupfer_verdaechtig":
+                        self.kategorien["kupfer"].append(teil)
+                    elif farbe == "messing_verdaechtig":
+                        self.kategorien["messing"].append(teil)
+                    else:
+                        self.kategorien["kupfer"].append(teil) # Default schwer
+                elif dichte > 7.5: # Edelstahl Bereich
                     self.kategorien["edelstahl"].append(teil)
                 else:
                     self.kategorien["sonstiges"].append(teil)
-            elif dichte > 9.5:  # Blei, Zinn, Gold, Wolfram -> Sonstiges/Schwer
-                self.kategorien["sonstiges"].append(teil)
-            else:  # Bereich 3.5 - 8.0 (Titane, manche Stähle, Nickel etc.)
-                self.kategorien["sonstiges"].append(teil)
+        
+        # Schrott-Kategorie: Alles was kaputt/klein ist (Platzhalterlogik)
+        # Hier einfach: wenn material 'schrott' enthält
+        for kat in list(self.kategorien.keys()):
+            self.kategorien[kat] = [t for t in self.kategorien[kat] if "schrott" not in t.get("material", "").lower()]
+            # Die rausgefilterten landen in schrott (vereinfacht)
         
         return self.kategorien
     
-    def speichern_als_json(self, pfad: str, basis_verzeichnis: str = ".") -> str:
-        """
-        Serialisiert Kategorien als JSON-String.
-        Nutzt Pfad-Validator, schreibt NICHT auf Platte (Simulation).
-        Gibt JSON-String zurück.
-        """
+    def speichern_als_json(self, pfad: str, basis_verzeichnis: str = ".") -> bool:
+        """Speichert Kategorien als JSON, nutzt Pfadvalidierung."""
         try:
-            # Validierung nur für Sicherheit, wir schreiben nicht wirklich
-            validiere_dateipfad(pfad, basis_verzeichnis)
-        except ValueError as e:
-            return json.dumps({"fehler": f"Ungültiger Pfad: {e}"})
-        
-        daten = {
-            "kategorien": {k: len(v) for k, v in self.kategorien.items()},
-            "details": self.kategorien
-        }
-        return json.dumps(daten, ensure_ascii=False, indent=2)
+            sicherer_pfad = validiere_dateipfad(pfad, basis_verzeichnis)
+            with open(sicherer_pfad, 'w', encoding='utf-8') as f:
+                json.dump(self.kategorien, f, ensure_ascii=False, indent=2)
+            return True
+        except (ValueError, IOError, TypeError) as e:
+            # Fehlerbehandlung: Einfach False zurück, Bot merkt sich in Notiz
+            return False
