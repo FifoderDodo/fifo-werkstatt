@@ -94,7 +94,6 @@ def _json_sicher(obj: Any) -> Any:
         return {str(k): _json_sicher(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple, set)):
         return [_json_sicher(v) for v in obj]
-    # Fallback für alles andere (z.B. custom Objects, datetime): String-Repräsentation
     return str(obj)
 
 
@@ -147,94 +146,125 @@ class MetallSortierer:
 
     def _kategorisiere_einzelteil(self, teil: dict) -> str:
         """Entscheidet Kategorie für ein einzelnes Teil basierend auf Tests."""
-        # Kakerlaken-Check vorab
-        if teil.get("kakerlaken_spuren", False):
-            return "kakerlaken_verdaechtig"
-        
+        name = teil.get("name", "Unbekannt")
         magnetisch = self.magnet_test(teil)
         dichte = self.dichte_test(teil)
         farbe = self.farbe_test(teil)
+        funken = self.funken_test(teil)
         material_hint = teil.get("material", "").lower()
         
-        # Logik: Magnetisch + Dichte ~7.8 -> Eisen/Stahl
-        if magnetisch and 7.0 <= dichte <= 8.5:
-            if "edelstahl" in material_hint or "v2a" in material_hint or "v4a" in material_hint:
-                return "edelstahl"
-            return "eisenhaltig"
+        # Kakerlaken-Check (Priorität hoch)
+        if teil.get("kakerlaken_spuren", False) or "kot" in name.lower():
+            return "kakerlaken_verdaechtig"
         
-        # Nicht magnetisch, Dichte prüfen
-        if not magnetisch:
-            if 2.5 <= dichte <= 3.0: # Aluminium ~2.7
-                return "aluminium"
-            if 8.5 <= dichte <= 9.5: # Kupfer ~8.96
-                if "rosa" in farbe or "rot" in farbe or "kupfer" in material_hint:
-                    return "kupfer"
-            if 8.3 <= dichte <= 8.7: # Messing ~8.5
-                if "gelb" in farbe or "gold" in farbe or "messing" in material_hint:
-                    return "messing"
-            if dichte > 9.5: # Schwermetall, evtl. Blei/Wolfram -> Sonstiges
-                return "sonstiges"
+        # Explizite Material-Hinweise nutzen
+        if "kupfer" in material_hint or (farbe in ["rot", "orange", "kupfer"] and 8.5 <= dichte <= 9.5):
+            return "kupfer"
+        if "messing" in material_hint or (farbe in ["gelb", "gold", "messing"] and 8.0 <= dichte <= 8.8):
+            return "messing"
+        if "aluminium" in material_hint or (not magnetisch and 2.5 <= dichte <= 3.0):
+            return "aluminium"
+        if "edelstahl" in material_hint or funken == "edelstahl":
+            return "edelstahl"
         
-        # Fallback: Wenn magnetisch aber Dichte komisch, oder gar nix passt
+        # Magnetisch & Dichte -> Eisen/Stahl/Guss
         if magnetisch:
-            return "eisenhaltig" # Best guess
+            if dichte > 7.0: # Typisch Stahl/Eisen
+                return "eisenhaltig"
+            return "eisenhaltig" # Fallback magnetisch
+        
+        # Nicht magnetisch, Dichte-Check
+        if dichte > 8.0:
+            if farbe in ["rot", "orange"]: return "kupfer"
+            if farbe in ["gelb", "gold"]: return "messing"
+            return "sonstiges" # Schwermetall unklar
+        if dichte > 2.0:
+            return "aluminium" # Leichtmetall Verdacht
         
         return "schrott"
 
-    def sortiere_metall(self, teile_liste: List[dict]) -> Dict[str, List[dict]]:
-        """Hauptschleife: nimmt Liste, befüllt self.kategorien, gibt Dict zurück."""
+    def _kombiniere_kategorien_und_filter(self, ergebnis: dict) -> dict:
+        """
+        Post-Processing: Kombiniert ähnliche Kategorien, filtert leere,
+        und markiert Auffälligkeiten (z.B. viele Kakerlaken-Teile).
+        """
+        combined = {}
+        # Mapping für Zusammenführung
+        merge_map = {
+            "eisenhaltig": ["eisenhaltig", "guss", "stahl"],
+            "nichteisen_metalle": ["kupfer", "messing", "aluminium", "edelstahl"],
+            "problemfall": ["kakerlaken_verdaechtig", "schrott", "sonstiges"]
+        }
+        
+        for ziel_kategorie, quellen in merge_map.items():
+            gesammelt = []
+            for q in quellen:
+                if q in ergebnis and ergebnis[q]:
+                    gesammelt.extend(ergebnis[q])
+            if gesammelt:
+                combined[ziel_kategorie] = gesammelt
+        
+        # Originale Kategorien auch behalten für Details, aber gefiltert (nur non-empty)
+        for k, v in ergebnis.items():
+            if v:
+                combined[f"detail_{k}"] = v
+        
+        # Statistik & Warnungen
+        stats = {k: len(v) for k, v in ergebnis.items() if v}
+        combined["_stats"] = stats
+        
+        if stats.get("kakerlaken_verdaechtig", 0) > 2:
+            combined["_warnung"] = "Mehrere Teile mit Kakerlaken-Spuren. Schuppenbereich säubern!"
+        
+        return combined
+
+    def sortiere_metall(self, teile_liste: List[dict]) -> dict:
+        """Hauptmethode: Sortiert Liste von Teilen in self.kategorien."""
         self.reset()
         for teil in teile_liste:
-            if not isinstance(teil, dict):
-                continue
             kat = self._kategorisiere_einzelteil(teil)
-            # Anreichern mit Testergebnissen für Transparenz
-            angereichert = teil.copy()
-            angereichert["_magnetisch"] = self.magnet_test(teil)
-            angereichert["_dichte"] = self.dichte_test(teil)
-            angereichert["_farbe"] = self.farbe_test(teil)
-            angereichert["_kategorie"] = kat
-            self.kategorien[kat].append(angereichert)
-        return self.kategorien
+            if kat in self.kategorien:
+                self.kategorien[kat].append(teil)
+            else:
+                self.kategorien["sonstiges"].append(teil)
+        
+        # Roh-Ergebnis kopieren
+        roh_ergebnis = {k: list(v) for k, v in self.kategorien.items()}
+        
+        # Neue Kombinations-Logik anwenden
+        finales_ergebnis = self._kombiniere_kategorien_und_filter(roh_ergebnis)
+        
+        return finales_ergebnis
 
     def to_json(self) -> str:
-        """Gibt Kategorien als JSON-String zurück (ASCII-safe, sortiert)."""
-        sicher = _json_sicher(self.kategorien)
-        return json.dumps(sicher, ensure_ascii=False, indent=2, sort_keys=True)
+        """Gibt sortiertes Ergebnis als JSON-String zurück."""
+        # Nutzt den letzten Stand von self.kategorien (roh) oder ruft sortiere_metall nochmal? 
+        # Sicherer: wir geben die aktuellen Kategorien + Stats zurück.
+        ausgabe = {k: list(v) for k, v in self.kategorien.items()}
+        ausgabe["_stats"] = {k: len(v) for k, v in self.kategorien.items()}
+        return json.dumps(_json_sicher(ausgabe), ensure_ascii=False, indent=2)
 
 
-# --- Selbsttest beim direkten Aufruf ---
 if __name__ == "__main__":
-    # Test neuer_tag
+    # Selbsttests
     print("=== Test neuer_tag ===")
-    test_daten_1 = {
+    test_daten = {
         "gestern": {"think": 12, "eat": 3},
         "fehlschlaege": {"schrott_suchen": 2},
         "stimmung": 10,
         "wetter": "sonnig",
         "kakerlaken_level": 0
     }
-    print(json.dumps(neuer_tag(test_daten_1), ensure_ascii=False, indent=2))
+    print(json.dumps(neuer_tag(test_daten), ensure_ascii=False, indent=2))
     
-    test_daten_2 = {
-        "gestern": {},
-        "fehlschlaege": {},
-        "stimmung": 30,
-        "wetter": "",
-        "kakerlaken_level": 0
-    }
-    print(json.dumps(neuer_tag(test_daten_2), ensure_ascii=False, indent=2))
-
-    # Test MetallSortierer
     print("\n=== Test MetallSortierer ===")
     sorter = MetallSortierer()
     test_teile = [
-        {"id": 1, "material": "Eisenstab", "gewicht_g": 780, "volumen_cm3": 100, "farbe": "grau"},
-        {"id": 2, "material": "Alu-Profil", "gewicht_g": 270, "volumen_cm3": 100, "farbe": "silber"},
-        {"id": 3, "material": "Kupferrohr", "gewicht_g": 896, "volumen_cm3": 100, "farbe": "rot"},
-        {"id": 4, "material": "Messing-Schraube", "gewicht_g": 85, "volumen_cm3": 10, "farbe": "gold"},
-        {"id": 5, "material": "Edelstahl V2A", "gewicht_g": 790, "volumen_cm3": 100, "farbe": "silber", "kakerlaken_spuren": True},
-        {"id": 6, "material": "Plastik", "gewicht_g": 50, "volumen_cm3": 50, "farbe": "bunt"},
+        {"name": "Rostiger Nagel", "material": "Eisen", "gewicht_g": 10, "volumen_cm3": 1.3, "farbe": "braun"},
+        {"name": "Kupferrohr", "material": "Kupfer", "gewicht_g": 500, "volumen_cm3": 56, "farbe": "rot", "kakerlaken_spuren": True},
+        {"name": "Alu-Profil", "material": "Aluminium", "gewicht_g": 200, "volumen_cm3": 74, "farbe": "silber"},
+        {"name": "Schraube VA", "material": "Edelstahl V2A", "gewicht_g": 20, "volumen_cm3": 2.5, "farbe": "silber"},
+        {"name": "Unbekanntes Stück", "gewicht_g": 100, "volumen_cm3": 50, "farbe": "grau"},
     ]
     ergebnis = sorter.sortiere_metall(test_teile)
-    print(sorter.to_json())
+    print(json.dumps(_json_sicher(ergebnis), ensure_ascii=False, indent=2))
