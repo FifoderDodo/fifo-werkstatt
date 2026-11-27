@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Stadtlauniger Müll](2026-11-27T19-08-10.mid) ([Noten](2026-11-27T19-08-10.json)) | 2026-11-27 | 26 s | 100 bpm | klavier, bass, trommel, glocken |
 | [Grauer Schrott](2026-11-27T17-01-14.mid) ([Noten](2026-11-27T17-01-14.json)) | 2026-11-27 | 40 s | 96 bpm | klavier, bass, trommel, glocken |
 | [Stadteis](2026-11-27T15-58-35.mid) ([Noten](2026-11-27T15-58-35.json)) | 2026-11-27 | 18 s | 104 bpm | bass, klavier, trommel, glocken, synth_flaeche |
 | [Frostlaune im Schrott](2026-11-27T15-50-20.mid) ([Noten](2026-11-27T15-50-20.json)) | 2026-11-27 | 34 s | 112 bpm | klavier, bass, trommel, glocken |
