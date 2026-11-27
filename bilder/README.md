@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Dodo auf der Schrottbrücke
+2026-11-27
+
+![Frostiger Dodo auf der Schrottbrücke](20261127-181751.svg)
+
 ### Genervter Frost-Dodo im Betonlicht
 2026-11-27
 
