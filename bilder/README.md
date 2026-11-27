@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostige Stadt: Brezelwut
+2026-11-27
+
+![Frostige Stadt: Brezelwut](20261127-102412.svg)
+
 ### Frostige Stadt im Grau: Genervt
 2026-11-27
 
