@@ -147,6 +147,83 @@ class MetallSortierer:
                 return "gusseisen"
             if "stahl" in mat:
                 return "stahl"
-            return "normal"
-        except Exception:
             return "unbekannt"
+        except Exception:
+            return "fehler"
+    
+    def dichte_test(self, teil: dict) -> float:
+        """Simuliert Dichtemessung (g/cm³). Fallback auf Material-Namen."""
+        try:
+            material = str(teil.get("material", "")).lower()
+            # Grobe Zuordnung
+            if any(m in material for m in ["aluminium", "alu"]): return 2.7
+            if any(m in material for m in ["edelstahl", "stahl", "eisen", "ferro", "guss"]): return 7.85
+            if "kupfer" in material: return 8.96
+            if "messing" in material: return 8.5
+            if "blei" in material: return 11.34
+            if "zink" in material: return 7.13
+            # Versuch über Dict-Feld
+            dichte = teil.get("dichte")
+            if isinstance(dichte, (int, float)):
+                return float(dichte)
+            return 0.0
+        except Exception:
+            return 0.0
+    
+    def material_pruefung(self, teil: dict) -> str:
+        """Führt Tests durch und gibt Kategorie-Key zurück."""
+        try:
+            magnetisch = self.magnet_test(teil)
+            funken = self.funken_test(teil)
+            dichte = self.dichte_test(teil)
+            material = str(teil.get("material", "")).lower()
+            
+            # Kakerlaken-Check (Spaß/Logik)
+            if teil.get("kakerlaken_verdaechtig") or "kakerlake" in material:
+                return "kakerlaken_verdaechtig"
+            
+            # Logik: Magnet + Funken + Dichte
+            if magnetisch:
+                if "edelstahl" in funken or "edelstahl" in material:
+                    return "edelstahl"
+                if dichte > 7.0:
+                    return "eisenhaltig"
+                return "eisenhaltig" # Default für magnetisch
+            
+            # Nicht magnetisch
+            if 2.5 <= dichte <= 3.0:
+                return "aluminium"
+            if 8.0 <= dichte <= 9.5:
+                if "kupfer" in material or "rot" in str(teil.get("farbe", "")).lower():
+                    return "kupfer"
+                return "messing"
+            if dichte > 9.5:
+                return "kupfer" # Blei etc. landet hier grob
+            
+            # Fallback über Namen
+            if "aluminium" in material or "alu" in material: return "aluminium"
+            if "kupfer" in material: return "kupfer"
+            if "messing" in material: return "messing"
+            if "edelstahl" in material: return "edelstahl"
+            if "stahl" in material or "eisen" in material: return "eisenhaltig"
+            
+            return "sonstiges"
+        except Exception:
+            return "schrott"
+    
+    def sortiere(self, teile_liste: List[dict]) -> Dict[str, List[dict]]:
+        """Hauptmethode: Sortiert Liste von Teilen in self.kategorien."""
+        self.reset()
+        if not isinstance(teile_liste, list):
+            return _json_sicher(self.kategorien)
+        
+        for teil in teile_liste:
+            if not isinstance(teil, dict):
+                continue
+            kat = self.material_pruefung(teil)
+            if kat in self.kategorien:
+                self.kategorien[kat].append(_json_sicher(teil))
+            else:
+                self.kategorien["schrott"].append(_json_sicher(teil))
+        
+        return _json_sicher(self.kategorien)
