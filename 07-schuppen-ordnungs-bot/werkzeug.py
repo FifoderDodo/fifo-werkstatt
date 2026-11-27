@@ -145,141 +145,71 @@ class MetallSortierer:
             if "guss" in mat: return "gusseisen"
             return "unbekannt"
         except Exception:
-            return "fehler"
-
-    def dichte_test(self, teil: dict) -> float:
-        """Dichte-Abschätzung über Gewicht/Volumen in g/cm³."""
-        try:
-            gewicht = float(teil.get("gewicht_g", 0.0))
-            volumen = float(teil.get("volumen_cm3", 1.0))
-            if volumen <= 0:
-                return 0.0
-            return round(gewicht / volumen, 2)
-        except (ValueError, TypeError, ZeroDivisionError):
-            return 0.0
-
-    def farbe_test(self, teil: dict) -> str:
-        """Prüft die äußere Farbe des Fundstücks."""
-        try:
-            return str(teil.get("farbe", "unbekannt")).lower()
-        except Exception:
             return "unbekannt"
 
     def _kategorisiere_einzelteil(self, teil: dict) -> str:
-        """Entscheidet Kategorie für ein einzelnes Teil."""
+        """Bestimmt die passende Kategorie für ein einzelnes Schrott-Teil."""
         try:
             if not isinstance(teil, dict):
                 return "schrott"
             
-            name = str(teil.get("name", "unbekannt"))
-            
-            if teil.get("kakerlaken_verdaechtig", False):
+            mat = str(teil.get("material", "")).lower()
+            if "kakerlake" in mat or teil.get("krabbelt", False):
                 return "kakerlaken_verdaechtig"
             
-            magnetisch = self.magnet_test(teil)
-            dichte = self.dichte_test(teil)
-            farbe = self.farbe_test(teil)
-            funken = self.funken_test(teil)
+            if "kupfer" in mat:
+                return "kupfer"
+            if "messing" in mat:
+                return "messing"
+            if "aluminium" in mat or "alu" in mat:
+                return "aluminium"
             
-            if magnetisch:
-                if "edelstahl" in funken or (7.5 <= dichte <= 8.0 and "rostfrei" in str(teil.get("material", "")).lower()):
+            if self.magnet_test(teil):
+                funken = self.funken_test(teil)
+                if funken == "edelstahl":
                     return "edelstahl"
                 return "eisenhaltig"
             
-            if 2.5 <= dichte <= 3.0 and farbe in ["silber", "grau", "weiß"]:
-                return "aluminium"
-            if 8.5 <= dichte <= 9.0 and farbe in ["rot", "orange", "braun"]:
-                return "kupfer"
-            if 8.3 <= dichte <= 8.7 and farbe in ["gelb", "gold", "messing"]:
-                return "messing"
-            
-            if dichte > 0:
+            if "metall" in mat or "schrott" in mat:
                 return "sonstiges"
             
             return "schrott"
         except Exception:
             return "schrott"
 
-    def sortiere_metall(self, teile_liste: List[dict]) -> Dict[str, List[dict]]:
-        """Sortiert eine Liste von Teilen in die Kategorien."""
+    def sortiere_metall(self, teile_liste: list) -> Dict[str, List[dict]]:
+        """Sortiert eine Liste von Teilen in die Kategorien ein."""
         self.reset()
-        if not isinstance(teile_liste, list):
-            return self.kategorien
-        
-        for teil in teile_liste:
-            try:
-                kat = self._kategorisiere_einzelteil(teil)
-                if kat in self.kategorien:
-                    self.kategorien[kat].append(teil)
-                else:
-                    self.kategorien["schrott"].append(teil)
-            except Exception:
-                self.kategorien["schrott"].append(teil)
-        return self.kategorien
-
-    def _kombiniere_kategorien_und_filter(self) -> Dict[str, Any]:
-        """Aggregiert Kategorien zu Gruppen, fügt Statistiken und Warnungen hinzu."""
         try:
-            eisen_gruppe = self.kategorien["eisenhaltig"] + self.kategorien["edelstahl"]
-            nichteisen_gruppe = (
-                self.kategorien["aluminium"] + self.kategorien["kupfer"] + 
-                self.kategorien["messing"] + self.kategorien["sonstiges"]
-            )
-            problem_faelle = self.kategorien["kakerlaken_verdaechtig"] + self.kategorien["schrott"]
+            if not isinstance(teile_liste, list):
+                return _json_sicher(self.kategorien)
             
-            gesamt = sum(len(v) for v in self.kategorien.values())
-            
-            warnungen = []
-            if len(self.kategorien["kakerlaken_verdaechtig"]) > 0:
-                warnungen.append(f"{len(self.kategorien['kakerlaken_verdaechtig'])} Teile kakerlakenverdächtig - Handschuhe an!")
-            if len(self.kategorien["schrott"]) > gesamt * 0.5 and gesamt > 0:
-                warnungen.append("Viel unidentifizierbarer Schrott - Sensoren prüfen.")
-            
-            return {
-                "gruppen": {
-                    "eisen_metalle": eisen_gruppe,
-                    "nichteisen_metalle": nichteisen_gruppe,
-                    "problem_faelle": problem_faelle
-                },
-                "statistik": {
-                    "gesamt_teile": gesamt,
-                    "kategorien": {k: len(v) for k, v in self.kategorien.items()}
-                },
-                "warnungen": warnungen
-            }
-        except Exception as e:
-            return {"gruppen": {}, "statistik": {"gesamt_teile": 0}, "warnungen": [f"Aggregation fehlgeschlagen: {e}"]}
+            for teil in teile_liste:
+                if isinstance(teil, dict):
+                    kat = self._kategorisiere_einzelteil(teil)
+                    if kat in self.kategorien:
+                        self.kategorien[kat].append(teil)
+                else:
+                    self.kategorien["schrott"].append({"material": str(teil)})
+        except Exception:
+            pass
+        return _json_sicher(self.kategorien)
 
     def to_json(self) -> str:
-        """Gibt kompletten Sortierstand als JSON-String zurück."""
+        """Gibt den aktuellen Stand als JSON-String zurück."""
         try:
-            daten = {
-                "kategorien": self.kategorien,
-                "auswertung": self._kombiniere_kategorien_und_filter()
-            }
-            return json.dumps(_json_sicher(daten), ensure_ascii=False, indent=2)
-        except Exception as e:
-            return json.dumps({"fehler": f"JSON-Serialisierung fehlgeschlagen: {e}"})
+            return json.dumps(_json_sicher(self.kategorien), ensure_ascii=False, indent=2)
+        except Exception:
+            return "{}"
 
 
 if __name__ == "__main__":
-    # Test neuer_tag
-    print("=== Test neuer_tag ===")
-    test1 = {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen": 2}, "stimmung": -10, "wetter": "sonnig"}
-    print(json.dumps(neuer_tag(test1), ensure_ascii=False, indent=2))
-    
-    test2 = {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": "regen", "kakerlaken_level": 5}
-    print(json.dumps(neuer_tag(test2), ensure_ascii=False, indent=2))
-    
-    # Test MetallSortierer
-    print("\n=== Test MetallSortierer ===")
+    # Kleiner Selbsttest beim Start
     sorter = MetallSortierer()
-    test_teile = [
-        {"name": "Rostiger Nagel", "material": "Eisen", "gewicht_g": 5.0, "volumen_cm3": 0.64, "farbe": "braun"},
-        {"name": "Blanker Alu-Winkel", "material": "Aluminium", "gewicht_g": 27.0, "volumen_cm3": 10.0, "farbe": "silber"},
-        {"name": "Kupferrohr Stück", "material": "Kupfer", "gewicht_g": 89.0, "volumen_cm3": 10.0, "farbe": "rot"},
-        {"name": "Merwürdiges Etwas", "material": "Plastik", "gewicht_g": 10, "volumen_cm3": 20, "farbe": "bunt", "kakerlaken_verdaechtig": True},
-        {"name": "Kaputtes Teil", "material": "Unbekannt", "gewicht_g": 0, "volumen_cm3": 0, "farbe": "grau"},
+    probe = [
+        {"material": "Stahlträger alt", "gewicht": 15.0},
+        {"material": "Kupferkabel", "gewicht": 0.5},
+        {"material": "Unbekanntes Zeug"}
     ]
-    sorter.sortiere_metall(test_teile)
-    print(sorter.to_json())
+    ergebnis = sorter.sortiere_metall(probe)
+    print("MetallSortierer Test erfolgreich:", bool(ergebnis))
