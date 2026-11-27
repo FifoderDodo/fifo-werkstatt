@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Frostige Stadt im Grau
 2026-11-27
 
-![Frostige Stadt im Grau](20261127-092348.svg)
+![Frostige Stadt im Grau](20261127-093614.svg)
 
 ### Letzte Goldkröte: Stille Nacht im Winterpark
 2026-11-26
