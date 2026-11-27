@@ -138,31 +138,13 @@ class MetallSortierer:
             return False
     
     def funken_test(self, teil: dict) -> str:
-        """Simuliert Funkenbild-Test."""
+        """Simuliert Funkenbild-Test mit hartem Fallback."""
         try:
             mat = str(teil.get("material", "")).lower()
-            if "edelstahl" in mat: return "edelstahl"
-            if "guss" in mat: return "gusseisen"
+            if "edelstahl" in mat: 
+                return "edelstahl"
+            if "guss" in mat: 
+                return "gusseisen"
             return "unbekannt"
         except Exception:
-            return "fehler"
-
-    def sortieren(self, teile_liste: List[dict]) -> Dict[str, Any]:
-        self.reset()
-        for teil in teile_liste:
-            try:
-                if self.magnet_test(teil):
-                    self.kategorien["eisenhaltig"].append(teil)
-                else:
-                    mat = str(teil.get("material", "")).lower()
-                    if "alu" in mat:
-                        self.kategorien["aluminium"].append(teil)
-                    elif "kupfer" in mat:
-                        self.kategorien["kupfer"].append(teil)
-                    elif "messing" in mat:
-                        self.kategorien["messing"].append(teil)
-                    else:
-                        self.kategorien["sonstiges"].append(teil)
-            except Exception:
-                self.kategorien["schrott"].append(teil)
-        return _json_sicher(self.kategorien)
+            return "unbekannt"
