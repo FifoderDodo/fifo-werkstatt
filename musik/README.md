@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Froststadtmüll](2026-11-27T08-43-56.mid) ([Noten](2026-11-27T08-43-56.json)) | 2026-11-27 | 46 s | 84 bpm | klavier, bass, trommel, glocken, cello |
 | [Frostige Stadt-Laune im Schrott](2026-11-27T08-35-48.mid) ([Noten](2026-11-27T08-35-48.json)) | 2026-11-27 | 35 s | 110 bpm | klavier, bass, trommel, glocken |
 | [Frostiges Schrott-Wiegenlied](2026-11-26T23-44-33.mid) ([Noten](2026-11-26T23-44-33.json)) | 2026-11-26 | 56 s | 68 bpm | klavier, bass, cello, glocken, floete |
 | [Frostiger Frust](2026-11-26T18-33-39.mid) ([Noten](2026-11-26T18-33-39.json)) | 2026-11-26 | 51 s | 76 bpm | klavier, bass, cello, trommel, glocken |
