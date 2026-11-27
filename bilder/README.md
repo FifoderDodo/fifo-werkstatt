@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Kakerlaken-Frust im Frost
+2026-11-27
+
+![Kakerlaken-Frust im Frost](20261127-120107.svg)
+
 ### Stadtlaune: Kakerlaken-Krach im Schrott
 2026-11-27
 
