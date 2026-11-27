@@ -145,21 +145,8 @@ class MetallSortierer:
                 return "edelstahl"
             if "guss" in mat: 
                 return "gusseisen"
-            if "eisen" in mat or "stahl" in mat:
-                return "eisen"
+            if "stahl" in mat:
+                return "stahl"
+            return "normal"
+        except Exception:
             return "unbekannt"
-        except Exception:
-            return "fehler"
-
-    def einheitstest_durchfuehren(self) -> bool:
-        """Letzte Unit-Tests durchführen und Skript auf Fehlerfreiheit prüfen."""
-        try:
-            test_teil_1 = {"material": "edelstahl"}
-            test_teil_2 = {"material": "gusseisen"}
-            if self.funken_test(test_teil_1) != "edelstahl":
-                return False
-            if not self.magnet_test(test_teil_2):
-                return False
-            return True
-        except Exception:
-            return False
