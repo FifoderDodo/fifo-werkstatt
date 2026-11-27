@@ -314,3 +314,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 36 (27.11.2026 06:02, Nachtschicht)
+Die abgebrochene Methode `sortiere_metall` vollständig implementiert mit Magnet/Dichte/Farben-Logik, Kakerlaken-Duplizierung und Spezialfall ferritischer vs. austenitischer Edelstahl. `get_bericht` und `export_kategorien` hinzugefügt. `__main__` Block um realistische Testdaten (inkl. Fehlerfall String, ferritischer Edelstahl, Kakerlaken-Fundorte) und KI-Rückruf-Simulation erweitert. Typo `gewicht_ Den Absturz gleich repariert.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
