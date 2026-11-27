@@ -592,3 +592,12 @@ Hinweis: Dein Werkzeug fragt die KI nie. Nutze frage_an_ki für sein Urteil stat
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
 ```
+
+## Teil 66 (28.11.2026 00:28, Nachtschicht)
+neuer_tag auf Zwei-Runden-KI-Muster umgestellt: Erst frage_an_ki mit strukturiertem Prompt, dann Parsing der KI-Antwort (Format 'aktion: text | ...') mit Fallback. Hartes Kakerlaken-Limit (>=7) bleibt als Sicherheitsbremse vor der KI. MetallSortierer-Klasse vervollständigt (magnet_test, funken_test, dichte_test, _dichte_match, material_pruefung, sortiere, get_ergebnis) mit 8% Dichtetoleranz und Ka
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+```
