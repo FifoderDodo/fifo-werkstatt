@@ -179,3 +179,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 21 (27.11.2026 02:28, Nachtschicht)
+Die abgebrochene `sortiere_metall`-Methode vervollständigt: Entscheidungsbaum für nicht-magnetische Metalle (Alu, Kupfer, Messing, Edelstahl) über Dichte, Farbe und Material-Hinweis implementiert. Kakerlaken-Check markiert Teile nur, sortiert sie aber ganz normal weiter. `get_bericht()` und `__main__`-Testblock ergänzt. `neuer_tag` Logik auf Plausibilität geprüft (Kakerlaken-Priorität, Stimmung, W
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
