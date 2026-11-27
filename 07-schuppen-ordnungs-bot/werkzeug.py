@@ -146,128 +146,137 @@ class MetallSortierer:
     def magnet_test(self, teil: dict) -> bool:
         """Simuliert Magnet-Test. True = ferromagnetisch (Eisen/Stahl/Guss)."""
         try:
-            material_hinweis = str(teil.get("material", "")).lower()
-            # Starke Magnete ziehen Eisen, Stahl, Guss. Nicht Edelstahl (meist), Alu, Kupfer.
-            ferro_keywords = ["eisen", "stahl", "guss", "ferro", "guß"]
-            # Edelstahl ist oft schwach/non-magnetisch (Austenit), aber Martensit/Ferrit zieht.
-            # Wir vereinfachen: Wenn 'edelstahl' im Namen, dann False (unsicher).
-            if "edelstahl" in material_hinweis:
-                return False 
-            return any(kw in material_hinweis for kw in ferro_keywords)
+            material = str(teil.get("material", "")).lower()
+            # Eisen, Stahl, Guss sind magnetisch. Edelstahl oft nicht (austenitisch).
+            magnetisch_stichwoerter = ["eisen", "stahl", "guss", "ferro"]
+            # Edelstahl explizit ausschließen, falls im String
+            if "edelstahl" in material or "rostfrei" in material:
+                return False
+            return any(w in material for w in magnetisch_stichwoerter)
         except Exception:
             return False
     
     def funken_test(self, teil: dict) -> str:
-        """Simuliert Funkenbild-Test. Gibt Farb-Kategorie zurück."""
+        """Simuliert Funkenbild-Test. Gibt Kategorie-Hinweis zurück."""
         try:
-            material_hinweis = str(teil.get("material", "")).lower()
-            if any(k in material_hinweis for k in ["stahl", "eisen", "guss", "ferro", "guß"]):
-                if "edelstahl" in material_hinweis:
-                    return "weiss_gelb_kurz" # Edelstahl Funken
-                return "gelb_weiss_lang" # Stahl/Eisen Funken
-            if any(k in material_hinweis for k in ["kupfer", "messing", "bronze", "rotguß"]):
-                return "keine_funken" # NE-Metalle funken nicht
-            if any(k in material_hinweis for k in ["aluminium", "alu", "magnesium", "titan"]):
-                return "keine_funken"
+            material = str(teil.get("material", "")).lower()
+            if "edelstahl" in material or "rostfrei" in material:
+                return "edelstahl"
+            if any(w in material for w in ["eisen", "stahl", "guss", "ferro"]):
+                return "eisenhaltig"
+            if any(w in material for w in ["aluminium", "alu", "magnesium"]):
+                return "aluminium"
+            if "kupfer" in material:
+                return "kupfer"
+            if any(w in material for w in ["messing", "bronze"]):
+                return "messing"
             return "unbekannt"
         except Exception:
-            return "fehler"
+            return "unbekannt"
     
-    def _dichte_match(self, gemessen: float, referenz: float) -> bool:
-        """Prüft ob gemessene Dichte zur Referenz passt (relative Toleranz)."""
-        if referenz <= 0 or gemessen <= 0:
-            return False
-        abweichung = abs(gemessen - referenz) / referenz
-        return abweichung <= self.DICHTE_TOLERANZ
-    
-    def dichte_test(self, teil: dict) -> str:
-        """Ermittelt Material anhand Dichte. Priorisiert Hinweis vor blindem Match."""
+    def dichte_test(self, teil: dict) -> float:
+        """Berechnet Dichte aus Masse/Volumen. Gibt 0.0 bei Fehler."""
         try:
             masse = float(teil.get("masse_g", 0))
             volumen = float(teil.get("volumen_cm3", 0))
             if masse <= 0 or volumen <= 0:
-                return "unbekannt"
-            
-            gemessen = masse / volumen
-            material_hinweis = str(teil.get("material", "")).lower()
-            
-            # 1. Prüfen ob Hinweis in Tabelle existiert und passt
-            for name, ref_dichte in self.DICHTEN.items():
-                if name in material_hinweis:
-                    if self._dichte_match(gemessen, ref_dichte):
-                        return name
-            
-            # 2. Blinder Match: Bestes Match aus Tabelle
-            best_match = "unbekannt"
-            min_diff = float('inf')
-            for name, ref_dichte in self.DICHTEN.items():
-                if self._dichte_match(gemessen, ref_dichte):
-                    diff = abs(gemessen - ref_dichte) / ref_dichte
-                    if diff < min_diff:
-                        min_diff = diff
-                        best_match = name
-            return best_match
+                return 0.0
+            return round(masse / volumen, 2)
         except (ValueError, TypeError, ZeroDivisionError):
-            return "unbekannt"
+            return 0.0
+    
+    def _dichte_match(self, dichte: float) -> List[str]:
+        """Findet Material-Kandidaten basierend auf Dichte mit Toleranz."""
+        if dichte <= 0:
+            return []
+        kandidaten = []
+        for material, ref_dichte in self.DICHTEN.items():
+            if ref_dichte == 0:
+                continue
+            abweichung = abs(dichte - ref_dichte) / ref_dichte
+            if abweichung <= self.DICHTE_TOLERANZ:
+                kandidaten.append(material)
+        return kandidaten
     
     def material_pruefung(self, teil: dict) -> dict:
         """Führt alle Tests durch und gibt Dict mit Ergebnissen zurück."""
         magnetisch = self.magnet_test(teil)
         funken = self.funken_test(teil)
-        dichte_est = self.dichte_test(teil)
+        dichte = self.dichte_test(teil)
+        kandidaten = self._dichte_match(dichte)
         
         return {
             "magnetisch": magnetisch,
             "funken_typ": funken,
-            "dichte_schaetzung": dichte_est,
-            "original_hinweis": str(teil.get("material", "")).lower()
+            "dichte": dichte,
+            "dichte_kandidaten": kandidaten
         }
     
-    def sortiere(self, teile_liste: List[dict]):
-        """Sortiert Liste von Teilen in self.kategorien ein."""
+    def sortiere(self, teile: List[dict]) -> dict:
+        """Sortiert Liste von Teilen in Kategorien."""
         self.reset()
-        for teil in teile_liste:
+        for teil in teile:
             if not isinstance(teil, dict):
-                self.kategorien["schrott"].append(_json_sicher(teil))
+                self.kategorien["schrott"].append({"fehler": "Kein Dict", "original": str(teil)[:50]})
                 continue
             
-            # Kakerlaken-Check (Spass/Logik)
-            if teil.get("kakerlaken_spuren", False) or "kakerlake" in str(teil.get("notiz", "")).lower():
-                self.kategorien["kakerlaken_verdaechtig"].append(_json_sicher(teil))
+            # Kakerlaken-Check: Teile, die verdächtig riechen oder aus dunklen Ecken kommen
+            if teil.get("kakerlaken_verdaechtig", False):
+                self.kategorien["kakerlaken_verdaechtig"].append(teil)
                 continue
             
-            erg = self.material_pruefung(teil)
-            dichte_key = erg["dichte_schaetzung"]
-            magnet = erg["magnetisch"]
+            pruef = self.material_pruefung(teil)
+            kategorie = "schrott"  # Default
             
-            # Entscheidungslogik
-            kat = "schrott"
-            
-            if dichte_key in ["eisen", "stahl", "guss", "ferro", "guß"] and magnet:
-                kat = "eisenhaltig"
-            elif dichte_key == "edelstahl" and not magnet: # Austenitisch
-                kat = "edelstahl"
-            elif dichte_key == "edelstahl" and magnet: # Martensitisch/Ferritisch -> eher eisenhaltig behandeln aber Kennzeichnung
-                kat = "edelstahl" 
-            elif dichte_key in ["aluminium", "aluminiumlegierung", "magnesium", "titan"]:
-                kat = "aluminium"
-            elif dichte_key == "kupfer":
-                kat = "kupfer"
-            elif dichte_key in ["messing", "bronze", "zink", "zinn", "blei"]:
-                kat = "messing" # Sammelkategorie für NE-Schwer
-            elif dichte_key != "unbekannt":
-                kat = "sonstiges"
-            else:
-                # Fallback über Magnet/Funken wenn Dichte fehlschlug
-                if magnet and erg["funken_typ"] == "gelb_weiss_lang":
-                    kat = "eisenhaltig"
-                elif not magnet and erg["funken_typ"] == "keine_funken":
-                    kat = "sonstiges" # Wahrscheinlich Alu/Kupfer aber Dichte unbekannt
+            # Priorität 1: Material-Hinweis aus Daten (falls verlässlich)
+            material_hinweis = str(teil.get("material", "")).lower()
+            if "edelstahl" in material_hinweis or "rostfrei" in material_hinweis:
+                kategorie = "edelstahl"
+            elif any(w in material_hinweis for w in ["eisen", "stahl", "guss", "ferro"]):
+                kategorie = "eisenhaltig"
+            elif any(w in material_hinweis for w in ["aluminium", "alu"]):
+                kategorie = "aluminium"
+            elif "kupfer" in material_hinweis:
+                kategorie = "kupfer"
+            elif any(w in material_hinweis for w in ["messing", "bronze"]):
+                kategorie = "messing"
+            # Priorität 2: Test-Logik
+            elif pruef["magnetisch"]:
+                if pruef["funken_typ"] == "edelstahl":
+                    kategorie = "edelstahl"
                 else:
-                    kat = "schrott"
+                    kategorie = "eisenhaltig"
+            elif pruef["funken_typ"] != "unbekannt":
+                kategorie = pruef["funken_typ"]
+            elif pruef["dichte_kandidaten"]:
+                # Ersten passenden Kandidaten nehmen
+                erster = pruef["dichte_kandidaten"][0]
+                if erster in ["aluminium", "aluminiumlegierung", "magnesium"]:
+                    kategorie = "aluminium"
+                elif erster in ["stahl", "eisen", "guss", "ferro"]:
+                    kategorie = "eisenhaltig"
+                elif erster == "edelstahl":
+                    kategorie = "edelstahl"
+                elif erster == "kupfer":
+                    kategorie = "kupfer"
+                elif erster in ["messing", "bronze"]:
+                    kategorie = "messing"
+                else:
+                    kategorie = "sonstiges"
             
-            self.kategorien[kat].append(_json_sicher(teil))
+            self.kategorien[kategorie].append(teil)
+        
+        return self.get_ergebnis()
     
     def get_ergebnis(self) -> dict:
-        """Gibt sortiertes Ergebnis als JSON-sicheres Dict zurück."""
-        return {k: _json_sicher(v) for k, v in self.kategorien.items()}
+        """Liefert JSON-sicheres Ergebnis mit Zusammenfassung."""
+        ergebnis = {}
+        gesamt = 0
+        for kat, liste in self.kategorien.items():
+            ergebnis[kat] = _json_sicher(liste)
+            gesamt += len(liste)
+        ergebnis["_meta"] = {
+            "gesamt_teile": gesamt,
+            "kategorien_gefunden": len([k for k, v in self.kategorien.items() if v])
+        }
+        return _json_sicher(ergebnis)
