@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiger Dodo im Betonlicht
+2026-11-27
+
+![Frostiger Dodo im Betonlicht](20261127-160933.svg)
+
 ### Klecks auf Blech: Stadtlaune im Schrott
 2026-11-27
 
