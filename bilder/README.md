@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Genervte Frostwiese im Stadt-Schrott-Licht
+2026-11-27
+
+![Genervte Frostwiese im Stadt-Schrott-Licht](20261127-220855.svg)
+
 ### Einsamer Regenwurm im Raureif unter der Laterne
 2026-11-27
 
