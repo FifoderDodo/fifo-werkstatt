@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Klecks auf Blech: Stadtlaune im Schrott
+2026-11-27
+
+![Klecks auf Blech: Stadtlaune im Schrott](20261127-152029.svg)
+
 ### Frostige Laune am Stadtschrott
 2026-11-27
 
