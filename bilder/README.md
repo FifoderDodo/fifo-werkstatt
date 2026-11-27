@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostige Laune am Stadtschrott
+2026-11-27
+
+![Frostige Laune am Stadtschrott](20261127-150630.svg)
+
 ### Winterfluss mit Stadtblick und Schrott
 2026-11-27
 
