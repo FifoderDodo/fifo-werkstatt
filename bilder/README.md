@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Genervter Frost-Dodo im Betonlicht
+2026-11-27
+
+![Genervter Frost-Dodo im Betonlicht](20261127-164130.svg)
+
 ### Frostiger Dodo im Betonlicht – Perfektion im kalten Grau
 2026-11-27
 
