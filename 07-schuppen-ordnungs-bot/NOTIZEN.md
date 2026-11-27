@@ -368,3 +368,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 42 (27.11.2026 08:17)
+Die `sortiere_metall`-Methode finalisiert (Typo behoben, Logik für Dichte/Farbe/Magnet/Kakerlaken vervollständigt). Modulare Funktion `validiere_dateipfad` für sichere Pfad-Prüfung ohne I/O hinzugefügt. Methode `speichern_als_json` in `MetallSortierer` nutzt Validator und simuliert Speichern durch Rückgabe des JSON-Strings. Den Absturz gleich repariert.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
