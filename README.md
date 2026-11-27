@@ -7,7 +7,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [Frost und Beton](13-frost-und-beton/) | album | in Arbeit, Teil 0 von etwa 0 |
+| [Frost und Beton](13-frost-und-beton/) | album | in Arbeit, Teil 1 von etwa 0 |
 | [Schrott-Blues](12-schrott-blues/) | album | fertig |
 | [3D-Lichtspiel](11-3d-lichtspiel/) | 3D-Szene | fertig |
 | [3D-Tiefen-Shader](10-3d-tiefen-shader/) | 3D-Szene | fertig |
