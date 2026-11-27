@@ -413,3 +413,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
 ```
+
+## Teil 47 (27.11.2026 13:15)
+MetallSortierer-Klasse vervollständigt: dichte_test, _kategorisiere_einzelteil (Logik Magnet/Dichte/Farbe), sortiere_metall (Hauptschleife mit Anreicherung) und to_json implementiert. _json_sicher centralisiert für JSON-Sicherheit. neuer_tag und Helper-Funktionen unverändert übernommen.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
+```
