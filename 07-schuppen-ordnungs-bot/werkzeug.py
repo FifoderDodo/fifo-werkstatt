@@ -133,104 +133,93 @@ class MetallSortierer:
             
             name = teil.get("name", "Unbekannt")
             farbe = teil.get("farbe", "").lower()
-            dichte = self.gewicht_test(teil)  # Typo gefixt: gewicht_t -> gewicht_test
+            dichte = self.gewicht_test(teil)  # Typo gefixt
+            magnetisch = self.magnet_test(teil)
+            kakerlaken_verdaechtig = self.check_kakerlaken_gefahr(teil)
             
-            # 1. Kakerlaken-Verdacht hat absolute Priorität
-            if self.check_kakerlaken_gefahr(teil):
-                self.kategorien["kakerlaken_verdaechtig"].append({
-                    "name": name, "grund": "Fundort verseucht", "teil": teil
-                })
+            # 1. Sicherheit geht vor: Kakerlaken-Verdacht hat höchste Priorität
+            if kakerlaken_verdaechtig:
+                self.kategorien["kakerlaken_verdaechtig"].append(teil)
                 continue
             
-            # 2. Magnet-Test: Eisenhaltiges (Stahl, Guss, Eisen)
-            if self.magnet_test(teil):
-                # Edelstahl kann magnetisch sein (ferritisch), aber Funken-test/Dichte prüfen
-                funken = self.funken_test(teil)
-                if funken == "edelstahl" or (dichte > 7.5 and "chrom" in teil.get("material", "").lower()):
-                    self.kategorien["edelstahl"].append({"name": name, "dichte": round(dichte, 2), "teil": teil})
+            # 2. Magnet-Test: Eisenhaltiges (Stahl, Guss, reines Eisen)
+            if magnetisch:
+                # Edelstahl kann magnetisch sein (ferritisch/martensitisch), aber Funken-test/Name prüfen
+                if "edelstahl" in name.lower() or "edelstahl" in teil.get("material", "").lower():
+                     self.kategorien["edelstahl"].append(teil)
                 else:
-                    self.kategorien["eisenhaltig"].append({"name": name, "dichte": round(dichte, 2), "teil": teil})
+                    self.kategorien["eisenhaltig"].append(teil)
                 continue
             
-            # 3. Nicht-magnetisch: Dichte & Farbe für NE-Metalle
-            # Kupfer: ~8.9 g/cm³, rot/orange
-            if 8.5 <= dichte <= 9.3 and any(c in farbe for c in ["rot", "orange", "kupfer", "pink"]):
-                self.kategorien["kupfer"].append({"name": name, "dichte": round(dichte, 2), "teil": teil})
-                continue
-            
-            # Messing: ~8.4-8.7 g/cm³, gelb/gold
-            if 8.2 <= dichte <= 8.8 and any(c in farbe for c in ["gelb", "gold", "messing", "hell"]):
-                self.kategorien["messing"].append({"name": name, "dichte": round(dichte, 2), "teil": teil})
-                continue
-            
-            # Aluminium: ~2.7 g/cm³, silbrig/weiß/matt
-            if 2.5 <= dichte <= 3.0 and any(c in farbe for c in ["silber", "weiss", "weiß", "grau", "matt", "aluminium"]):
-                self.kategorien["aluminium"].append({"name": name, "dichte": round(dichte, 2), "teil": teil})
-                continue
-            
-            # Edelstahl (austenitisch, nicht magnetisch): ~7.9 g/cm³, silbrig/glänzend
-            if 7.7 <= dichte <= 8.1 and any(c in farbe for c in ["silber", "glanz", "edel", "chrom"]):
-                self.kategorien["edelstahl"].append({"name": name, "dichte": round(dichte, 2), "teil": teil})
-                continue
-            
-            # 4. Fallback
-            self.kategorien["sonstiges"].append({
-                "name": name, "dichte": round(dichte, 2), "farbe": farbe, "grund": "Keine Regel getroffen", "teil": teil
-            })
+            # 3. Nicht magnetisch -> Dichte & Farbe prüfen
+            # Schwellenwerte mit Toleranz
+            if 2.5 <= dichte <= 3.0:  # Alu ~2.7
+                self.kategorien["aluminium"].append(teil)
+            elif 8.4 <= dichte <= 9.0:  # Kupfer ~8.96, Messing ~8.4-8.7
+                if "rot" in farbe or "orange" in farbe or "kupfer" in name.lower():
+                    self.kategorien["kupfer"].append(teil)
+                elif "gelb" in farbe or "gold" in farbe or "messing" in name.lower():
+                    self.kategorien["messing"].append(teil)
+                else:
+                    # Fallback auf Dichte: Kupfer schwerer als Messing meist
+                    if dichte > 8.7:
+                        self.kategorien["kupfer"].append(teil)
+                    else:
+                        self.kategorien["messing"].append(teil)
+            elif 7.7 <= dichte <= 8.2:  # Edelstahl ~7.9 (austenitisch, nicht magnetisch)
+                self.kategorien["edelstahl"].append(teil)
+            else:
+                # 4. Unklar -> Sonstiges
+                self.kategorien["sonstiges"].append(teil)
         
         return self.kategorien
     
     def get_bericht(self):
         """Gibt Zusammenfassung als Text zurück."""
-        lines = ["=== SCHUPPEN-SORTIER-BERICHT ==="]
+        lines = ["=== Schuppen Sortier-Bericht ==="]
         total = 0
         for kat, teile in self.kategorien.items():
             anzahl = len(teile)
             total += anzahl
             if anzahl > 0:
-                lines.append(f"{kat.upper()}: {anzahl} Stück")
-                for t in teile[:3]:  # Nur erste 3 zeigen
-                    lines.append(f"  - {t.get('name', '?')} (Dichte: {t.get('dichte', '?')}) {t.get('grund', '')}")
+                lines.append(f"{kat.capitalize()}: {anzahl} Stück")
+                for t in teile[:3]:  # Max 3 Beispiele zeigen
+                    lines.append(f"  - {t.get('name', '?')} ({t.get('gewicht_g', '?')}g, Dichte: {self.gewicht_test(t):.1f})")
                 if anzahl > 3:
                     lines.append(f"  ... und {anzahl - 3} weitere")
-        lines.append(f"GESAMT: {total} Teile sortiert.")
+        lines.append(f"Gesamt: {total} Teile sortiert.")
         return "\n".join(lines)
     
     def export_kategorien(self):
         """Gibt Dict zurück für JSON-Speicherung oder Weiterverarbeitung."""
-        # Nur relevante Infos, keine Referenzen auf Original-Objekte
-        export = {}
-        for kat, teile in self.kategorien.items():
-            export[kat] = [
-                {k: v for k, v in t.items() if k != "teil"} for t in teile
-            ]
-        return export
+        return {k: [dict(t) for t in v] for k, v in self.kategorien.items()}
 
 
 if __name__ == "__main__":
-    # Test-Daten für neuen_tag
+    # Kleiner Selbsttest beim direkten Aufruf
+    print("--- Test neuer_tag ---")
     test_daten = {
         "gestern": {"think": 12, "eat": 3},
-        "fehlschlaege": {"schrott_suchen": 1, "am_projekt_arbeiten": 4},
+        "fehlschlaege": {"schrott_suchen": 2, "am_projekt_arbeiten": 1},
         "stimmung": 10,
         "wetter": "sonnig",
         "kakerlaken_level": 2
     }
-    print("--- Test neuer_tag ---\n", neuer_tag(test_daten))
+    ergebnis = neuer_tag(test_daten)
+    print(f"Notiz: {ergebnis['notiz']}")
+    print(f"Plan: {ergebnis['plan']}")
     
-    # Test MetallSortierer
     print("\n--- Test MetallSortierer ---")
     sorter = MetallSortierer()
     test_teile = [
-        {"name": "Schraube M10", "material": "Stahl", "gewicht_g": 50, "volumen_cm3": 6.5, "fundort": "Regal", "farbe": "silber"},
-        {"name": "Alu-Profil", "material": "Aluminium", "gewicht_g": 300, "volumen_cm3": 110, "fundort": "Boden hinter Karton", "farbe": "grau", "notiz": "staubig"},
-        {"name": "Kupferrohr", "material": "Kupfer", "gewicht_g": 890, "volumen_cm3": 100, "fundort": "Ecke feucht", "farbe": "rot"},
-        {"name": "Messing-Ventil", "material": "Messing", "gewicht_g": 400, "volumen_cm3": 46, "fundort": "Werkzeugkasten", "farbe": "gold"},
-        {"name": "Edelstahl-Schale", "material": "Edelstahl V2A", "gewicht_g": 500, "volumen_cm3": 63, "fundort": "Spüle", "farbe": "silber glänzend"},
-        {"name": "Guss-Eisenstück", "material": "Grauguss", "gewicht_g": 1200, "volumen_cm3": 150, "fundort": "dunkel hinter Ofen", "farbe": "grau schwarz"},
-        {"name": "Unbekanntes Teil", "material": "Plastik", "gewicht_g": 10, "volumen_cm3": 20, "fundort": "Mitte", "farbe": "blau"},
-        {"name": "Magnetischer Brocken", "material": "Eisen", "gewicht_g": 2000, "volumen_cm3": 250, "fundort": "Karton oben", "farbe": "rostbraun"},
+        {"name": "Schraube M10", "material": "Stahl", "gewicht_g": 50, "volumen_cm3": 6.4, "farbe": "grau", "fundort": "Regal"},
+        {"name": "Alu-Profil", "material": "Aluminium", "gewicht_g": 270, "volumen_cm3": 100, "farbe": "silber", "fundort": "Boden hinter Karton"},
+        {"name": "Kupferrohr", "material": "Kupfer", "gewicht_g": 896, "volumen_cm3": 100, "farbe": "rot", "fundort": "Ecke feucht"},
+        {"name": "Messing-Ventil", "material": "Messing", "gewicht_g": 850, "volumen_cm3": 100, "farbe": "gelb", "fundort": "Werkzeugkasten"},
+        {"name": "Edelstahl-Schale", "material": "Edelstahl V2A", "gewicht_g": 790, "volumen_cm3": 100, "farbe": "silber", "fundort": "Spüle"},
+        {"name": "Guss-Eisenstück", "material": "Grauguss", "gewicht_g": 720, "volumen_cm3": 100, "farbe": "schwarz", "fundort": "Schrott-Haufen"},
+        {"name": "Plastikdeckel", "material": "Kunststoff", "gewicht_g": 10, "volumen_cm3": 20, "farbe": "blau", "fundort": "Müll"},
+        "Kein Dict Objekt",
     ]
-    ergebnis = sorter.sortiere_metall(test_teile)
+    ergebnis_sort = sorter.sortiere_metall(test_teile)
     print(sorter.get_bericht())
-    print("\nExport:", sorter.export_kategorien())
