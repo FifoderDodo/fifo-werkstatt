@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Einsamer Regenwurm im Raureif unter der Laterne
+2026-11-27
+
+![Einsamer Regenwurm im Raureif unter der Laterne](20261127-213920.svg)
+
 ### Assel auf Froststein – Stadtlaune im Schrott
 2026-11-27
 
