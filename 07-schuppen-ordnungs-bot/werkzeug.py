@@ -2,6 +2,7 @@ def neuer_tag(daten):
     """
     Entscheidungslogik für einen neuen Tag im Schuppen.
     Nimmt Status-Dict, gibt Plan-Dict zurück.
+    Zwei-Runden-KI: Erst fragen, dann mit Rat entscheiden.
     """
     try:
         gestern = daten.get("gestern", {})
@@ -12,57 +13,76 @@ def neuer_tag(daten):
     except (ValueError, TypeError) as e:
         return {"notiz": f"Fehlerhafte Eingabedaten: {e}", "plan": []}
 
-    notiz = ""
-    plan = []
-    
-    if "ki_antwort" in daten and daten["ki_antwort"]:
-        notiz = (notiz + " | " if notiz else "") + f"KI rät: {str(daten['ki_antwort'])[:100]}"
-    
+    # 1. Hartes Sicherheitslimit: Kakerlaken-Plage -> Sofort-Aktion, keine KI-Frage
     if kakerlaken_level >= 7:
         notiz = "Achtung: Starke Kakerlaken-Aktivität! Erst Abwehr, dann Sortieren."
-        plan.append({"aktion": "walk_to", "text": "Giftschrank holen: Sprühgift & Köder"})
-        plan.append({"aktion": "nachsehen", "text": "Ecken, Kartons & Ritzen absprühen"})
-        if len(plan) >= 2:
-            plan.append({"aktion": "spazieren", "text": "Lüften & Kopf freibekommen nach Gift"})
+        plan = [
+            {"aktion": "walk_to", "text": "Giftschrank holen: Sprühgift & Köder"},
+            {"aktion": "nachsehen", "text": "Ecken, Kartons & Ritzen absprühen"},
+            {"aktion": "spazieren", "text": "Lüften & Kopf freibekommen nach Gift"}
+        ]
         return {"notiz": notiz[:200], "plan": plan[:3]}
-    elif kakerlaken_level >= 4:
-        notiz = "Kakerlaken verdächtig. Checken bevor ich Metall anfasse."
-        plan.append({"aktion": "nachsehen", "text": "Dunkle Ecken & alte Kartons kontrollieren"})
-    
-    if len(plan) < 3:
+
+    # 2. Runde 1: KI fragen, wenn noch keine Antwort da
+    if "ki_antwort" not in daten:
+        prompt = (
+            f"Status: Stimmung {stimmung}, Wetter {wetter}, Kakerlaken-Level {kakerlaken_level}. "
+            f"Gestern: {gestern}. Fehlschläge: {fehlschlaege}. "
+            f"Erlaubte Aktionen: think, eat, drink, walk_to, sitzen, spazieren, "
+            f"schrott_suchen, aufheben, verkaufen, einlagern, malen, komponieren, "
+            f"read_news, muenze_werfen, nachsehen, am_projekt_arbeiten. "
+            f"Antworte NUR mit Plan-Zeilen im Format: 'AKTION: text'. Max 3 Zeilen. "
+            f"Beispiel: 'think: Sortierlogik verfeinern | eat: Frühstück | spazieren: Luft schnappen'"
+        )
+        return {"frage_an_ki": prompt[:1500]}
+
+    # 3. Runde 2: KI-Antwort auswerten
+    rat = daten.get("ki_antwort", "").strip()
+    notiz = ""
+    plan = []
+
+    if rat:
+        # Einfaches Parsen: 'aktion: text | aktion: text'
+        try:
+            teile = [t.strip() for t in rat.split('|')]
+            for teil in teile[:3]:
+                if ':' in teil:
+                    akt, txt = teil.split(':', 1)
+                    akt = akt.strip().lower()
+                    txt = txt.strip()
+                    # Validierung gegen erlaubte Aktionen
+                    erlaubte = {"think", "eat", "drink", "walk_to", "sitzen", "spazieren",
+                                "schrott_suchen", "aufheben", "verkaufen", "einlagern",
+                                "malen", "komponieren", "read_news", "muenze_werfen",
+                                "nachsehen", "am_projekt_arbeiten"}
+                    if akt in erlaubte and txt:
+                        plan.append({"aktion": akt, "text": txt[:100]})
+        except Exception:
+            pass  # Parsing fehlgeschlagen, Fallback unten
+
+    # Fallback, falls KI nix Brauchbares lieferte oder Limit erreicht
+    if not plan:
+        notiz = "KI schweigt oder Format unklar. Fallback: Klein anfangen."
         if stimmung < -50:
-            notiz = (notiz + " | " if notiz else "") + "Stimmung im Keller. Erst frische Luft schnappen."
             plan.append({"aktion": "spazieren", "text": "Kopf freibekommen vor dem Schuppen"})
         elif stimmung < 20:
-            notiz = notiz or "Laune mittelmäßig. Kaffee wäre gut."
             plan.append({"aktion": "drink", "text": "Wasser oder Kaffee trinken"})
-    
-    if wetter in ["sonnig", "heiter"] and len(plan) < 3:
-        if "spazieren" not in [p["aktion"] for p in plan]:
-            if not plan or plan[-1]["aktion"] != "spazieren":
-                 plan.append({"aktion": "spazieren", "text": "Gutes Wetter nutzen, kurz raus"})
-    
-    if len(plan) < 3 and stimmung > -70 and kakerlaken_level < 7:
-        fehlschlaege_projekt = fehlschlaege.get("am_projekt_arbeiten", 0)
-        
-        if fehlschlaege_projekt > 3 and "ki_antwort" not in daten:
-            return {"frage_an_ki": f"Projekt 'MetallSortierer' klemmt (Fehlschläge: {fehlschlaege_projekt}). Was ist der häufigste Grund, warum Magnet/Dichte-Tests in Python-Simulationen fehlschlagen? Kurz."}
-        
-        if fehlschlaege_projekt > 2:
-            notiz = (notiz + " | " if notiz else "") + "Projekt klemmt. Erst nachdenken, dann coden."
-            plan.append({"aktion": "think", "text": "Sortierlogik für Metallteile durchdenken"})
         else:
-            notiz = notiz or "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren."
-            plan.append({"aktion": "am_projekt_arbeiten", "text": "werkzeug.py: MetallSortierer verfeinern und testen"})
-    
-    if len(plan) >= 2 and len(plan) < 3 and "eat" not in [p["aktion"] for p in plan]:
-        plan.append({"aktion": "eat", "text": "Frühstück machen"})
-    
-    plan = plan[:3]
-    
+            plan.append({"aktion": "think", "text": "Heutigen Schrott-Schwerpunkt festlegen"})
+        if len(plan) < 2:
+            plan.append({"aktion": "eat", "text": "Frühstück machen"})
+        if len(plan) < 3 and wetter in ["sonnig", "heiter"]:
+            plan.append({"aktion": "spazieren", "text": "Gutes Wetter nutzen, kurz raus"})
+    else:
+        notiz = f"KI-Plan: {rat[:150]}"
+
+    # Kakerlaken-Warnung (Level 4-6) in Notiz aufnehmen, wenn nicht schon im Plan
+    if 4 <= kakerlaken_level < 7 and not any(p["aktion"] == "nachsehen" for p in plan):
+        notiz = (notiz + " | " if notiz else "") + "Kakerlaken verdächtig, Augen auf."
+
     return {
         "notiz": notiz[:200],
-        "plan": plan
+        "plan": plan[:3]
     }
 
 
@@ -148,144 +168,140 @@ class MetallSortierer:
         try:
             material = str(teil.get("material", "")).lower()
             # Ferromagnetisch: Eisen, Stahl, Guss, Ferro-Legierungen
-            ferromagnetisch = ["eisen", "stahl", "guss", "ferro", "carbon", "baustahl"]
-            # Edelstahl ist oft NICHT magnetisch (austenitisch), aber manche sind es.
-            # Wir treaten Edelstahl separat.
-            return any(m in material for m in ferromagnetisch)
+            ferromagnetisch = any(k in material for k in ["eisen", "stahl", "guss", "ferro"])
+            # Edelstahl oft nicht magnetisch (austenitisch), aber manche sind es.
+            # Hier vereinfacht: 'edelstahl' im Namen -> nicht magnetisch, außer 'magnetisch' im Namen.
+            if "edelstahl" in material and "magnetisch" not in material:
+                return False
+            return ferromagnetisch
         except Exception:
             return False
     
     def funken_test(self, teil: dict) -> str:
-        """Simuliert Funkenbild-Test. Gibt Typ zurück: 'lang_gelb', 'kurz_rot', 'keine', 'weiss_hell'."""
+        """Simuliert Funkenbild-Test. Gibt Kategorie-Hinweis zurück."""
         try:
             material = str(teil.get("material", "")).lower()
-            kohlenstoff = float(teil.get("kohlenstoff_gehalt", 0.0))
-            
+            if any(k in material for k in ["stahl", "eisen", "guss"]):
+                return "gelb_weiss_verzweigt"  # Kohlenstoffstahl
             if "edelstahl" in material:
-                return "keine"  # Austenitisch = keine Funken
-            if "guss" in material or kohlenstoff > 2.0:
-                return "kurz_rot"  # Gusseisen: kurze, rote Funken (Kohlenstoff)
-            if "stahl" in material or "eisen" in material or "ferro" in material:
-                if kohlenstoff > 0.6:
-                    return "lang_gelb"  # Hochkohlenstoff: lange, gelbe Funkenstrahlen
-                return "kurz_rot"  # Baustahl: kurze, rötliche Funken
-            return "keine"  # NE-Metalle: keine Funken
+                return "gelb_kurz_keine_verzweigung"  # Edelstahl
+            if any(k in material for k in ["kupfer", "messing", "bronze"]):
+                return "keine_funken_rot_schmelze"  # NE-Metalle
+            if any(k in material for k in ["aluminium", "magnesium", "titan"]):
+                return "keine_funken_weiss_oxid"   # Leichmetalle
+            return "unbekannt"
         except Exception:
-            return "keine"
+            return "fehler"
     
     def dichte_test(self, teil: dict) -> float:
-        """Berechnet/Schätzt Dichte in g/cm³ aus Masse/Volumen oder Material-Namen."""
+        """Berechnet/Schätzt Dichte aus Masse/Volumen oder Material-Namen."""
         try:
-            # 1. Versuch: Masse / Volumen falls vorhanden
-            masse = teil.get("masse_g")
-            volumen = teil.get("volumen_cm3")
-            if masse is not None and volumen is not None and volumen > 0:
-                return float(masse) / float(volumen)
-            
-            # 2. Fallback: Material-Name gegen Tabelle
+            # 1. Versuch: Explizite Masse/Volumen im Dict
+            if "masse_g" in teil and "volumen_cm3" in teil:
+                v = float(teil["volumen_cm3"])
+                if v > 0:
+                    return float(teil["masse_g"]) / v
+            # 2. Versuch: Material-Name -> Lookup
             material = str(teil.get("material", "")).lower()
-            for name, dichte in self.DICHTEN.items():
-                if name in material:
-                    # Kleine zufällige Variation simulieren (Messfehler)
-                    import random
-                    return dichte * random.uniform(0.97, 1.03)
-            
-            return 0.0
+            for k, d in self.DICHTEN.items():
+                if k in material:
+                    return d
+            # 3. Fallback: Grobe Schätzung nach Farbe/Gewicht-Text
+            if "schwer" in str(teil.get("notizen", "")).lower():
+                return 8.0
+            if "leicht" in str(teil.get("notizen", "")).lower():
+                return 2.8
+            return 7.0  # Default Eisen-Verdacht
         except Exception:
-            return 0.0
+            return 7.0
     
-    def _dichte_match(self, gemessene_dichte: float, ziel_dichte: float) -> bool:
-        """Prüft ob gemessene Dichte innerhalb 8% Toleranz zur Zieldichte liegt."""
-        if ziel_dichte <= 0 or gemessene_dichte <= 0:
+    def _dichte_match(self, gemessen: float, ziel: float) -> bool:
+        """Prüft ob gemessene Dichte im Toleranzbereich zur Zieldichte liegt."""
+        if ziel <= 0:
             return False
-        abweichung = abs(gemessene_dichte - ziel_dichte) / ziel_dichte
-        return abweichung <= self.DICHTE_TOLERANZ
+        diff = abs(gemessen - ziel) / ziel
+        return diff <= self.DICHTE_TOLERANZ
     
-    def material_pruefung(self, teil: dict) -> dict:
-        """Führt alle Tests durch, bestimmt Kategorie."""
-        ergebnis = {
-            "kategorie": "schrott",
-            "magnetisch": False,
-            "funken": "keine",
-            "dichte": 0.0,
-            "verdaechtig": False
-        }
+    def material_pruefung(self, teil: dict) -> str:
+        """Kombiniert Tests zu Material-Kategorie."""
+        magnetisch = self.magnet_test(teil)
+        funken = self.funken_test(teil)
+        dichte = self.dichte_test(teil)
+        lagerort = str(teil.get("lagerort", "")).lower()
         
-        # Kakerlaken-Check: Teile aus dunklen Ecken, Kartons, lange liegend
-        quelle = str(teil.get("quelle", "")).lower()
-        if any(w in quelle for w in ["ecke", "karton", "kiste", "boden", "lager"]):
-            ergebnis["verdaechtig"] = True
+        # Kakerlaken-Verdacht prüfen
+        if any(k in lagerort for k in ["ecke", "karton", "ritze", "dunkel", "boden"]):
+            return "kakerlaken_verdaechtig"
         
-        ergebnis["magnetisch"] = self.magnet_test(teil)
-        ergebnis["funken"] = self.funken_test(teil)
-        ergebnis["dichte"] = round(self.dichte_test(teil), 2)
+        # Logik-Baum
+        if magnetisch:
+            # Ferromagnetisch: Eisen, Stahl, Guss
+            if self._dichte_match(dichte, self.DICHTEN["edelstahl"]) and "edelstahl" in str(teil.get("material", "")).lower():
+                return "edelstahl"
+            if funken == "gelb_kurz_keine_verzweigung":
+                return "edelstahl"
+            return "eisenhaltig"
         
-        # Entscheidungslogik
-        mat = str(teil.get("material", "")).lower()
-        dichte = ergebnis["dichte"]
-        mag = ergebnis["magnetisch"]
-        funken = ergebnis["funken"]
+        # Nicht magnetisch: NE-Metalle
+        if self._dichte_match(dichte, self.DICHTEN["aluminium"]) or self._dichte_match(dichte, self.DICHTEN["magnesium"]):
+            return "aluminium"
+        if self._dichte_match(dichte, self.DICHTEN["kupfer"]):
+            return "kupfer"
+        if self._dichte_match(dichte, self.DICHTEN["messing"]) or self._dichte_match(dichte, self.DICHTEN["bronze"]):
+            return "messing"
+        if self._dichte_match(dichte, self.DICHTEN["titan"]):
+            return "sonstiges"  # Titan extra
+        if self._dichte_match(dichte, self.DICHTEN["zink"]) or self._dichte_match(dichte, self.DICHTEN["zinn"]) or self._dichte_match(dichte, self.DICHTEN["blei"]):
+            return "sonstiges"
         
-        # 1. Kupfer / Messing / Bronze (nicht magnetisch, hohe Dichte, keine Funken)
-        if not mag and funken == "keine":
-            if self._dichte_match(dichte, self.DICHTEN["kupfer"]):
-                ergebnis["kategorie"] = "kupfer"
-            elif self._dichte_match(dichte, self.DICHTEN["messing"]):
-                ergebnis["kategorie"] = "messing"
-            elif self._dichte_match(dichte, self.DICHTEN["bronze"]):
-                ergebnis["kategorie"] = "messing"  # Bronze -> Messing-Kategorie
-            elif self._dichte_match(dichte, self.DICHTEN["zink"]):
-                ergebnis["kategorie"] = "sonstiges"
-            elif self._dichte_match(dichte, self.DICHTEN["aluminium"]):
-                ergebnis["kategorie"] = "aluminium"
-            elif self._dichte_match(dichte, self.DICHTEN["magnesium"]):
-                ergebnis["kategorie"] = "sonstiges"
-            elif self._dichte_match(dichte, self.DICHTEN["titan"]):
-                ergebnis["kategorie"] = "sonstiges"
-            elif self._dichte_match(dichte, self.DICHTEN["blei"]):
-                ergebnis["kategorie"] = "sonstiges"
-            elif self._dichte_match(dichte, self.DICHTEN["zinn"]):
-                ergebnis["kategorie"] = "sonstiges"
+        # Fallback über Funkenbild
+        if funken == "keine_funken_rot_schmelze":
+            return "kupfer"
+        if funken == "keine_funken_weiss_oxid":
+            return "aluminium"
         
-        # 2. Magnetisch (Eisen, Stahl, Guss)
-        if mag:
-            if "edelstahl" in mat or (funken == "keine" and dichte > 7.5):
-                # Austenitischer Edelstahl ist nicht magnetisch, aber falls doch magnetisch & keine Funken -> evtl. ferritisch
-                # Wenn explizit 'edelstahl' im Namen: Edelstahl-Kategorie
-                ergebnis["kategorie"] = "edelstahl"
-            elif "guss" in mat or funken == "kurz_rot":
-                ergebnis["kategorie"] = "eisenhaltig"  # Guss ist eisenhaltig
-            else:
-                ergebnis["kategorie"] = "eisenhaltig"
-        
-        # 3. Kakerlaken-Verdacht überwiegt
-        if ergebnis["verdaechtig"]:
-            ergebnis["kategorie"] = "kakerlaken_verdaechtig"
-        
-        return ergebnis
+        return "schrott"
     
-    def sortiere(self, teile: list) -> dict:
-        """Haupt-Einstieg: sortiert Liste von Teilen in Kategorien."""
+    def sortiere(self, teile: List[dict]) -> Dict[str, List[dict]]:
+        """Hauptmethode: Sortiert Liste von Teilen in self.kategorien."""
         self.reset()
         for teil in teile:
             if not isinstance(teil, dict):
                 continue
-            pruef = self.material_pruefung(teil)
-            kat = pruef["kategorie"]
-            # Teil mit Prüfergebnis anreichern
-            teil_mit_info = {**teil, "pruefung": pruef}
+            kat = self.material_pruefung(teil)
             if kat in self.kategorien:
-                self.kategorien[kat].append(teil_mit_info)
+                self.kategorien[kat].append(_json_sicher(teil))
             else:
-                self.kategorien["schrott"].append(teil_mit_info)
-        return self.get_ergebnis()
+                self.kategorien["schrott"].append(_json_sicher(teil))
+        return self.kategorien
     
     def get_ergebnis(self) -> dict:
-        """Liefert JSON-sicheres Zusammenfassung-Dict."""
-        summary = {}
-        for kat, liste in self.kategorien.items():
-            summary[kat] = {
-                "anzahl": len(liste),
-                "teile": [_json_sicher(t) for t in liste]
-            }
-        return _json_sicher(summary)
+        """Gibt JSON-sicheres Ergebnis mit Counts zurück."""
+        return {
+            "kategorien": {k: _json_sicher(v) for k, v in self.kategorien.items()},
+            "anzahlen": {k: len(v) for k, v in self.kategorien.items()},
+            "gesamt": sum(len(v) for v in self.kategorien.values())
+        }
+
+
+# Test-Block für manuellen Lauf (wird vom Test-Harness ignoriert)
+if __name__ == "__main__":
+    # 1. Test neuer_tag Runde 1
+    daten1 = {"gestern": {"think": 2}, "fehlschlaege": {}, "stimmung": 10, "wetter": "sonnig", "kakerlaken_level": 2}
+    print("Runde 1:", json.dumps(neuer_tag(daten1), ensure_ascii=False, indent=2))
+    
+    # 2. Test neuer_tag Runde 2 (simulierte KI-Antwort)
+    daten2 = {**daten1, "ki_antwort": "think: MetallSortierer testen | eat: Brot essen | spazieren: Sonne geniessen"}
+    print("Runde 2:", json.dumps(neuer_tag(daten2), ensure_ascii=False, indent=2))
+
+    # 3. Test MetallSortierer
+    sorter = MetallSortierer()
+    test_teile = [
+        {"id": 1, "material": "Stahl Schraube", "masse_g": 78.5, "volumen_cm3": 10.0, "lagerort": "Regal A"},
+        {"id": 2, "material": "Aluminium Profil", "masse_g": 27.0, "volumen_cm3": 10.0, "lagerort": "Boden Karton"},
+        {"id": 3, "material": "Kupfer Rohr", "masse_g": 89.6, "volumen_cm3": 10.0, "lagerort": "Ecke hinten"},
+        {"id": 4, "material": "Edelstahl V2A", "lagerort": "Regal B"},
+        {"id": 5, "material": "Messing Ventil", "masse_g": 85.0, "volumen_cm3": 10.0, "lagerort": "Kiste"},
+    ]
+    ergebnis = sorter.sortiere(test_teile)
+    print("Sortierer:", json.dumps(sorter.get_ergebnis(), ensure_ascii=False, indent=2))
