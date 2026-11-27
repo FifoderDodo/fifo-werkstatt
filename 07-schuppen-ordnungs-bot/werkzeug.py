@@ -112,6 +112,17 @@ class MetallSortierer:
     Nimmt Liste von Schrott-Teilen (Dicts), sortiert in Kategorien.
     Liefert JSON-sicheres Ergebnis-Dict.
     """
+    # Grobe Dichten in g/cm³ für Schätzung
+    DICHTEN = {
+        "aluminium": 2.7, "aluminiumlegierung": 2.7,
+        "magnesium": 1.74,
+        "titan": 4.5,
+        "stahl": 7.85, "eisen": 7.87, "guss": 7.2, "ferro": 7.8,
+        "edelstahl": 7.9,
+        "kupfer": 8.96, "messing": 8.5, "bronze": 8.8,
+        "zink": 7.1, "blei": 11.34, "zinn": 7.3
+    }
+    
     def __init__(self):
         self.kategorien = {
             "eisenhaltig": [],
@@ -145,79 +156,88 @@ class MetallSortierer:
                 return "edelstahl"
             if "guss" in mat: 
                 return "gusseisen"
-            if "stahl" in mat:
+            if "stahl" in mat: 
                 return "stahl"
-            return "unbekannt"
+            if "eisen" in mat: 
+                return "eisen"
+            return "keine_funken"
         except Exception:
             return "fehler"
     
     def dichte_test(self, teil: dict) -> float:
-        """Simuliert Dichtemessung (g/cm³). Fallback auf Material-Namen."""
+        """Simuliert Dichte-Messung (Archimedes). Gibt geschätzte Dichte zurück."""
         try:
-            material = str(teil.get("material", "")).lower()
-            # Grobe Zuordnung
-            if any(m in material for m in ["aluminium", "alu"]): return 2.7
-            if any(m in material for m in ["edelstahl", "stahl", "eisen", "ferro", "guss"]): return 7.85
-            if "kupfer" in material: return 8.96
-            if "messing" in material: return 8.5
-            if "blei" in material: return 11.34
-            if "zink" in material: return 7.13
-            # Versuch über Dict-Feld
-            dichte = teil.get("dichte")
-            if isinstance(dichte, (int, float)):
-                return float(dichte)
+            mat = str(teil.get("material", "")).lower()
+            # Suche passenden Schlüssel in DICHTEN
+            for key, val in self.DICHTEN.items():
+                if key in mat:
+                    # Etwas Rauschen simulieren
+                    return round(val * (1 + (hash(str(teil)) % 100 - 50) / 10000), 2)
+            # Fallback: Masse/Volumen wenn vorhanden, sonst 0.0
+            masse = float(teil.get("masse_g", 0))
+            vol = float(teil.get("volumen_cm3", 0))
+            if vol > 0:
+                return round(masse / vol, 2)
             return 0.0
         except Exception:
             return 0.0
     
     def material_pruefung(self, teil: dict) -> str:
-        """Führt Tests durch und gibt Kategorie-Key zurück."""
+        """Kombiniert Tests zu einer Kategorie."""
         try:
-            magnetisch = self.magnet_test(teil)
+            magnet = self.magnet_test(teil)
             funken = self.funken_test(teil)
             dichte = self.dichte_test(teil)
-            material = str(teil.get("material", "")).lower()
+            mat = str(teil.get("material", "")).lower()
             
-            # Kakerlaken-Check (Spaß/Logik)
-            if teil.get("kakerlaken_verdaechtig") or "kakerlake" in material:
+            # Kakerlaken-Check (Easteregg/Feature)
+            if teil.get("kakerlaken_spuren", False) or "kot" in mat or "nest" in mat:
                 return "kakerlaken_verdaechtig"
             
             # Logik: Magnet + Funken + Dichte
-            if magnetisch:
-                if "edelstahl" in funken or "edelstahl" in material:
-                    return "edelstahl"
-                if dichte > 7.0:
+            if magnet:
+                if "edelstahl" in funken or dichte > 7.7: # Edelstahl oft schwach magnetisch oder nicht, aber Dichte hoch
+                    # Unterschied Edelstahl/Stahl über Funken/Dichte
+                    if "edelstahl" in mat or funken == "edelstahl":
+                        return "edelstahl"
                     return "eisenhaltig"
-                return "eisenhaltig" # Default für magnetisch
+                return "eisenhaltig"
             
             # Nicht magnetisch
-            if 2.5 <= dichte <= 3.0:
-                return "aluminium"
-            if 8.0 <= dichte <= 9.5:
-                if "kupfer" in material or "rot" in str(teil.get("farbe", "")).lower():
+            if dichte > 8.0: # Kupfer, Messing, Bronze, Blei
+                if "kupfer" in mat or "cu" in mat:
                     return "kupfer"
-                return "messing"
-            if dichte > 9.5:
-                return "kupfer" # Blei etc. landet hier grob
+                if "messing" in mat or "ms" in mat:
+                    return "messing"
+                if "bronze" in mat:
+                    return "sonstiges" # Bronze separat? Geht nach sonstiges.
+                if "blei" in mat:
+                    return "schrott" # Blei ist Sondermüll
+                return "kupfer" # Default für schweres NE-Metall
             
-            # Fallback über Namen
-            if "aluminium" in material or "alu" in material: return "aluminium"
-            if "kupfer" in material: return "kupfer"
-            if "messing" in material: return "messing"
-            if "edelstahl" in material: return "edelstahl"
-            if "stahl" in material or "eisen" in material: return "eisenhaltig"
+            if 2.5 < dichte < 3.0: # Aluminium, Magnesium, Titan
+                if "alu" in mat or "aluminium" in mat:
+                    return "aluminium"
+                if "titan" in mat:
+                    return "sonstiges"
+                if "magnesium" in mat:
+                    return "sonstiges"
+                return "aluminium" # Default leicht
             
-            return "sonstiges"
+            if dichte > 0:
+                return "sonstiges"
+            
+            return "schrott" # Unbekannt, keine Daten
         except Exception:
             return "schrott"
     
-    def sortiere(self, teile_liste: List[dict]) -> Dict[str, List[dict]]:
-        """Hauptmethode: Sortiert Liste von Teilen in self.kategorien."""
+    def sortiere(self, teile: List[dict]) -> Dict[str, List[dict]]:
+        """Hauptmethode: sortiert Liste von Teilen in self.kategorien."""
         self.reset()
-        if not isinstance(teile_liste, list):
+        if not isinstance(teile, list):
             return _json_sicher(self.kategorien)
         
-        for teil in teile_liste:
+        for teil in teile:
             if not isinstance(teil, dict):
                 continue
             kat = self.material_pruefung(teil)
@@ -226,4 +246,8 @@ class MetallSortierer:
             else:
                 self.kategorien["schrott"].append(_json_sicher(teil))
         
+        return _json_sicher(self.kategorien)
+    
+    def get_ergebnis(self) -> Dict[str, List[dict]]:
+        """Gibt aktuellen Stand JSON-sicher zurück."""
         return _json_sicher(self.kategorien)
