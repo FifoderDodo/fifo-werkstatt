@@ -4,7 +4,7 @@ Ein Script, das beim Aufräumen hilft
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: fertig
+Stand: in Arbeit, Teil 54 von etwa 56
 
 ## Ausprobieren
 
