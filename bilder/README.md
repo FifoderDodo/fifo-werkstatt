@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Dodo-Visier: Kakerlake im Schrott
+2026-11-27
+
+![Dodo-Visier: Kakerlake im Schrott](20261127-133143.svg)
+
 ### Mauerfrust: Kalt, Grau, Schrott
 2026-11-27
 
