@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiges Dach – Stadtlaune auf Schrott
+2026-11-27
+
+![Frostiges Dach – Stadtlaune auf Schrott](20261127-225954.svg)
+
 ### Bänderschnecke im Raureif – Stadtlaune auf Schrott
 2026-11-27
 
