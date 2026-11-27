@@ -422,3 +422,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
 ```
+
+## Teil 48 (27.11.2026 13:23)
+MetallSortierer-Klasse vervollständigt (dichte_test, _kategorisiere_einzelteil, sortiere_metall, to_json). _json_sicher zentralisiert. neuer_tag und Helper unverändert. Hauptblock um Selbsttests für beide Komponenten erweitert. Code bereinigt, Typ-Hints konsistent, Logik für Dichte-Grenzen geschärft.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
+```
