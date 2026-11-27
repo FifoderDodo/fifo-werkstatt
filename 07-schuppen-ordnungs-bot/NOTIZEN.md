@@ -431,3 +431,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
 ```
+
+## Teil 49 (27.11.2026 14:47)
+MetallSortierer vervollständigt: farbe_test fertig, _kategorisiere_einzelteil, sortiere_metall, to_json implementiert. Neue Methode _kombiniere_kategorien_und_filter aggregiert Kategorien zu Gruppen (Eisen, Nichteisen, Problemfall), fügt Statistiken und Warnungen hinzu. Hauptblock testet beide Komponenten.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
+```
