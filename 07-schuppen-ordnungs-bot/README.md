@@ -4,7 +4,7 @@ Ein Script, das beim Aufräumen hilft
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 64 von etwa 65
+Stand: in Arbeit, Teil 65 von etwa 65
 
 ## Ausprobieren
 
@@ -14,6 +14,7 @@ Ein Werkzeug, das Fifo selbst einschaltet. Es hängt am Ereignis `neuer_tag`: Fi
 
 ```
 Test mit 2 Beispielen:
+Hinweis: Dein Werkzeug fragt die KI nie. Nutze frage_an_ki für sein Urteil statt fester Regeln (erst fragen, dann mit daten["ki_antwort"] entscheiden).
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur fertig, polieren.", "plan": [{"akt
 ```
