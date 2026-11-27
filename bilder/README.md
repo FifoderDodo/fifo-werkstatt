@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Winterfluss mit Stadtblick und Schrott
+2026-11-27
+
+![Winterfluss mit Stadtblick und Schrott](20261127-142317.svg)
+
 ### Dodo-Visier: Kakerlake im Schrott
 2026-11-27
 
