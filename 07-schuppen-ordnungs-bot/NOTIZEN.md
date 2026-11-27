@@ -269,3 +269,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
 ```
+
+## Teil 31 (27.11.2026 04:51, Nachtschicht)
+Die abgebrochene Methode sortiere_metall vollständig implementiert (Magnet-Test, Dichte-Baum für Alu/Edelstahl/Kupfer/Messing, Kakerlaken-Duplizierung). get_bericht() und export_kategorien() hinzugefügt. neuer_tag um KI-Frage-Feature (frage_an_ki) bei hohen Fehlschlägen erweitert. __main__-Block mit realistischen Testdaten (inkl. Fehlerfall String und ferritischem Edelstahl) ergänzt. Alles läuft d
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" -> {"notiz": "Laune mittelmäßig. Kaffee wäre gut.", "plan": [{"aktion": "drink", "text": "Was
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} -> {"notiz": "Ran an den Speck: Schuppen-Bot Grundstruktur.", "plan": [{"aktion": "am_projekt
+```
