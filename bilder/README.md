@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Bänderschnecke im Raureif – Stadtlaune auf Schrott
+2026-11-27
+
+![Bänderschnecke im Raureif – Stadtlaune auf Schrott](20261127-222851.svg)
+
 ### Genervte Frostwiese im Stadt-Schrott-Licht
 2026-11-27
 
