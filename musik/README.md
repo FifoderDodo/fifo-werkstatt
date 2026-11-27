@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Rostige Ruhe](2026-11-27T10-52-49.mid) ([Noten](2026-11-27T10-52-49.json)) | 2026-11-27 | 42 s | 92 bpm | klavier, bass, trommel, marimba, synth_flaeche |
 | [Betonruinen-Blues](2026-11-27T09-02-15.mid) ([Noten](2026-11-27T09-02-15.json)) | 2026-11-27 | 21 s | 104 bpm | klavier, bass, trommel, glocken, gitarre |
 | [Froststadtmüll](2026-11-27T08-43-56.mid) ([Noten](2026-11-27T08-43-56.json)) | 2026-11-27 | 46 s | 84 bpm | klavier, bass, trommel, glocken, cello |
 | [Frostige Stadt-Laune im Schrott](2026-11-27T08-35-48.mid) ([Noten](2026-11-27T08-35-48.json)) | 2026-11-27 | 35 s | 110 bpm | klavier, bass, trommel, glocken |
