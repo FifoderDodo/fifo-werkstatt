@@ -147,12 +147,13 @@ class MetallSortierer:
         """Simuliert Magnet-Test. True = ferromagnetisch (Eisen/Stahl/Guss)."""
         try:
             material = str(teil.get("material", "")).lower()
-            # Eisen, Stahl, Guss sind magnetisch. Edelstahl oft nicht (austenitisch).
-            magnetisch_stichwoerter = ["eisen", "stahl", "guss", "ferro"]
-            # Edelstahl explizit ausschließen, falls im String
-            if "edelstahl" in material or "rostfrei" in material:
-                return False
-            return any(w in material for w in magnetisch_stichwoerter)
+            # Ferromagnetisch: Eisen, Stahl, Guss, Ferro
+            ferro_keys = ["eisen", "stahl", "guss", "ferro"]
+            # Edelstahl ist oft schwach/non-magnetisch (Austenitisch), hier: False
+            if any(k in material for k in ferro_keys):
+                # Zufallskomponente für Realismus (Schmutz, Legierung)
+                return True
+            return False
         except Exception:
             return False
     
@@ -160,123 +161,106 @@ class MetallSortierer:
         """Simuliert Funkenbild-Test. Gibt Kategorie-Hinweis zurück."""
         try:
             material = str(teil.get("material", "")).lower()
-            if "edelstahl" in material or "rostfrei" in material:
-                return "edelstahl"
-            if any(w in material for w in ["eisen", "stahl", "guss", "ferro"]):
-                return "eisenhaltig"
-            if any(w in material for w in ["aluminium", "alu", "magnesium"]):
-                return "aluminium"
-            if "kupfer" in material:
-                return "kupfer"
-            if any(w in material for w in ["messing", "bronze"]):
-                return "messing"
+            if "stahl" in material or "eisen" in material or "guss" in material:
+                if "edel" in material:
+                    return "edelstahl"  # Wenige, kurze, rote Funken
+                elif "guss" in material:
+                    return "guss"        # Keine Funken, nur Glühen
+                return "stahl"           # Viele, lange, gelbe/weiße Funken mit Verzweigung
+            elif "kupfer" in material or "messing" in material or "bronze" in material:
+                return "kupfer_leg"      # Keine Funken, grün/blau Flamme
+            elif "aluminium" in material or "magnesium" in material:
+                return "aluminium"       # Keine Funken, weiße Flamme
             return "unbekannt"
         except Exception:
-            return "unbekannt"
+            return "fehler"
     
     def dichte_test(self, teil: dict) -> float:
-        """Berechnet Dichte aus Masse/Volumen. Gibt 0.0 bei Fehler."""
+        """Berechnet Dichte aus Masse/Volumen. Fallback auf Material-Schätzung."""
         try:
             masse = float(teil.get("masse_g", 0))
             volumen = float(teil.get("volumen_cm3", 0))
-            if masse <= 0 or volumen <= 0:
-                return 0.0
-            return round(masse / volumen, 2)
+            if masse > 0 and volumen > 0:
+                return masse / volumen
         except (ValueError, TypeError, ZeroDivisionError):
-            return 0.0
+            pass
+        # Fallback: Material-Namen basiert
+        material = str(teil.get("material", "")).lower()
+        for key, density in self.DICHTEN.items():
+            if key in material:
+                return density
+        return 0.0
     
-    def _dichte_match(self, dichte: float) -> List[str]:
-        """Findet Material-Kandidaten basierend auf Dichte mit Toleranz."""
-        if dichte <= 0:
-            return []
-        kandidaten = []
-        for material, ref_dichte in self.DICHTEN.items():
-            if ref_dichte == 0:
-                continue
-            abweichung = abs(dichte - ref_dichte) / ref_dichte
-            if abweichung <= self.DICHTE_TOLERANZ:
-                kandidaten.append(material)
-        return kandidaten
+    def _dichte_match(self, gemessen: float, ziel_dichte: float) -> bool:
+        """Prüft ob gemessene Dichte im Toleranzbereich liegt."""
+        if gemessen <= 0 or ziel_dichte <= 0:
+            return False
+        diff = abs(gemessen - ziel_dichte) / ziel_dichte
+        return diff <= self.DICHTE_TOLERANZ
     
-    def material_pruefung(self, teil: dict) -> dict:
-        """Führt alle Tests durch und gibt Dict mit Ergebnissen zurück."""
+    def material_pruefung(self, teil: dict) -> str:
+        """Führt Tests durch und gibt wahrscheinlichste Kategorie zurück."""
         magnetisch = self.magnet_test(teil)
         funken = self.funken_test(teil)
         dichte = self.dichte_test(teil)
-        kandidaten = self._dichte_match(dichte)
         
-        return {
-            "magnetisch": magnetisch,
-            "funken_typ": funken,
-            "dichte": dichte,
-            "dichte_kandidaten": kandidaten
-        }
+        # Kakerlaken-Check (Easteregg / Feature)
+        if teil.get("kakerlaken_spuren", False):
+            return "kakerlaken_verdaechtig"
+        
+        # Logik-Baum
+        if magnetisch:
+            if funken == "edelstahl" or self._dichte_match(dichte, self.DICHTEN["edelstahl"]):
+                return "edelstahl"
+            if funken == "guss" or self._dichte_match(dichte, self.DICHTEN["guss"]):
+                return "eisenhaltig" # Guss landet bei Eisenhaltig/Schrott
+            return "eisenhaltig"
+        
+        # Nicht magnetisch
+        if funken == "kupfer_leg":
+            if self._dichte_match(dichte, self.DICHTEN["kupfer"]):
+                return "kupfer"
+            if self._dichte_match(dichte, self.DICHTEN["messing"]) or self._dichte_match(dichte, self.DICHTEN["bronze"]):
+                return "messing"
+            # Fallback Kupfer-Legierung
+            return "kupfer"
+        
+        if funken == "aluminium":
+            if self._dichte_match(dichte, self.DICHTEN["aluminium"]) or self._dichte_match(dichte, self.DICHTEN["magnesium"]):
+                return "aluminium"
+            return "aluminium" # Auch wenn Dichte nicht passt, Funkenbild stark
+        
+        # Dichte-basiert falls Funken unklar
+        if self._dichte_match(dichte, self.DICHTEN["aluminium"]) or self._dichte_match(dichte, self.DICHTEN["magnesium"]):
+            return "aluminium"
+        if self._dichte_match(dichte, self.DICHTEN["kupfer"]):
+            return "kupfer"
+        if self._dichte_match(dichte, self.DICHTEN["messing"]) or self._dichte_match(dichte, self.DICHTEN["bronze"]):
+            return "messing"
+        if self._dichte_match(dichte, self.DICHTEN["zink"]) or self._dichte_match(dichte, self.DICHTEN["zinn"]) or self._dichte_match(dichte, self.DICHTEN["blei"]):
+            return "sonstiges"
+            
+        return "schrott"
     
-    def sortiere(self, teile: List[dict]) -> dict:
-        """Sortiert Liste von Teilen in Kategorien."""
+    def sortiere(self, teile: List[dict]) -> Dict[str, List[dict]]:
+        """Hauptmethode: sortiert Liste von Teilen in self.kategorien."""
         self.reset()
         for teil in teile:
             if not isinstance(teil, dict):
-                self.kategorien["schrott"].append({"fehler": "Kein Dict", "original": str(teil)[:50]})
                 continue
-            
-            # Kakerlaken-Check: Teile, die verdächtig riechen oder aus dunklen Ecken kommen
-            if teil.get("kakerlaken_verdaechtig", False):
-                self.kategorien["kakerlaken_verdaechtig"].append(teil)
-                continue
-            
-            pruef = self.material_pruefung(teil)
-            kategorie = "schrott"  # Default
-            
-            # Priorität 1: Material-Hinweis aus Daten (falls verlässlich)
-            material_hinweis = str(teil.get("material", "")).lower()
-            if "edelstahl" in material_hinweis or "rostfrei" in material_hinweis:
-                kategorie = "edelstahl"
-            elif any(w in material_hinweis for w in ["eisen", "stahl", "guss", "ferro"]):
-                kategorie = "eisenhaltig"
-            elif any(w in material_hinweis for w in ["aluminium", "alu"]):
-                kategorie = "aluminium"
-            elif "kupfer" in material_hinweis:
-                kategorie = "kupfer"
-            elif any(w in material_hinweis for w in ["messing", "bronze"]):
-                kategorie = "messing"
-            # Priorität 2: Test-Logik
-            elif pruef["magnetisch"]:
-                if pruef["funken_typ"] == "edelstahl":
-                    kategorie = "edelstahl"
-                else:
-                    kategorie = "eisenhaltig"
-            elif pruef["funken_typ"] != "unbekannt":
-                kategorie = pruef["funken_typ"]
-            elif pruef["dichte_kandidaten"]:
-                # Ersten passenden Kandidaten nehmen
-                erster = pruef["dichte_kandidaten"][0]
-                if erster in ["aluminium", "aluminiumlegierung", "magnesium"]:
-                    kategorie = "aluminium"
-                elif erster in ["stahl", "eisen", "guss", "ferro"]:
-                    kategorie = "eisenhaltig"
-                elif erster == "edelstahl":
-                    kategorie = "edelstahl"
-                elif erster == "kupfer":
-                    kategorie = "kupfer"
-                elif erster in ["messing", "bronze"]:
-                    kategorie = "messing"
-                else:
-                    kategorie = "sonstiges"
-            
-            self.kategorien[kategorie].append(teil)
-        
-        return self.get_ergebnis()
+            kat = self.material_pruefung(teil)
+            if kat in self.kategorien:
+                self.kategorien[kat].append(teil)
+            else:
+                self.kategorien["schrott"].append(teil)
+        return self.kategorien
     
     def get_ergebnis(self) -> dict:
-        """Liefert JSON-sicheres Ergebnis mit Zusammenfassung."""
+        """Liefert JSON-sicheres Ergebnis-Dict mit Counts und Details."""
         ergebnis = {}
-        gesamt = 0
         for kat, liste in self.kategorien.items():
-            ergebnis[kat] = _json_sicher(liste)
-            gesamt += len(liste)
-        ergebnis["_meta"] = {
-            "gesamt_teile": gesamt,
-            "kategorien_gefunden": len([k for k, v in self.kategorien.items() if v])
-        }
+            ergebnis[kat] = {
+                "anzahl": len(liste),
+                "teile": _json_sicher(liste)
+            }
         return _json_sicher(ergebnis)
