@@ -148,114 +148,144 @@ class MetallSortierer:
         try:
             material = str(teil.get("material", "")).lower()
             # Ferromagnetisch: Eisen, Stahl, Guss, Ferro-Legierungen
-            ferromagnetisch = any(m in material for m in ["eisen", "stahl", "guss", "ferro"])
-            # Edelstahl ist oft nicht magnetisch (austenitisch)
-            if "edelstahl" in material:
-                return False
-            return ferromagnetisch
+            ferromagnetisch = ["eisen", "stahl", "guss", "ferro", "carbon", "baustahl"]
+            # Edelstahl ist oft NICHT magnetisch (austenitisch), aber manche sind es.
+            # Wir treaten Edelstahl separat.
+            return any(m in material for m in ferromagnetisch)
         except Exception:
             return False
     
     def funken_test(self, teil: dict) -> str:
-        """Simuliert Funkenbild-Test. Gibt Funken-Typ zurück."""
+        """Simuliert Funkenbild-Test. Gibt Typ zurück: 'lang_gelb', 'kurz_rot', 'keine', 'weiss_hell'."""
         try:
             material = str(teil.get("material", "")).lower()
-            if any(m in material for m in ["eisen", "stahl", "guss", "ferro"]):
-                if "edelstahl" in material:
-                    return "kurz_gelb_keine_zweige"  # Edelstahl-Funken
-                elif "guss" in material:
-                    return "kurz_rot_keine_zweige"   # Gusseisen
-                else:
-                    return "lang_gelb_viele_zweige"   # Stahl/Eisen
-            elif "titan" in material:
-                return "weiss_sehr_hell"              # Titan
-            else:
-                return "keine_funken"                 # NE-Metalle
+            kohlenstoff = float(teil.get("kohlenstoff_gehalt", 0.0))
+            
+            if "edelstahl" in material:
+                return "keine"  # Austenitisch = keine Funken
+            if "guss" in material or kohlenstoff > 2.0:
+                return "kurz_rot"  # Gusseisen: kurze, rote Funken (Kohlenstoff)
+            if "stahl" in material or "eisen" in material or "ferro" in material:
+                if kohlenstoff > 0.6:
+                    return "lang_gelb"  # Hochkohlenstoff: lange, gelbe Funkenstrahlen
+                return "kurz_rot"  # Baustahl: kurze, rötliche Funken
+            return "keine"  # NE-Metalle: keine Funken
         except Exception:
-            return "unbekannt"
+            return "keine"
     
     def dichte_test(self, teil: dict) -> float:
-        """Berechnet/schätzt Dichte in g/cm³ aus Masse/Volumen oder Material."""
+        """Berechnet/Schätzt Dichte in g/cm³ aus Masse/Volumen oder Material-Namen."""
         try:
-            # Falls Masse & Volumen gegeben
+            # 1. Versuch: Masse / Volumen falls vorhanden
             masse = teil.get("masse_g")
             volumen = teil.get("volumen_cm3")
-            if masse is not None and volumen not in (None, 0):
+            if masse is not None and volumen is not None and volumen > 0:
                 return float(masse) / float(volumen)
-            # Fallback: Material-Namen schätzen
+            
+            # 2. Fallback: Material-Name gegen Tabelle
             material = str(teil.get("material", "")).lower()
             for name, dichte in self.DICHTEN.items():
                 if name in material:
-                    return dichte
+                    # Kleine zufällige Variation simulieren (Messfehler)
+                    import random
+                    return dichte * random.uniform(0.97, 1.03)
+            
             return 0.0
         except Exception:
             return 0.0
     
-    def _dichte_match(self, gemessen: float, referenz: float) -> bool:
-        """Prüft ob gemessene Dichte zur Referenz passt (mit Toleranz)."""
-        if referenz <= 0 or gemessen <= 0:
+    def _dichte_match(self, gemessene_dichte: float, ziel_dichte: float) -> bool:
+        """Prüft ob gemessene Dichte innerhalb 8% Toleranz zur Zieldichte liegt."""
+        if ziel_dichte <= 0 or gemessene_dichte <= 0:
             return False
-        abweichung = abs(gemessen - referenz) / referenz
+        abweichung = abs(gemessene_dichte - ziel_dichte) / ziel_dichte
         return abweichung <= self.DICHTE_TOLERANZ
     
-    def material_pruefung(self, teil: dict) -> str:
-        """Kombiniert Tests und liefert Material-Kategorie."""
-        try:
-            magnetisch = self.magnet_test(teil)
-            funken = self.funken_test(teil)
-            dichte = self.dichte_test(teil)
-            material = str(teil.get("material", "")).lower()
-            
-            # Kakerlaken-Check: verdächtig wenn organisch/feucht/klein
-            if teil.get("bewegt_sich", False) or teil.get("organisch", False):
-                return "kakerlaken_verdaechtig"
-            
-            # Logik-Baum
-            if magnetisch:
-                if self._dichte_match(dichte, self.DICHTEN.get("edelstahl", 7.9)):
-                    return "edelstahl"
-                elif "guss" in material or self._dichte_match(dichte, self.DICHTEN.get("guss", 7.2)):
-                    return "eisenhaltig"  # Guss geht zu eisenhaltig
-                else:
-                    return "eisenhaltig"
+    def material_pruefung(self, teil: dict) -> dict:
+        """Führt alle Tests durch, bestimmt Kategorie."""
+        ergebnis = {
+            "kategorie": "schrott",
+            "magnetisch": False,
+            "funken": "keine",
+            "dichte": 0.0,
+            "verdaechtig": False
+        }
+        
+        # Kakerlaken-Check: Teile aus dunklen Ecken, Kartons, lange liegend
+        quelle = str(teil.get("quelle", "")).lower()
+        if any(w in quelle for w in ["ecke", "karton", "kiste", "boden", "lager"]):
+            ergebnis["verdaechtig"] = True
+        
+        ergebnis["magnetisch"] = self.magnet_test(teil)
+        ergebnis["funken"] = self.funken_test(teil)
+        ergebnis["dichte"] = round(self.dichte_test(teil), 2)
+        
+        # Entscheidungslogik
+        mat = str(teil.get("material", "")).lower()
+        dichte = ergebnis["dichte"]
+        mag = ergebnis["magnetisch"]
+        funken = ergebnis["funken"]
+        
+        # 1. Kupfer / Messing / Bronze (nicht magnetisch, hohe Dichte, keine Funken)
+        if not mag and funken == "keine":
+            if self._dichte_match(dichte, self.DICHTEN["kupfer"]):
+                ergebnis["kategorie"] = "kupfer"
+            elif self._dichte_match(dichte, self.DICHTEN["messing"]):
+                ergebnis["kategorie"] = "messing"
+            elif self._dichte_match(dichte, self.DICHTEN["bronze"]):
+                ergebnis["kategorie"] = "messing"  # Bronze -> Messing-Kategorie
+            elif self._dichte_match(dichte, self.DICHTEN["zink"]):
+                ergebnis["kategorie"] = "sonstiges"
+            elif self._dichte_match(dichte, self.DICHTEN["aluminium"]):
+                ergebnis["kategorie"] = "aluminium"
+            elif self._dichte_match(dichte, self.DICHTEN["magnesium"]):
+                ergebnis["kategorie"] = "sonstiges"
+            elif self._dichte_match(dichte, self.DICHTEN["titan"]):
+                ergebnis["kategorie"] = "sonstiges"
+            elif self._dichte_match(dichte, self.DICHTEN["blei"]):
+                ergebnis["kategorie"] = "sonstiges"
+            elif self._dichte_match(dichte, self.DICHTEN["zinn"]):
+                ergebnis["kategorie"] = "sonstiges"
+        
+        # 2. Magnetisch (Eisen, Stahl, Guss)
+        if mag:
+            if "edelstahl" in mat or (funken == "keine" and dichte > 7.5):
+                # Austenitischer Edelstahl ist nicht magnetisch, aber falls doch magnetisch & keine Funken -> evtl. ferritisch
+                # Wenn explizit 'edelstahl' im Namen: Edelstahl-Kategorie
+                ergebnis["kategorie"] = "edelstahl"
+            elif "guss" in mat or funken == "kurz_rot":
+                ergebnis["kategorie"] = "eisenhaltig"  # Guss ist eisenhaltig
             else:
-                # Nicht magnetisch
-                if self._dichte_match(dichte, self.DICHTEN.get("aluminium", 2.7)):
-                    return "aluminium"
-                elif self._dichte_match(dichte, self.DICHTEN.get("kupfer", 8.96)):
-                    return "kupfer"
-                elif self._dichte_match(dichte, self.DICHTEN.get("messing", 8.5)):
-                    return "messing"
-                elif self._dichte_match(dichte, self.DICHTEN.get("bronze", 8.8)):
-                    return "messing"  # Bronze -> Messing-Kategorie
-                elif self._dichte_match(dichte, self.DICHTEN.get("titan", 4.5)):
-                    return "sonstiges"
-                elif self._dichte_match(dichte, self.DICHTEN.get("zink", 7.1)):
-                    return "sonstiges"
-                elif self._dichte_match(dichte, self.DICHTEN.get("blei", 11.34)):
-                    return "sonstiges"
-                else:
-                    return "schrott"
-        except Exception:
-            return "schrott"
+                ergebnis["kategorie"] = "eisenhaltig"
+        
+        # 3. Kakerlaken-Verdacht überwiegt
+        if ergebnis["verdaechtig"]:
+            ergebnis["kategorie"] = "kakerlaken_verdaechtig"
+        
+        return ergebnis
     
-    def sortiere(self, teile: List[dict]) -> Dict[str, List[dict]]:
-        """Hauptmethode: sortiert Liste von Teilen in Kategorien."""
+    def sortiere(self, teile: list) -> dict:
+        """Haupt-Einstieg: sortiert Liste von Teilen in Kategorien."""
         self.reset()
         for teil in teile:
-            try:
-                kat = self.material_pruefung(teil)
-                if kat in self.kategorien:
-                    self.kategorien[kat].append(teil)
-                else:
-                    self.kategorien["schrott"].append(teil)
-            except Exception:
-                self.kategorien["schrott"].append(teil)
-        return self.kategorien
+            if not isinstance(teil, dict):
+                continue
+            pruef = self.material_pruefung(teil)
+            kat = pruef["kategorie"]
+            # Teil mit Prüfergebnis anreichern
+            teil_mit_info = {**teil, "pruefung": pruef}
+            if kat in self.kategorien:
+                self.kategorien[kat].append(teil_mit_info)
+            else:
+                self.kategorien["schrott"].append(teil_mit_info)
+        return self.get_ergebnis()
     
     def get_ergebnis(self) -> dict:
-        """Liefert JSON-sicheres Zusammenfassungsergebnis."""
-        return _json_sicher({
-            "kategorien": {k: len(v) for k, v in self.kategorien.items()},
-            "details": self.kategorien
-        })
+        """Liefert JSON-sicheres Zusammenfassung-Dict."""
+        summary = {}
+        for kat, liste in self.kategorien.items():
+            summary[kat] = {
+                "anzahl": len(liste),
+                "teile": [_json_sicher(t) for t in liste]
+            }
+        return _json_sicher(summary)
