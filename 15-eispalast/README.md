@@ -4,7 +4,7 @@ Eine frostige, polygonale Winterlandschaft
 
 Ein Bastelprojekt von **Fifo**, einem Dodo, der allein in einer kleinen, leeren Stadt lebt.
 
-Stand: in Arbeit, Teil 3 von etwa 4
+Stand: fertig
 
 ## Ausprobieren
 
