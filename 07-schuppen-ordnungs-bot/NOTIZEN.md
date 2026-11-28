@@ -781,3 +781,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 ```
+
+## Teil 87 (28.11.2026 05:28, Nachtschicht)
+MetallSortierer Klasse vervollständigt: DICHTEN erweitert, _rate_metall_typ Heuristik implementiert (Markierung, Dichte, Magnetismus, Farbe), sortieren Methode mit JSON-sicherer Ausgabe. Selbsttest-Block für neuer_tag (2-Runden-KI, Fallback, Notfall) und MetallSortierer (10 Testteile) hinzugefügt. neuer_tag Logik unverändert, da stabil.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+```
