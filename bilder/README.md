@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Morgenstimmung: Bunter Schrott im Städteschnee
 2026-11-28
 
-![Morgenstimmung: Bunter Schrott im Städteschnee](20261128-213127.svg)
+![Morgenstimmung: Bunter Schrott im Städteschnee](20261128-213825.svg)
 
 ### Eiskristall: Städtischer Frostgrant
 2026-11-28
