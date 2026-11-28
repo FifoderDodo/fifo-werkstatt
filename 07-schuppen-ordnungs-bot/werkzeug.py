@@ -140,154 +140,115 @@ class MetallSortierer:
         "stahl": 7.85, "eisen": 7.87, "guss": 7.2, "ferro": 7.8,
         "edelstahl": 7.9,
         "kupfer": 8.96, "messing": 8.5, "bronze": 8.8,
-        "zink": 7.13, "zinialloy": 6.8,
-        "blei": 11.34,
-        "nickel": 8.9,
+        "blei": 11.34, "zink": 7.13, "nickel": 8.9,
+        "unknown": 7.8  # Fallback: Eisen/Stahl
     }
-    TOLERANZ = 0.08  # 8%
+    TOLERANZ = 0.08  # 8% Toleranz bei Dichte-Abgleich
 
-    def __init__(self, teile: List[Dict[str, Any]]):
-        self.teile = teile
-        self.ergebnis = {"kategorien": {}, "unbekannt": []}
+    def __init__(self):
+        self.ergebnis = {"kategorien": {}, "unsortiert": [], "fehler": []}
 
-    def magnet_test(self, teil: Dict) -> bool:
-        """Simuliert Magnet-Test: True wenn ferromagnetisch (Eisen, Stahl, Guss, Nickel)."""
-        # In der Realität hier Sensor-Abfrage. Simuliere über Material-Hinweis oder Zufall für Demo.
-        mat = str(teil.get("material_hinweis", "")).lower()
-        magnetisch_stichwoerter = ["eisen", "stahl", "guss", "ferro", "nickel"]
-        if any(w in mat for w in magnetisch_stichwoerter):
-            return True
-        # Fallback: ~50% Chance bei unbekannt, aber hier deterministisch für Test
-        return hash(str(teil.get("id", ""))) % 2 == 0
-
-    def funken_test(self, teil: Dict) -> str:
-        """Simuliert Funkenbild: 'lang_gelb' (Stahl), 'kurz_rot' (Guss), 'keine' (Nichteisen), 'weiss' (Titan)."""
-        mat = str(teil.get("material_hinweis", "")).lower()
-        if "titan" in mat: return "weiss"
-        if "guss" in mat: return "kurz_rot"
-        if any(w in mat for w in ["stahl", "eisen", "ferro"]): return "lang_gelb"
-        if any(w in mat for w in ["edelstahl"]): return "kurz_gelb"
-        return "keine"
-
-    def dichte_test(self, teil: Dict) -> float:
-        """Berechnet Dichte aus Gewicht (g) / Volumen (cm3). Erwartet Keys 'gewicht_g', 'volumen_cm3'."""
+    def gewicht_schaetzen(self, teil: Dict) -> float:
+        """Schätzt Gewicht in Gramm aus Volumen (cm³) und Material-Dichte."""
         try:
-            g = float(teil.get("gewicht_g", 0))
-            v = float(teil.get("volumen_cm3", 0))
-            if v <= 0: return 0.0
-            return g / v
-        except (ValueError, TypeError):
+            vol = float(teil.get("volumen_cm3", 0))
+            mat = str(teil.get("material_vermutung", "unknown")).lower()
+            dichte = self.DICHTEN.get(mat, self.DICHTEN["unknown"])
+            return round(vol * dichte, 1)
+        except Exception:
             return 0.0
 
-    def _dichte_match(self, dichte: float) -> List[str]:
-        """Gibt Liste möglicher Material-Namen für gemessene Dichte ± Toleranz."""
-        if dichte <= 0: return []
-        matches = []
-        for name, d in self.DICHTEN.items():
-            if abs(d - dichte) / d <= self.TOLERANZ:
-                matches.append(name)
-        return matches
+    def kategorie_bestimmen(self, teil: Dict, dichte: float) -> str:
+        """Ordnet Teil Kategorie zu basierend auf gemessener/geschätzter Dichte."""
+        if dichte <= 0:
+            return "unbekannt"
+        # Näherste bekannte Dichte suchen
+        beste_kat = "unbekannt"
+        min_diff = float('inf')
+        for kat, d in self.DICHTEN.items():
+            if d <= 0:
+                continue
+            diff = abs(dichte - d) / d
+            if diff < min_diff:
+                min_diff = diff
+                beste_kat = kat
+        if min_diff <= self.TOLERANZ:
+            # Hauptkategorie zusammenfassen
+            if beste_kat in ["aluminium", "aluminiumlegierung", "magnesium", "titan"]:
+                return "leichtmetall"
+            if beste_kat in ["stahl", "eisen", "guss", "ferro", "edelstahl"]:
+                return "ferro"
+            if beste_kat in ["kupfer", "messing", "bronze"]:
+                return "kupfer_legierung"
+            if beste_kat in ["blei", "zink", "nickel"]:
+                return "schwer_metall"
+            return beste_kat
+        return "unbekannt"
 
-    def material_pruefung(self, teil: Dict) -> Dict[str, Any]:
-        """Führt Tests durch und schlägt Kategorie vor."""
-        magnet = self.magnet_test(teil)
-        funken = self.funken_test(teil)
-        dichte = self.dichte_test(teil)
-        kandidaten = self._dichte_match(dichte)
-
-        # Logik: Magnetisch + Funken -> Ferro
-        # Nicht magnetisch + Dichte -> NE-Metalle
-        kategorie = "unbekannt"
-        sicherheit = 0.0
-
-        if magnet:
-            if "stahl" in kandidaten or "eisen" in kandidaten or "ferro" in kandidaten:
-                kategorie = "stahl_eisen"
-                sicherheit = 0.9
-            elif "edelstahl" in kandidaten:
-                kategorie = "edelstahl"
-                sicherheit = 0.8
-            elif "nickel" in kandidaten:
-                kategorie = "nickel"
-                sicherheit = 0.7
-            else:
-                kategorie = "ferro_sonstiges"
-                sicherheit = 0.5
-        else:
-            # Nicht magnetisch
-            if "aluminium" in kandidaten or "magnesium" in kandidaten:
-                kategorie = "aluminium_leicht"
-                sicherheit = 0.85
-            elif "kupfer" in kandidaten or "messing" in kandidaten or "bronze" in kandidaten:
-                kategorie = "kupfer_rot"
-                sicherheit = 0.85
-            elif "zink" in kandidaten:
-                kategorie = "zink"
-                sicherheit = 0.7
-            elif "blei" in kandidaten:
-                kategorie = "blei"
-                sicherheit = 0.9
-            elif "titan" in kandidaten:
-                kategorie = "titan"
-                sicherheit = 0.8
-            else:
-                kategorie = "nichteisen_sonstiges"
-                sicherheit = 0.3
-
-        return {
-            "kategorie": kategorie,
-            "sicherheit": round(sicherheit, 2),
-            "messwerte": {"magnetisch": magnet, "funken": funken, "dichte_g_cm3": round(dichte, 2)},
-            "kandidaten": kandidaten
-        }
-
-    def sortiere(self) -> Dict[str, Any]:
-        """Hauptmethode: iteriert Teile, prüft, sortiert in Ergebnis-Dict."""
-        kat_map = {}
-        for teil in self.teile:
-            pruef = self.material_pruefung(teil)
-            kat = pruef["kategorie"]
-            eintrag = {"teil_id": teil.get("id"), "details": pruef, "original": teil}
-            if kat not in kat_map:
-                kat_map[kat] = []
-            kat_map[kat].append(eintrag)
-        self.ergebnis["kategorien"] = kat_map
-        return _json_sicher(self.ergebnis)
-
-    def get_ergebnis(self) -> Dict[str, Any]:
-        """Gibt sortiertes Ergebnis zurück (löst Sortierung aus falls nötig)."""
-        if not self.ergebnis.get("kategorien"):
-            self.sortiere()
+    def sortieren(self, teile: List[Dict]) -> Dict:
+        """Haupt-Einstieg: Liste von Teilen verarbeiten."""
+        self.ergebnis = {"kategorien": {}, "unsortiert": [], "fehler": []}
+        for i, teil in enumerate(teile):
+            try:
+                if not isinstance(teil, dict):
+                    self.ergebnis["fehler"].append(f"Index {i}: Kein Dict")
+                    continue
+                # Dichte bestimmen: gemessen > geschätzt
+                dichte = float(teil.get("dichte_g_cm3", 0))
+                if dichte <= 0:
+                    gewicht = self.gewicht_schaetzen(teil)
+                    vol = float(teil.get("volumen_cm3", 1))
+                    dichte = round(gewicht / vol, 2) if vol > 0 else 0
+                kat = self.kategorie_bestimmen(teil, dichte)
+                eintrag = {
+                    "id": teil.get("id", f"teil_{i}"),
+                    "dichte": dichte,
+                    "gewicht_g": self.gewicht_schaetzen(teil) if dichte > 0 else teil.get("gewicht_g", 0),
+                    "info": teil.get("beschreibung", "")[:100]
+                }
+                if kat not in self.ergebnis["kategorien"]:
+                    self.ergebnis["kategorien"][kat] = []
+                self.ergebnis["kategorien"][kat].append(eintrag)
+            except Exception as e:
+                self.ergebnis["fehler"].append(f"Index {i}: {e}")
+        # JSON-sicher machen
         return _json_sicher(self.ergebnis)
 
 
 if __name__ == "__main__":
-    # Test neuer_tag: 2-Runden-Simulation
+    # Selbsttest für neuer_tag
     print("=== Test neuer_tag ===")
-    # Runde 1: Keine KI-Antwort -> Frage
-    daten1 = {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen": 2}, "stimmung": 10, "wetter": "sonnig", "kakerlaken_level": 1}
-    r1 = neuer_tag(daten1)
-    print(f"Runde 1 (Frage): {json.dumps(r1, ensure_ascii=False)}")
+    # Test 1: KI wird gefragt
+    daten1 = {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen": 2}, "stimmung": 10, "wetter": "sonnig"}
+    erg1 = neuer_tag(daten1)
+    print(f"1. Frag-Runde: {json.dumps(erg1, ensure_ascii=False)}")
     
-    # Runde 2: Mit KI-Antwort (simuliert gutes Format)
-    daten1["ki_antwort"] = "think: Aluminium-Haufen prüfen | walk_to: Waage holen | schrott_suchen: Ecke links"
-    r2 = neuer_tag(daten1)
-    print(f"Runde 2 (Plan): {json.dumps(r2, ensure_ascii=False, indent=2)}")
+    # Test 2: KI antwortet brav
+    daten2 = {**daten1, "ki_antwort": "think: Sortierlogik prüfen | schrott_suchen: Kabel finden | einlagern: Kisten beschriften"}
+    erg2 = neuer_tag(daten2)
+    print(f"2. Antwort-Runde: {json.dumps(erg2, ensure_ascii=False)}")
 
-    # Test Fallback (leere KI-Antwort)
-    daten2 = {"gestern": {}, "fehlschlaege": {}, "stimmung": -60, "wetter": "regen", "kakerlaken_level": 0, "ki_antwort": ""}
-    r3 = neuer_tag(daten2)
-    print(f"Fallback (schlechte Stimmung): {json.dumps(r3, ensure_ascii=False, indent=2)}")
+    # Test 3: Kakerlaken-Alarm
+    daten3 = {"gestern": {}, "fehlschlaege": {}, "stimmung": 50, "wetter": "regen", "kakerlaken_level": 8}
+    erg3 = neuer_tag(daten3)
+    print(f"3. Kakerlaken: {json.dumps(erg3, ensure_ascii=False)}")
 
-    # Test MetallSortierer
+    # Test 4: Fallback (leere KI-Antwort)
+    daten4 = {"gestern": {}, "fehlschlaege": {}, "stimmung": -60, "wetter": "nebel", "ki_antwort": ""}
+    erg4 = neuer_tag(daten4)
+    print(f"4. Fallback: {json.dumps(erg4, ensure_ascii=False)}")
+
+    # Selbsttest für MetallSortierer
     print("\n=== Test MetallSortierer ===")
+    sorter = MetallSortierer()
     test_teile = [
-        {"id": "T001", "gewicht_g": 270, "volumen_cm3": 100, "material_hinweis": "Alu-Profil"},
-        {"id": "T002", "gewicht_g": 785, "volumen_cm3": 100, "material_hinweis": "Stahl-Stange"},
-        {"id": "T003", "gewicht_g": 896, "volumen_cm3": 100, "material_hinweis": "Kupfer-Rohr"},
-        {"id": "T004", "gewicht_g": 500, "volumen_cm3": 100, "material_hinweis": "Unbekanntes Etwas"},
+        {"id": "A1", "material_vermutung": "aluminium", "volumen_cm3": 100, "beschreibung": "Leichtes Profil"},
+        {"id": "B2", "material_vermutung": "kupfer", "volumen_cm3": 50, "beschreibung": "Dicker Draht"},
+        {"id": "C3", "dichte_g_cm3": 7.8, "volumen_cm3": 200, "beschreibung": "Eisenplatte gemessen"},
+        {"id": "D4", "material_vermutung": "gold", "volumen_cm3": 10, "beschreibung": "Unbekanntes Metall"},
+        {"id": "E5", "volumen_cm3": -5, "beschreibung": "Kaputter Datensatz"}
     ]
-    sorter = MetallSortierer(test_teile)
-    ergebnis = sorter.get_ergebnis()
-    print(json.dumps(ergebnis, ensure_ascii=False, indent=2))
-    print("\nTests durchgelaufen.")
+    ergebnis = sorter.sortieren(test_teile)
+    print(json.dumps(ergebnis, indent=2, ensure_ascii=False))
+
+    print("\n=== Alle Tests durchgelaufen ===")
