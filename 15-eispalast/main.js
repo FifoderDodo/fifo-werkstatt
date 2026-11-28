@@ -8,56 +8,63 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.8;
+renderer.toneMappingExposure = 2.2;
+renderer.setClearColor(0x1a2a4a, 1);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x102540, 0.0018);
+scene.fog = new THREE.FogExp2(0x4488cc, 0.0006);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
-camera.position.set(50, 30, 60);
+camera.position.set(80, 45, 100);
+camera.lookAt(0, 15, 0);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.minDistance = 20;
-controls.maxDistance = 180;
+controls.minDistance = 30;
+controls.maxDistance = 250;
 controls.maxPolarAngle = Math.PI / 2 - 0.02;
-controls.target.set(0, 10, 0);
+controls.target.set(0, 15, 0);
 
-const ambient = new THREE.AmbientLight(0x88bbff, 1.4);
+const ambient = new THREE.AmbientLight(0xaaccff, 2.0);
 scene.add(ambient);
 
-const sun = new THREE.DirectionalLight(0xddeeff, 2.5);
-sun.position.set(50, 90, 40);
+const sun = new THREE.DirectionalLight(0xffeedd, 3.5);
+sun.position.set(60, 120, 50);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 220;
-sun.shadow.camera.left = -70;
-sun.shadow.camera.right = 70;
-sun.shadow.camera.top = 70;
-sun.shadow.camera.bottom = -70;
+sun.shadow.camera.far = 300;
+sun.shadow.camera.left = -100;
+sun.shadow.camera.right = 100;
+sun.shadow.camera.top = 100;
+sun.shadow.camera.bottom = -100;
 sun.shadow.bias = -0.0005;
 scene.add(sun);
 
-const fillLight = new THREE.DirectionalLight(0x3366cc, 1.5);
-fillLight.position.set(-60, 30, -50);
+const fillLight = new THREE.DirectionalLight(0x66aaff, 2.0);
+fillLight.position.set(-80, 40, -70);
 scene.add(fillLight);
 
-const rimLight = new THREE.DirectionalLight(0xaaddff, 2.0);imLight.position.set(0, -20, -70);
+const rimLight = new THREE.DirectionalLight(0xffffff, 2.5);
+rimLight.position.set(0, -30, -100);
 scene.add(rimLight);
+
+const accentLight = new THREE.PointLight(0x00ffff, 500, 80);
+accentLight.position.set(0, 35, 0);
+scene.add(accentLight);
 
 function createIceMaterial() {
   return new THREE.MeshPhysicalMaterial({
-    color: 0x88ccff,
-    metalness: 0.1,
-    roughness: 0.12,
-    transmission: 0.7,
-    thickness: 2.0,
+    color: 0x66ddff,
+    metalness: 0.05,
+    roughness: 0.08,
+    transmission: 0.85,
+    thickness: 3.0,
     ior: 1.33,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.05,
-    envMapIntensity: 2.2,
+    clearcoatRoughness: 0.03,
+    envMapIntensity: 3.0,
     side: THREE.DoubleSide,
     flatShading: true,
   });
@@ -162,10 +169,10 @@ function buildWalls() {
     
     const crystalGeom = createCrystalCluster(1.0, Math.floor(crystalDensity / 4));
     const crystalMat = new THREE.PointsMaterial({
-      size: 0.5,
-      color: 0xccffff,
+      size: 0.6,
+      color: 0xffffff,
       transparent: true,
-      opacity: 0.95,
+      opacity: 1.0,
       sizeAttenuation: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
@@ -184,7 +191,7 @@ function buildWalls() {
   
   const tipCrystalGeom = createCrystalCluster(1.8, Math.floor(crystalDensity / 2));
   const tipCrystals = new THREE.Points(tipCrystalGeom, new THREE.PointsMaterial({
-    size: 0.7,
+    size: 0.8,
     color: 0xffffff,
     transparent: true,
     opacity: 1,
@@ -197,11 +204,11 @@ function buildWalls() {
   
   const groundGeom = new THREE.CircleGeometry(palaceRadius * 1.8, 64);
   const groundMat = new THREE.MeshPhysicalMaterial({
-    color: 0x113355,
-    metalness: 0.3,
-    roughness: 0.35,
+    color: 0x1a3a6a,
+    metalness: 0.4,
+    roughness: 0.25,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.1,
+    clearcoatRoughness: 0.08,
   });
   const ground = new THREE.Mesh(groundGeom, groundMat);
   ground.rotation.x = -Math.PI / 2;
@@ -211,14 +218,14 @@ function buildWalls() {
   
   const innerFloorGeom = new THREE.CircleGeometry(palaceRadius * 0.85, 32);
   const innerFloorMat = new THREE.MeshPhysicalMaterial({
-    color: 0x2266aa,
-    metalness: 0.5,
-    roughness: 0.1,
-    transmission: 0.4,
-    thickness: 0.6,
+    color: 0x3388dd,
+    metalness: 0.6,
+    roughness: 0.05,
+    transmission: 0.5,
+    thickness: 0.8,
     ior: 1.33,
     clearcoat: 1,
-    clearcoatRoughness: 0.02,
+    clearcoatRoughness: 0.01,
     side: THREE.DoubleSide,
   });
   const innerFloor = new THREE.Mesh(innerFloorGeom, innerFloorMat);
@@ -250,10 +257,10 @@ snowGeom.setAttribute('aVelocity', new THREE.BufferAttribute(snowVel, 3));
 snowGeom.setAttribute('aSize', new THREE.BufferAttribute(snowSize, 1));
 
 const snowMat = new THREE.PointsMaterial({
-  size: 1.2,
+  size: 1.5,
   color: 0xffffff,
   transparent: true,
-  opacity: 0.85,
+  opacity: 0.9,
   sizeAttenuation: true,
   depthWrite: false,
   blending: THREE.AdditiveBlending,
@@ -262,16 +269,16 @@ const snowMat = new THREE.PointsMaterial({
 const snow = new THREE.Points(snowGeom, snowMat);
 scene.add(snow);
 
-const auroraGeom = new THREE.SphereGeometry(220, 32, 16);
-auroraGeom.scale(1, 0.45, 1);
+const auroraGeom = new THREE.SphereGeometry(280, 32, 16);
+auroraGeom.scale(1, 0.4, 1);
 const auroraMat = new THREE.MeshBasicMaterial({
-  color: 0x33aacc,
+  color: 0x44aaff,
   side: THREE.BackSide,
   transparent: true,
-  opacity: 0.35,
+  opacity: 0.25,
 });
 const aurora = new THREE.Mesh(auroraGeom, auroraMat);
-aurora.position.y = 40;
+aurora.position.y = 50;
 scene.add(aurora);
 
 let time = 0;
@@ -312,12 +319,14 @@ function animate() {
     }
     if (child.isPoints && child.material.blending === THREE.AdditiveBlending) {
       child.rotation.y += 0.0006;
-      child.material.opacity = 0.8 + Math.sin(time * 1.8 + (child.userData.index || 0)) * 0.15;
+      child.material.opacity = 0.9 + Math.sin(time * 1.8 + (child.userData.index || 0)) * 0.1;
     }
   });
   
   aurora.rotation.y += 0.00015;
   aurora.rotation.x = Math.sin(time * 0.04) * 0.04;
+  
+  accentLight.intensity = 400 + Math.sin(time * 2) * 100;
   
   renderer.render(scene, camera);
 }
@@ -364,4 +373,4 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-console.log('❄️ Eispalast Teil 3 initialisiert – Frostfarben & Beleuchtung optimiert.');
+console.log('❄️ Eispalast Teil 4 initialisiert – Sichtbarkeit & Farben optimiert.');
