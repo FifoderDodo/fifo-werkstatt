@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Zornauflösung im Betonrauschen
+2026-11-28
+
+![Zornauflösung im Betonrauschen](20261128-162114.svg)
+
 ### Roter Zorn im Betonkarree
 2026-11-28
 
