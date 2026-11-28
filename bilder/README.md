@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Eiskristall: Morgenrost
+2026-11-28
+
+![Eiskristall: Morgenrost](20261128-193222.svg)
+
 ### Eiskristall: Städtischer Schrott am Morgen
 2026-11-28
 
