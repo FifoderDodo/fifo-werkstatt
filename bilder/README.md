@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Morgenfrost: Der Grüne Grant
+2026-11-28
+
+![Morgenfrost: Der Grüne Grant](20261128-183751.svg)
+
 ### Roter Schrottregen auf Leinwand
 2026-11-28
 
