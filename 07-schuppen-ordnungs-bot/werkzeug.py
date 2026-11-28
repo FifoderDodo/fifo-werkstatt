@@ -140,100 +140,121 @@ class MetallSortierer:
         "stahl": 7.85, "eisen": 7.87, "guss": 7.2, "ferro": 7.8,
         "edelstahl": 7.9,
         "kupfer": 8.96, "messing": 8.5, "bronze": 8.8,
-        "zink": 7.13, "zinklegierung": 6.8,
         "blei": 11.34,
-        "zinn": 7.31,
+        "zink": 7.13,
         "nickel": 8.9,
+        "zinn": 7.31,
         "gold": 19.3,
         "silber": 10.49,
         "platin": 21.45
     }
 
-    def __init__(self):
-        self.kategorien = {}
-
-    def _rate_metall_typ(self, teil: Dict) -> str:
-        """Heuristik: Erratet Metalltyp basierend auf Eigenschaften."""
-        gewicht = float(teil.get("gewicht", 0))
-        volumen = float(teil.get("volumen", 1))
-        farbe = str(teil.get("farbe", "")).lower()
-        magnetisch = bool(teil.get("magnetisch", False))
-        leiter = bool(teil.get("leiter", False))
-        dichte = gewicht / volumen if volumen > 0 else 0
-
-        # Starke Heuristiken zuerst
-        if magnetisch and dichte > 7.0:
+    @staticmethod
+    def _rate_metall_typ(stueck: Dict) -> str:
+        """Heuristik: Rät Metall-Typ basierend auf Dichte, Magnetismus, Farbe, Beschriftung."""
+        # 1. Explizite Beschriftung prüfen
+        label = str(stueck.get("label", "")).lower()
+        for known in MetallSortierer.DICHTEN:
+            if known in label:
+                return known
+        
+        # 2. Dichte berechnen, falls Gewicht & Volumen da
+        gewicht = stueck.get("gewicht_g")
+        volumen = stueck.get("volumen_cm3")
+        if gewicht and volumen and volumen > 0:
+            dichte = float(gewicht) / float(volumen)
+            # Nächsten bekannten Nachbarn suchen
+            best_match = min(MetallSortierer.DICHTEN.items(), key=lambda kv: abs(kv[1] - dichte))
+            if abs(best_match[1] - dichte) < 1.5:  # Toleranz 1.5 g/cm³
+                return best_match[0]
+        
+        # 3. Magnetismus & Farbe als grobe Filter
+        magnetisch = bool(stueck.get("magnetisch", False))
+        farbe = str(stueck.get("farbe", "")).lower()
+        
+        if magnetisch:
             if "rost" in farbe or "braun" in farbe:
                 return "eisen"
-            return "stahl"
-        if not magnetisch and leiter and dichte > 8.5:
-            if "rot" in farbe or "orange" in farbe:
+            return "stahl"  # Default ferromagnetisch
+        else:
+            if "rot" in farbe or "orange" in farbe or "kupfer" in farbe:
                 return "kupfer"
             if "gelb" in farbe or "gold" in farbe:
                 return "messing"
-            return "bronze"
-        if not magnetisch and dichte < 3.0:
-            return "aluminium"
-        if not magnetisch and 3.0 <= dichte < 5.0:
-            return "titan"
-        if magnetisch and dichte > 7.5 and "edel" in farbe:
-            return "edelstahl"
-        if dichte > 15:
-            return "blei"  # oder gold/platin, aber blei ist häufiger Schrott
+            if "weiß" in farbe or "silber" in farbe or "hell" in farbe:
+                if stueck.get("gewicht_g", 0) < 100 and stueck.get("volumen_cm3", 1) > 20:
+                    return "aluminium"  # Leicht & groß
+                return "edelstahl"
+            if "grau" in farbe or "dunkel" in farbe:
+                return "zink"  # Oft Zinkdruckguss
+        
+        return "unbekannt"
 
-        # Näherung über Dichte
-        best_match = "unbekannt"
-        min_diff = float('inf')
-        for name, d in self.DICHTEN.items():
-            diff = abs(d - dichte)
-            if diff < min_diff:
-                min_diff = diff
-                best_match = name
-        return best_match
-
-    def sortieren(self, teile: List[Dict]) -> Dict:
-        """Sortiert Teile in Kategorien, gibt Statistik zurück."""
-        ergebnis = {}
-        for teil in teile:
-            typ = self._rate_metall_typ(teil)
-            if typ not in ergebnis:
-                ergebnis[typ] = {"teile": [], "gesamt_gewicht": 0.0, "anzahl": 0}
-            ergebnis[typ]["teile"].append(_json_sicher(teil))
-            ergebnis[typ]["gesamt_gewicht"] += float(teil.get("gewicht", 0))
-            ergebnis[typ]["anzahl"] += 1
+    @classmethod
+    def sortieren(cls, schrott_liste: List[Dict]) -> Dict:
+        """Hauptmethode: Sortiert Liste in Kategorien, zählt, summiert Gewicht."""
+        kategorien = {}
+        gesamt_gewicht = 0.0
+        
+        for stueck in schrott_liste:
+            if not isinstance(stueck, dict):
+                continue
+            typ = cls._rate_metall_typ(stueck)
+            gewicht = float(stueck.get("gewicht_g", 0) or 0)
+            
+            if typ not in kategorien:
+                kategorien[typ] = {"anzahl": 0, "gewicht_g": 0.0, "stuecke": []}
+            
+            kategorien[typ]["anzahl"] += 1
+            kategorien[typ]["gewicht_g"] += gewicht
+            kategorien[typ]["stuecke"].append(_json_sicher(stueck))
+            gesamt_gewicht += gewicht
+        
+        # Aufbereiten für Ausgabe
+        ergebnis = {
+            "kategorien": _json_sicher(kategorien),
+            "gesamt_stuecke": len(schrott_liste),
+            "gesamt_gewicht_g": round(gesamt_gewicht, 2),
+            "sortierzeit": "gerade eben"
+        }
         return _json_sicher(ergebnis)
 
 
 if __name__ == "__main__":
-    # Selbsttest für neuer_tag
+    # Selbsttest: neuer_tag
     print("=== Test neuer_tag ===")
-    test1 = {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen": 2}, "stimmung": 10, "wetter": "sonnig", "kakerlaken_level": 1}
-    print("Test 1 (Runde 1):", neuer_tag(test1))
-    test1_antwort = {"ki_antwort": "think: Sortierlogik verfeinern | eat: Frühstück | spazieren: Luft schnappen"}
-    test1.update(test1_antwort)
-    print("Test 1 (Runde 2):", neuer_tag(test1))
-
-    test2 = {"gestern": {}, "fehlschlaege": {}, "stimmung": -60, "wetter": "regen", "kakerlaken_level": 5}
-    print("Test 2 (Notfall Kakerlaken):", neuer_tag(test2))
-
-    test3 = {"gestern": {"walk_to": 1}, "fehlschlaege": {}, "stimmung": 50, "wetter": "bewoelkt", "kakerlaken_level": 0, "ki_antwort": ""}
-    print("Test 3 (KI leer -> Fallback):", neuer_tag(test3))
-
-    # Selbsttest für MetallSortierer
-    print("\n=== Test MetallSortierer ===")
-    sorter = MetallSortierer()
-    test_teile = [
-        {"id": 1, "gewicht": 270, "volumen": 100, "farbe": "silber", "magnetisch": False, "leiter": True},   # Alu
-        {"id": 2, "gewicht": 785, "volumen": 100, "farbe": "grau", "magnetisch": True, "leiter": True},      # Stahl
-        {"id": 3, "gewicht": 896, "volumen": 100, "farbe": "rot", "magnetisch": False, "leiter": True},      # Kupfer
-        {"id": 4, "gewicht": 1134, "volumen": 100, "farbe": "grau", "magnetisch": False, "leiter": True},    # Blei
-        {"id": 5, "gewicht": 450, "volumen": 100, "farbe": "silber", "magnetisch": False, "leiter": True},   # Titan
-        {"id": 6, "gewicht": 790, "volumen": 100, "farbe": "glänzend", "magnetisch": False, "leiter": True}, # Edelstahl
-        {"id": 7, "gewicht": 850, "volumen": 100, "farbe": "gelb", "magnetisch": False, "leiter": True},    # Messing
-        {"id": 8, "gewicht": 270, "volumen": 100, "farbe": "weiß", "magnetisch": False, "leiter": True},    # Magnesium/Alu
-        {"id": 9, "gewicht": 720, "volumen": 100, "farbe": "braun", "magnetisch": True, "leiter": True},    # Guss/Eisen
-        {"id": 10, "gewicht": 1930, "volumen": 100, "farbe": "gold", "magnetisch": False, "leiter": True},   # Gold (selten aber test)
+    test_faelle = [
+        {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen": 2}, "stimmung": 10, "wetter": "sonnig"},
+        {"gestern": {}, "fehlschlaege": {}, "stimmung": -60, "wetter": "regen", "kakerlaken_level": 8},
+        {"gestern": {"spazieren": 1}, "fehlschlaege": {},"stimmung": 50, "wetter": "bewoelkt", "ki_antwort": "think: Plan machen | eat: Brot | spazieren: Runde drehen"},
+        {"gestern": {},"fehlschlaege": {},"stimmung": 5, "wetter": "nebel", "ki_antwort": ""},
     ]
-    ergebnis = sorter.sortieren(test_teile)
+    for i, daten in enumerate(test_faelle):
+        out = neuer_tag(daten)
+        print(f"Test {i+1}: {json.dumps(out, ensure_ascii=False)}")
+        # Simuliere 2. Runde falls Frage kam
+        if "frage_an_ki" in out:
+            print(f"  -> Frage: {out['frage_an_ki'][:80]}...")
+            daten2 = {**daten, "ki_antwort": "think: sortieren | walk_to: schuppen | schrott_suchen: metalle"}
+            out2 = neuer_tag(daten2)
+            print(f"  -> Antwort: {json.dumps(out2, ensure_ascii=False)}")
+
+    # Selbsttest: MetallSortierer
+    print("\n=== Test MetallSortierer ===")
+    test_stuecke = [
+        {"label": "Alu-Profil 1m", "gewicht_g": 810, "volumen_cm3": 300, "farbe": "silber", "magnetisch": False},
+        {"label": "Eisenstab dick", "gewicht_g": 2500, "volumen_cm3": 318, "farbe": "rostbraun", "magnetisch": True},
+        {"label": "Kupferrohr Rest", "gewicht_g": 450, "volumen_cm3": 50, "farbe": "rotgold", "magnetisch": False},
+        {"label": "Messing-Ventil", "gewicht_g": 320, "volumen_cm3": 38, "farbe": "gelb", "magnetisch": False},
+        {"label": "Edelstahl-Schrauben", "gewicht_g": 150, "volumen_cm3": 19, "farbe": "silber", "magnetisch": False},
+        {"label": "Zink-Druckguss-Eck", "gewicht_g": 210, "volumen_cm3": 30, "farbe": "grau", "magnetisch": False},
+        {"label": "Blei-Gewicht", "gewicht_g": 1134, "volumen_cm3": 100, "farbe": "blaugrau", "magnetisch": False},
+        {"label": "Alte Dose", "gewicht_g": 30, "volumen_cm3": 40, "farbe": "weiss", "magnetisch": True},
+        {"label": "Magnetischer Block", "gewicht_g": 500, "volumen_cm3": 65, "farbe": "schwarz", "magnetisch": True},
+        {"label": "Mystery-Stück", "gewicht_g": 100, "volumen_cm3": 20, "farbe": "bunt", "magnetisch": False},
+    ]
+    sorter = MetallSortierer()
+    ergebnis = sorter.sortieren(test_stuecke)
     print(json.dumps(ergebnis, indent=2, ensure_ascii=False))
-    print("\nAlle Tests durchgelaufen.")
+    print(f"\nKategorien gefunden: {list(ergebnis['kategorien'].keys())}")
+    print(f"Gesamt: {ergebnis['gesamt_stuecke']} Stücke, {ergebnis['gesamt_gewicht_g']}g")
