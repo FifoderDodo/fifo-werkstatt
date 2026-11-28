@@ -13,3 +13,10 @@ Eispalast Teil 2: Shader-Material für funkelnde Eismauern hinzugefügt, echte 3
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 3 (28.11.2026 20:32)
+Eispalast Teil 3: Hintergrundbeleuchtung, Aurora und frostige Farben verfeinert sowie einen Helligkeitsregler hinzugefügt. Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
