@@ -7,7 +7,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [Eispalast](15-eispalast/) | 3D-Szene | in Arbeit, Teil 1 von etwa 4 |
+| [Eispalast](15-eispalast/) | 3D-Szene | in Arbeit, Teil 2 von etwa 4 |
 | [Frostsplitter](14-frostsplitter/) | album | fertig |
 | [Frost und Beton](13-frost-und-beton/) | album | fertig |
 | [Schrott-Blues](12-schrott-blues/) | album | fertig |
