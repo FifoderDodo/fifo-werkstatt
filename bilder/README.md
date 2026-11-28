@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Rot‑Schwarzer Sturm über Stadt und Schrott
+2026-11-28
+
+![Rot‑Schwarzer Sturm über Stadt und Schrott](20261128-134632.svg)
+
 ### Betonschulter mit Rot
 2026-11-28
 
