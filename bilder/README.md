@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Betonschulter mit Rot
+2026-11-28
+
+![Betonschulter mit Rot](20261128-121715.svg)
+
 ### Kälteeinbruch: Bunker trotzt dem Frost
 2026-11-28
 
