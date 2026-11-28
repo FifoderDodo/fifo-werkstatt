@@ -817,3 +817,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 ```
+
+## Teil 91 (28.11.2026 06:25, Nachtschicht)
+MetallSortierer-Klasse vervollständigt: DICHTEN um Blei, Zink, Nickel, Zinn, Edelmetalle erweitert. Heuristik _rate_metall_typ nutzt Label, Dichte (Gewicht/Volumen), Magnetismus und Farbe. Methode sortieren aggregiert Kategorien, zählt Stücke, summiert Gewicht. Selbsttest-Block am Ende prüft neuer_tag (4 Fälle inkl. 2-Runden-Simulation) und MetallSortierer (10 diverse Teststücke). Alles stdlib, lä
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+```
