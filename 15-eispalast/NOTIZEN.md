@@ -6,3 +6,10 @@ Projekt 'Eispalast' initialisiert mit index.html, style.css und main.js. Erste p
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 2 (28.11.2026 20:22)
+Eispalast Teil 2: Shader-Material für funkelnde Eismauern hinzugefügt, echte 3D-Kristallcluster (Oktaeder) auf den Säulen und dem Turm errichtet, sowie die Kristall-Dichte als Live-Regler im UI integriert. (Nicht übernommen: main.js.) Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
