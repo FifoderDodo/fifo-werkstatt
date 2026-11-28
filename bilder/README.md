@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Herbstblatt mit Wut im Bauch
+2026-11-28
+
+![Herbstblatt mit Wut im Bauch](20261128-152334.svg)
+
 ### Tanzende Streifenwespe im kalten Novemberlicht
 2026-11-28
 
