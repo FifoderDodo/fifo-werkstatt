@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Morgenmuffel im Buntschlamm
 2026-11-28
 
-![Morgenmuffel im Buntschlamm](20261128-220256.svg)
+![Morgenmuffel im Buntschlamm](20261128-220844.svg)
 
 ### Morgenstimmung: Bunter Schrott im Städteschnee
 2026-11-28
