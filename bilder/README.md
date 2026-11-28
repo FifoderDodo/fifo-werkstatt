@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Zorniger Dodo bewirft mechanische Schnecken mit Farbklecksen
+2026-11-28
+
+![Zorniger Dodo bewirft mechanische Schnecken mit Farbklecksen](20261128-091616.svg)
+
 ### Frostiges Schrottmauerwerk
 2026-11-28
 
