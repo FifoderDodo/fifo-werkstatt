@@ -808,3 +808,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 ```
+
+## Teil 90 (28.11.2026 06:11, Nachtschicht)
+MetallSortierer-Klasse vervollständigt (DICHTEN erweitert, _rate_metall_typ Heuristik implementiert, sortieren Methode fertig). Selbsttest-Block für neuer_tag (Runden, Notfall, Fallback) und MetallSortierer (10 Teststücke) am Dateiende eingefügt. Imports stehen oben. Alles läuft durch.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+```
