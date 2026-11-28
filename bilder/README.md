@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Genervte Sonnenkappe vertreibt Raupen
+2026-11-28
+
+![Genervte Sonnenkappe vertreibt Raupen](20261128-143048.svg)
+
 ### Raupe auf dem Trümmerblick
 2026-11-28
 
