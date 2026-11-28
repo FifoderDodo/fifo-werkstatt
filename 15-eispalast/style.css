@@ -6,7 +6,7 @@
 
 body {
   overflow: hidden;
-  background: #080d18;
+  background: #1a2a4a;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: #e8f0fe;
 }
@@ -70,6 +70,13 @@ body {
 
 .controls input[type="range"] {
   accent-color: #3399ff;
+  cursor: pointer;
+}
+
+.controls input[type="checkbox"] {
+  accent-color: #3399ff;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
 }
 
