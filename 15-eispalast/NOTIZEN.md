@@ -20,3 +20,10 @@ Eispalast Teil 3: Hintergrundbeleuchtung, Aurora und frostige Farben verfeinert 
 ```
 Die Szene läuft und ist gut zu erkennen.
 ```
+
+## Teil 4 (28.11.2026 20:41)
+Teil 4 fügt prozedurale Environment Map für echte Spiegelungen, UnrealBloomPass für magisches Leuchten, verbesserte Boden-Materialien mit clearcoat/roughness für spiegelglattes Eis, Vertex-Farben bei Kristallen, zentrales Glow-Element und Bloom-/Auto-Rotate-Regler in der UI hinzu. (Nicht übernommen: main.js.) Den Absturz gleich repariert.
+
+```
+Die Szene läuft und ist gut zu erkennen.
+```
