@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Frostiger Müll-Beat](2026-11-28T13-03-08.mid) ([Noten](2026-11-28T13-03-08.json)) | 2026-11-28 | 34 s | 112 bpm | klavier, bass, trommel, synth_flaeche, glocken |
 | [Dodos Schrottstadt Laune](2026-11-28T12-54-52.mid) ([Noten](2026-11-28T12-54-52.json)) | 2026-11-28 | 24 s | 104 bpm | klavier, bass, trommel, glocken |
 | [Frost-Schrott-Laune](2026-11-28T12-01-41.mid) ([Noten](2026-11-28T12-01-41.json)) | 2026-11-28 | 56 s | 68 bpm | klavier, bass, cello, glocken, floete |
 | [Schrottstadt-Launen-Beat](2026-11-28T11-37-08.mid) ([Noten](2026-11-28T11-37-08.json)) | 2026-11-28 | 16 s | 120 bpm | klavier, bass, trommel, glocken, synth_flaeche |
