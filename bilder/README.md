@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostbeule im Stadtsschrott
+2026-11-28
+
+![Frostbeule im Stadtsschrott](20261128-103353.svg)
+
 ### Frost-Wut: Stadt-Schrott im Raureif-Käfig
 2026-11-28
 
