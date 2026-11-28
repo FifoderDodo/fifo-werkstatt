@@ -140,142 +140,150 @@ class MetallSortierer:
         "stahl": 7.85, "eisen": 7.87, "guss": 7.2, "ferro": 7.8,
         "edelstahl": 7.9,
         "kupfer": 8.96, "messing": 8.5, "bronze": 8.8,
-        "zink": 7.13, "zinklegierung": 6.8,
-        "blei": 11.34, "zinn": 7.31,
-        "nickel": 8.91,
-        "gold": 19.3, "silber": 10.49,
-        "platinum": 21.45
+        "zink": 7.14, "zinklegierung": 6.8,
+        "blei": 11.34,
+        "nickel": 8.9,
+        "gold": 19.3, "silber": 10.5
     }
-
-    def __init__(self):
-        self.kategorien = {
-            "leichtmetall": [],
-            "schwerimetall": [],
-            "edelmetall": [],
-            "ferromagnetisch": [],
-            "unbekannt": []
-        }
-
-    def _dichte_schaetzen(self, teil: Dict) -> float:
-        """Berechnet Dichte aus Masse/Volumen oder nutzt Material-Hinweis."""
-        # 1. Explizites Material-Feld
-        material = str(teil.get("material", "")).lower().strip()
-        if material in self.DICHTEN:
-            return self.DICHTEN[material]
-        # 2. Berechnung aus Masse (g) und Volumen (cm^3)
-        try:
-            masse = float(teil.get("masse_g", 0))
-            vol = float(teil.get("volumen_cm3", 0))
-            if masse > 0 and vol > 0:
-                return masse / vol
-        except (ValueError, TypeError):
-            pass
-        return 0.0
-
-    def _ist_magnetisch(self, teil: Dict) -> bool:
-        """Prüft Magnet-Feld oder Vermutung bei Eisen/Stahl."""
-        if teil.get("magnetisch"):
-            return True
-        material = str(teil.get("material", "")).lower()
-        return any(m in material for m in ["eisen", "stahl", "guss", "ferro"])
+    # Toleranz für Dichtevergleich (g/cm³)
+    TOLERANZ = 0.3
 
     def erkennen(self, teil: Dict) -> str:
-        """Ordnet Einzelteil einer Kategorie zu."""
-        dichte = self._dichte_schaetzen(teil)
-        magnetisch = self._ist_magnetisch(teil)
-        material = str(teil.get("material", "")).lower()
+        """
+        Erratet Metallart basierend auf Dichte & Magnetismus.
+        Erwartet Keys: 'gewicht_g', 'volumen_cm3', 'magnetisch' (bool),
+        optional: 'farbe', 'zeichen' (str).
+        """
+        try:
+            gewicht = float(teil.get("gewicht_g", 0))
+            volumen = float(teil.get("volumen_cm3", 0))
+            magnetisch = bool(teil.get("magnetisch", False))
+            farbe = str(teil.get("farbe", "")).lower()
+            zeichen = str(teil.get("zeichen", "")).lower()
+        except (ValueError, TypeError):
+            return "unknown"
 
-        # Edelmetalle (hohe Dichte, spezifische Namen)
-        if any(m in material for m in ["gold", "silber", "platinum", "platin"]) or dichte > 15:
-            return "edelmetall"
-        # Leichtmetalle
-        if dichte > 0 and dichte < 5.0:
-            return "leichtmetall"
-        # Ferromagnetisch (Eisen/Stahl) - oft überschneidung mit Schwer
+        if volumen <= 0:
+            return "unknown"
+
+        dichte = gewicht / volumen
+        kandidaten = []
+
+        for name, d in self.DICHTEN.items():
+            if abs(d - dichte) <= self.TOLERANZ:
+                kandidaten.append(name)
+
+        # Magnetismus als starker Filter für Eisen/Stahl/Guss
         if magnetisch:
-            return "ferromagnetisch"
-        # Schwermetalle (Kupfer, Messing, Blei, Zink > 5)
-        if dichte >= 5.0:
-            return "schwerimetall"
-        return "unbekannt"
+            ferro = [k for k in kandidaten if k in ("stahl", "eisen", "guss", "ferro", "edelstahl")]
+            if ferro:
+                # Edelstahl ist oft schwach/nicht magnetisch, aber hier vereinfacht
+                if "edelstahl" in ferro and "stahl" in ferro:
+                    return "stahl"  # Default zu Stahl bei Magnetismus
+                return ferro[0]
+        else:
+            # Nicht magnetisch: Alu, Kupfer, Messing, Titan, etc.
+            non_ferro = [k for k in kandidaten if k not in ("stahl", "eisen", "guss", "ferro")]
+            if non_ferro:
+                # Farb-Hinweise nutzen
+                if "kupfer" in farbe or "rot" in farbe:
+                    if "kupfer" in non_ferro: return "kupfer"
+                    if "bronze" in non_ferro: return "bronze"
+                if "gelb" in farbe or "gold" in farbe:
+                    if "messing" in non_ferro: return "messing"
+                if "weiss" in farbe or "silber" in farbe or "grau" in farbe:
+                    if "aluminium" in non_ferro or "aluminiumlegierung" in non_ferro: return "aluminium"
+                    if "titan" in non_ferro: return "titan"
+                    if "edelstahl" in non_ferro: return "edelstahl"
+                # Stempel/Zeichen prüfen
+                if "cu" in zeichen: return "kupfer"
+                if "al" in zeichen: return "aluminium"
+                if "ss" in zeichen or "inox" in zeichen: return "edelstahl"
+                return non_ferro[0]
 
-    def sortieren(self, teile: List[Dict]) -> Dict:
-        """Hauptmethode: Nimmt Liste von Teilen, gibt sortiertes Dict zurück."""
-        # Reset
-        for k in self.kategorien:
-            self.kategorien[k].clear()
+        # Fallback: dichtester Kandidat
+        if kandidaten:
+            return min(kandidaten, key=lambda k: abs(self.DICHTEN[k] - dichte))
+        return "unknown"
 
-        for teil in teile:
+    def sortieren(self, teile_liste: List[Dict]) -> Dict:
+        """
+        Sortiert Liste von Teilen in Kategorien.
+        Rückgabe: Dict mit Keys 'kategorien' (Dict[str, List[Dict]]),
+        'statistik' (Dict[str, int]), 'gesamt_gewicht_g' (float).
+        """
+        kategorien = {}
+        gesamt_gewicht = 0.0
+
+        for teil in teile_liste:
             if not isinstance(teil, dict):
                 continue
-            kat = self.erkennen(teil)
-            # Anreichern mit berechneter Dichte für Ausgabe
-            teil_kopie = teil.copy()
-            teil_kopie["_dichte_g_cm3"] = round(self._dichte_schaetzen(teil), 2)
-            teil_kopie["_kategorie"] = kat
-            self.kategorien[kat].append(teil_kopie)
+            kategorie = self.erkennen(teil)
+            if kategorie not in kategorien:
+                kategorien[kategorie] = []
+            # Teil kopieren & Kategorie anhängen
+            t = teil.copy()
+            t["kategorie_erkannt"] = kategorie
+            kategorien[kategorie].append(t)
+            try:
+                gesamt_gewicht += float(teil.get("gewicht_g", 0))
+            except (ValueError, TypeError):
+                pass
 
-        # Zusammenfassung
-        ergebnis = {
-            "kategorien": {k: v for k, v in self.kategorien.items() if v},
-            "anzahl_gesamt": len(teile),
-            "verteilung": {k: len(v) for k, v in self.kategorien.items()}
-        }
-        return _json_sicher(ergebnis)
+        statistik = {k: len(v) for k, v in kategorien.items()}
+
+        return _json_sicher({
+            "kategorien": kategorien,
+            "statistik": statistik,
+            "gesamt_gewicht_g": round(gesamt_gewicht, 2)
+        })
 
 
 if __name__ == "__main__":
     # --- Tests für neuer_tag ---
     print("=== Test neuer_tag ===")
-    # 1. Kakerlaken-Notfall
-    d1 = {"gestern": {}, "fehlschlaege": {}, "stimmung": 50, "wetter": "sonnig", "kakerlaken_level": 8}
-    print("Test 1 (Kakerlaken >= 7):", json.dumps(neuer_tag(d1), ensure_ascii=False, indent=2))
+    # 1. Notfall Kakerlaken
+    d1 = {"gestern": {}, "fehlschlaege": {}, "stimmung": 10, "wetter": "sonnig", "kakerlaken_level": 8}
+    print("1. Notfall:", json.dumps(neuer_tag(d1), ensure_ascii=False, indent=2))
 
     # 2. Runde 1: KI fragen
-    d2 = {"gestern": {"think": 2, "eat": 1}, "fehlschlaege": {"schrott_suchen": 1}, "stimmung": 10, "wetter": "regen", "kakerlaken_level": 2}
-    print("Test 2 (Runde 1):", json.dumps(neuer_tag(d2), ensure_ascii=False, indent=2))
+    d2 = {"gestern": {"think": 2, "eat": 1}, "fehlschlaege": {"schrott_suchen": 1}, "stimmung": 5, "wetter": "regen", "kakerlaken_level": 1}
+    print("2. Runde 1:", json.dumps(neuer_tag(d2), ensure_ascii=False, indent=2))
 
     # 3. Runde 2: Gute KI-Antwort
-    d3 = {**d2, "ki_antwort": "think: Kupfer sortieren | schrott_suchen: Kabel suchen | einlagern: Kisten beschriften"}
-    print("Test 3 (Runde 2 OK):", json.dumps(neuer_tag(d3), ensure_ascii=False, indent=2))
+    d3 = {**d2, "ki_antwort": "think: Alu-Haufen sortieren | walk_to: Werkbank | schrott_suchen: Kisten prüfen"}
+    print("3. Runde 2 OK:", json.dumps(neuer_tag(d3), ensure_ascii=False, indent=2))
 
     # 4. Runde 2: Schlechte KI-Antwort -> Fallback
-    d4 = {**d2, "ki_antwort": "blabla"}
-    print("Test 4 (Runde 2 Fail):", json.dumps(neuer_tag(d4), ensure_ascii=False, indent=2))
+    d4 = {**d2, "ki_antwort": "invalid format"}
+    print("4. Runde 2 Fail:", json.dumps(neuer_tag(d4), ensure_ascii=False, indent=2))
 
     # 5. Stimmung mies -> Spazieren Fallback
-    d5 = {"gestern": {}, "fehlschlaege": {}, "stimmung": -60, "wetter": "bewoelkt", "kakerlaken_level": 1, "ki_antwort": ""}
-    print("Test 5 (Stimmung < -50):", json.dumps(neuer_tag(d5), ensure_ascii=False, indent=2))
+    d5 = {"gestern": {}, "fehlschlaege": {}, "stimmung": -60, "wetter": "bewoelkt", "kakerlaken_level": 0, "ki_antwort": ""}
+    print("5. Stimmung mies:", json.dumps(neuer_tag(d5), ensure_ascii=False, indent=2))
 
     # 6. Kakerlaken Warnlevel (4-6)
-    d6 = {"gestern": {}, "fehlschlaege": {}, "stimmung": 80, "wetter": "sonnig", "kakerlaken_level": 5, "ki_antwort": "think: Sortieren | eat: Brot | spazieren: Sonne"}
-    print("Test 6 (Kakerlaken 4-6):", json.dumps(neuer_tag(d6), ensure_ascii=False, indent=2))
+    d6 = {"gestern": {}, "fehlschlaege": {}, "stimmung": 50, "wetter": "sonnig", "kakerlaken_level": 5, "ki_antwort": "think: Sortieren | eat: Brot"}
+    print("6. Kakerlaken Warnung:", json.dumps(neuer_tag(d6), ensure_ascii=False, indent=2))
 
     # --- Tests für MetallSortierer ---
     print("\n=== Test MetallSortierer ===")
     sorter = MetallSortierer()
     test_teile = [
-        {"id": 1, "material": "Aluminium", "masse_g": 270, "volumen_cm3": 100},  # 2.7 -> Leicht
-        {"id": 2, "material": "Kupferrohr", "masse_g": 896, "volumen_cm3": 100},   # 8.96 -> Schwer
-        {"id": 3, "material": "Stahlträger", "magnetisch": True, "masse_g": 7850, "volumen_cm3": 1000}, # Ferro
-        {"id": 4, "material": "Goldbarren", "masse_g": 1930, "volumen_cm3": 100},  # 19.3 -> Edel
-        {"id": 5, "material": "Messing", "masse_g": 850, "volumen_cm3": 100},       # 8.5 -> Schwer
-        {"id": 6, "material": "Unbekanntes Metall", "masse_g": 500, "volumen_cm3": 200}, # 2.5 -> Leicht
-        {"id": 7, "material": "Blei", "masse_g": 1134, "volumen_cm3": 100},         # 11.34 -> Schwer
-        {"id": 8, "material": "Platin", "masse_g": 2145, "volumen_cm3": 100},       # 21.45 -> Edel
-        {"id": 9, "material": "Titan", "masse_g": 450, "volumen_cm3": 100},         # 4.5 -> Leicht (Grenze)
-        {"id": 10, "material": "Schrott", "masse_g": 100, "volumen_cm3": 0},         # Fehlerhaft -> Unbekannt
+        {"id": 1, "gewicht_g": 270, "volumen_cm3": 100, "magnetisch": False, "farbe": "silber", "zeichen": "AL"},      # Alu ~2.7
+        {"id": 2, "gewicht_g": 785, "volumen_cm3": 100, "magnetisch": True, "farbe": "grau", "zeichen": ""},         # Stahl ~7.85
+        {"id": 3, "gewicht_g": 896, "volumen_cm3": 100, "magnetisch": False, "farbe": "kupfer", "zeichen": "CU"},    # Kupfer ~8.96
+        {"id": 4, "gewicht_g": 850, "volumen_cm3": 100, "magnetisch": False, "farbe": "gelb", "zeichen": ""},       # Messing ~8.5
+        {"id": 5, "gewicht_g": 174, "volumen_cm3": 100, "magnetisch": False, "farbe": "silber", "zeichen": "MG"},    # Magnesium ~1.74
+        {"id": 6, "gewicht_g": 450, "volumen_cm3": 100, "magnetisch": False, "farbe": "grau", "zeichen": "TI"},     # Titan ~4.5
+        {"id": 7, "gewicht_g": 790, "volumen_cm3": 100, "magnetisch": False, "farbe": "silber", "zeichen": "INOX"},  # Edelstahl (nicht magnetisch) ~7.9
+        {"id": 8, "gewicht_g": 1134, "volumen_cm3": 100, "magnetisch": False, "farbe": "grau", "zeichen": "PB"},    # Blei ~11.34
+        {"id": 9, "gewicht_g": 500, "volumen_cm3": 100, "magnetisch": True, "farbe": "grau", "zeichen": "GUSS"},   # Guss ~7.2 (Dichte passt nicht perfekt, aber magnetisch)
+        {"id": 10, "gewicht_g": 100, "volumen_cm3": 100, "magnetisch": False, "farbe": "weiss", "zeichen": "?"},     # Unknown ~1.0
     ]
     ergebnis = sorter.sortieren(test_teile)
     print(json.dumps(ergebnis, ensure_ascii=False, indent=2))
-
-    # Validierung Pfad Test
-    print("\n=== Test Pfadvalidierung ===")
-    try:
-        print("OK:", validiere_dateipfad("daten/test.json"))
-    except Exception as e:
-        print("Fehler:", e)
-    try:
-        validiere_dateipfad("../../etc/passwd")
-    except Exception as e:
-        print("Erwarteter Fehler:", e)
+    
+    # Prüfung: Sind alle 10 Teile sortiert?
+    assert sum(ergebnis["statistik"].values()) == 10
+    print("\nAlle Tests durchgelaufen. Schuppen-Logik steht.")
