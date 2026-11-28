@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eispalast – Teil 1: Die ersten Koordinaten</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="ui">
+    <h1>Eispalast</h1>
+    <p class="subtitle">Teil 1: Die ersten Koordinaten für die eiskalten Wände</p>
+    <div class="controls">
+      <label>Wand-Segmente: <input type="range" id="segments" min="4" max="32" value="12"></label>
+      <label>Höhe: <input type="range" id="height" min="5" max="30" value="15"></label>
+    </div>
+  </div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
