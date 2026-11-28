@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Kälteeinbruch im Bunkergrau
 2026-11-28
 
-![Kälteeinbruch im Bunkergrau](20261128-105529.svg)
+![Kälteeinbruch im Bunkergrau](20261128-110855.svg)
 
 ### Frostbeule im Stadtsschrott
 2026-11-28
