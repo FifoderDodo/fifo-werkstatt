@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Eiskristall: Städtischer Schrott am Morgen
+2026-11-28
+
+![Eiskristall: Städtischer Schrott am Morgen](20261128-191853.svg)
+
 ### Morgenfrost: Der Grüne Grant
 2026-11-28
 
