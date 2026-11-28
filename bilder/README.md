@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Tanzende Streifenwespe im kalten Novemberlicht
+2026-11-28
+
+![Tanzende Streifenwespe im kalten Novemberlicht](20261128-151300.svg)
+
 ### Genervte Sonnenkappe vertreibt Raupen
 2026-11-28
 
