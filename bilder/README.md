@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Roter Schrottregen auf Leinwand
+2026-11-28
+
+![Roter Schrottregen auf Leinwand](20261128-181542.svg)
+
 ### Genervte Winterstille fernab allen Getiers
 2026-11-28
 
