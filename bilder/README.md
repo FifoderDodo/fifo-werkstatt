@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Genervtes Schilf im Stadtfrost
+2026-11-28
+
+![Genervtes Schilf im Stadtfrost](20261128-094338.svg)
+
 ### Zorniger Dodo bewirft mechanische Schnecken mit Farbklecksen
 2026-11-28
 
