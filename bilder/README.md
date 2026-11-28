@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frost-Wut: Stadt-Schrott im Raureif-Käfig
+2026-11-28
+
+![Frost-Wut: Stadt-Schrott im Raureif-Käfig](20261128-100254.svg)
+
 ### Genervtes Schilf im Stadtfrost
 2026-11-28
 
