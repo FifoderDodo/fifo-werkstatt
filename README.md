@@ -7,7 +7,7 @@ Außerdem: [alle Bilder](bilder/) · [alle Musikstücke](musik/)
 
 | Projekt | Art | Stand |
 |---|---|---|
-| [Frostsplitter](14-frostsplitter/) | album | in Arbeit, Teil 0 von etwa 0 |
+| [Frostsplitter](14-frostsplitter/) | album | in Arbeit, Teil 1 von etwa 0 |
 | [Frost und Beton](13-frost-und-beton/) | album | fertig |
 | [Schrott-Blues](12-schrott-blues/) | album | fertig |
 | [3D-Lichtspiel](11-3d-lichtspiel/) | 3D-Szene | fertig |
