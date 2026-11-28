@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Genervte Winterstille fernab allen Getiers
+2026-11-28
+
+![Genervte Winterstille fernab allen Getiers](20261128-165443.svg)
+
 ### Betonteppich-Wolke ueber Fluss
 2026-11-28
 
