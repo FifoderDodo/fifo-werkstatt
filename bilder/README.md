@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Kälteeinbruch: Bunker trotzt dem Frost
+2026-11-28
+
+![Kälteeinbruch: Bunker trotzt dem Frost](20261128-112406.svg)
+
 ### Kälteeinbruch im Bunkergrau
 2026-11-28
 
