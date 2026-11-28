@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Schneckenfrust im Schrottregen
+2026-11-28
+
+![Schneckenfrust im Schrottregen](20261128-221838.svg)
+
 ### Morgenmuffel im Buntschlamm
 2026-11-28
 
