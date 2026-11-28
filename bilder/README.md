@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Roter Zorn im Betonkarree
+2026-11-28
+
+![Roter Zorn im Betonkarree](20261128-154728.svg)
+
 ### Herbstblatt mit Wut im Bauch
 2026-11-28
 
