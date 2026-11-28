@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// ── Scene Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -12,69 +11,53 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.8;
 
 const scene = new THREE.Scene();
-// Hellerer, weniger dichter Nebel für bessere Sichtbarkeit
-scene.fog = new THREE.FogExp2(0x4a7ab8, 0.0015);
+scene.fog = new THREE.FogExp2(0x102540, 0.0018);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
-// Kamera etwas weiter weg und höher für besseren Überblick
-camera.position.set(55, 35, 65);
+camera.position.set(50, 30, 60);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.minDistance = 25;
+controls.minDistance = 20;
 controls.maxDistance = 180;
-controls.maxPolarAngle = Math.PI / 2 - 0.05;
-controls.target.set(0, 12, 0);
+controls.maxPolarAngle = Math.PI / 2 - 0.02;
+controls.target.set(0, 10, 0);
 
-// ── Lighting ─────────────────────────────────────────────────
-// Deutlich helleres Umgebungslicht
-const ambient = new THREE.AmbientLight(0xcceeff, 1.2);
+const ambient = new THREE.AmbientLight(0x88bbff, 1.4);
 scene.add(ambient);
 
-const sun = new THREE.DirectionalLight(0xffffee, 3.0);
-sun.position.set(60, 100, 50);
+const sun = new THREE.DirectionalLight(0xddeeff, 2.5);
+sun.position.set(50, 90, 40);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 250;
-sun.shadow.camera.left = -80;
-sun.shadow.camera.right = 80;
-sun.shadow.camera.top = 80;
-sun.shadow.camera.bottom = -80;
+sun.shadow.camera.far = 220;
+sun.shadow.camera.left = -70;
+sun.shadow.camera.right = 70;
+sun.shadow.camera.top = 70;
+sun.shadow.camera.bottom = -70;
 sun.shadow.bias = -0.0005;
 scene.add(sun);
 
-const fillLight = new THREE.DirectionalLight(0x88ddff, 1.8);
-fillLight.position.set(-50, 40, -40);
+const fillLight = new THREE.DirectionalLight(0x3366cc, 1.5);
+fillLight.position.set(-60, 30, -50);
 scene.add(fillLight);
 
-const rimLight = new THREE.DirectionalLight(0xffffff, 1.2);
-rimLight.position.set(0, -30, -80);
+const rimLight = new THREE.DirectionalLight(0xaaddff, 2.0);imLight.position.set(0, -20, -70);
 scene.add(rimLight);
 
-// Additional top light for brightness
-const topLight = new THREE.DirectionalLight(0xffeedd, 1.5);
-topLight.position.set(0, 120, 0);
-scene.add(topLight);
-
-// Extra front light to illuminate palace face
-const frontLight = new THREE.DirectionalLight(0xfff8e8, 1.0);
-frontLight.position.set(0, 30, 80);
-scene.add(frontLight);
-
-// ── Ice Material ─────────────────────────────────────────────
 function createIceMaterial() {
   return new THREE.MeshPhysicalMaterial({
-    color: 0x66eeff,        // Kräftigere, hellere Farbe
-    metalness: 0.05,
-    roughness: 0.1,
-    transmission: 0.6,      // Weniger transparent = sichtbarer
-    thickness: 1.5,
-    ior: 1.31,
+    color: 0x88ccff,
+    metalness: 0.1,
+    roughness: 0.12,
+    transmission: 0.7,
+    thickness: 2.0,
+    ior: 1.33,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.03,
-    envMapIntensity: 2.0,
+    clearcoatRoughness: 0.05,
+    envMapIntensity: 2.2,
     side: THREE.DoubleSide,
     flatShading: true,
   });
@@ -82,12 +65,10 @@ function createIceMaterial() {
 
 const iceMaterial = createIceMaterial();
 
-// ── Geometry Helpers ─────────────────────────────────────────
 function createWallSegment(width, height, depth, segmentsX, segmentsY) {
   const geom = new THREE.BoxGeometry(width, height, depth, segmentsX, segmentsY, 2);
-  
   const pos = geom.attributes.position;
-  const noiseScale = 0.15;
+  const noiseScale = 0.18;
   
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
@@ -97,8 +78,8 @@ function createWallSegment(width, height, depth, segmentsX, segmentsY) {
     const isEdge = Math.abs(x) === width / 2 || Math.abs(y) === height / 2 || Math.abs(z) === depth / 2;
     if (!isEdge) continue;
     
-    const n = Math.sin(x * noiseScale + y * 0.3) * Math.cos(z * noiseScale + y * 0.2);
-    const displacement = n * 0.35 * (1 - Math.abs(y) / (height / 2));
+    const n = Math.sin(x * noiseScale + y * 0.4) * Math.cos(z * noiseScale + y * 0.25);
+    const displacement = n * 0.4 * (1 - Math.abs(y) / (height / 2));
     
     if (Math.abs(x) === width / 2) pos.setX(i, x + displacement);
     if (Math.abs(z) === depth / 2) pos.setZ(i, z + displacement);
@@ -116,14 +97,14 @@ function createCrystalCluster(radius, count) {
   for (let i = 0; i < count; i++) {
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
-    const r = radius * (0.3 + Math.random() * 0.7);
+    const r = radius * (0.2 + Math.random() * 0.8);
     
     positions.push(
       r * Math.sin(phi) * Math.cos(theta),
       r * Math.sin(phi) * Math.sin(theta),
       r * Math.cos(phi)
     );
-    scales.push(0.5 + Math.random() * 1.2);
+    scales.push(0.4 + Math.random() * 1.0);
   }
   
   geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -131,14 +112,14 @@ function createCrystalCluster(radius, count) {
   return geom;
 }
 
-// ── Palace Walls ─────────────────────────────────────────────
 const palaceGroup = new THREE.Group();
 scene.add(palaceGroup);
 
 let wallSegments = 12;
 let wallHeight = 15;
+let crystalDensity = 30;
 const wallThickness = 1.2;
-const palaceRadius = 22;
+const palaceRadius = 20;
 const wallCount = 8;
 
 function buildWalls() {
@@ -156,47 +137,35 @@ function buildWalls() {
     const wallWidth = Math.hypot(x2 - x1, z2 - z1);
     const wallAngle = Math.atan2(z2 - z1, x2 - x1);
     
-    // Main wall
     const wallGeom = createWallSegment(wallWidth, wallHeight, wallThickness, wallSegments, 8);
     const wall = new THREE.Mesh(wallGeom, iceMaterial);
-    wall.position.set(
-      (x1 + x2) / 2,
-      wallHeight / 2,
-      (z1 + z2) / 2
-    );
+    wall.position.set((x1 + x2) / 2, wallHeight / 2, (z1 + z2) / 2);
     wall.rotation.y = -wallAngle - Math.PI / 2;
     wall.castShadow = true;
     wall.receiveShadow = true;
     wall.userData = { baseAngle: wallAngle, index: i };
     palaceGroup.add(wall);
     
-    // Top crest
-    const crestGeom = new THREE.BoxGeometry(wallWidth * 0.9, 1.5, wallThickness * 1.8, 4, 2, 2);
+    const crestGeom = new THREE.BoxGeometry(wallWidth * 0.9, 1.4, wallThickness * 1.6, 4, 2, 2);
     const crest = new THREE.Mesh(crestGeom, iceMaterial);
-    crest.position.set(
-      (x1 + x2) / 2,
-      wallHeight + 0.75,
-      (z1 + z2) / 2
-    );
+    crest.position.set((x1 + x2) / 2, wallHeight + 0.7, (z1 + z2) / 2);
     crest.rotation.y = -wallAngle - Math.PI / 2;
     crest.castShadow = true;
     palaceGroup.add(crest);
     
-    // Corner pillar
-    const pillarGeom = createWallSegment(1.8, wallHeight + 2, 1.8, 4, 6);
+    const pillarGeom = createWallSegment(1.6, wallHeight + 2, 1.6, 4, 6);
     const pillar = new THREE.Mesh(pillarGeom, iceMaterial);
     pillar.position.set(x1, (wallHeight + 2) / 2, z1);
     pillar.castShadow = true;
     pillar.receiveShadow = true;
     palaceGroup.add(pillar);
     
-    // Ice crystals on pillar top
-    const crystalGeom = createCrystalCluster(1.2, 8);
+    const crystalGeom = createCrystalCluster(1.0, Math.floor(crystalDensity / 4));
     const crystalMat = new THREE.PointsMaterial({
-      size: 0.6,
-      color: 0xaaffff,
+      size: 0.5,
+      color: 0xccffff,
       transparent: true,
-      opacity: 1.0,
+      opacity: 0.95,
       sizeAttenuation: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
@@ -206,18 +175,16 @@ function buildWalls() {
     palaceGroup.add(crystals);
   }
   
-  // Central spire
-  const spireHeight = wallHeight * 1.8;
-  const spireGeom = new THREE.ConeGeometry(3.5, spireHeight, 8, 6, true);
+  const spireHeight = wallHeight * 1.9;
+  const spireGeom = new THREE.ConeGeometry(3.0, spireHeight, 8, 6, true);
   const spire = new THREE.Mesh(spireGeom, iceMaterial);
   spire.position.set(0, spireHeight / 2, 0);
   spire.castShadow = true;
   palaceGroup.add(spire);
   
-  // Spire tip crystals
-  const tipCrystalGeom = createCrystalCluster(2, 15);
+  const tipCrystalGeom = createCrystalCluster(1.8, Math.floor(crystalDensity / 2));
   const tipCrystals = new THREE.Points(tipCrystalGeom, new THREE.PointsMaterial({
-    size: 0.8,
+    size: 0.7,
     color: 0xffffff,
     transparent: true,
     opacity: 1,
@@ -225,15 +192,14 @@ function buildWalls() {
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   }));
-  tipCrystals.position.set(0, spireHeight + 1, 0);
+  tipCrystals.position.set(0, spireHeight + 0.8, 0);
   palaceGroup.add(tipCrystals);
   
-  // Ground plane - heller und reflektierender
-  const groundGeom = new THREE.CircleGeometry(palaceRadius * 1.5, 64);
+  const groundGeom = new THREE.CircleGeometry(palaceRadius * 1.8, 64);
   const groundMat = new THREE.MeshPhysicalMaterial({
-    color: 0x2a6a9a,        // Helleres Blau
-    metalness: 0.2,
-    roughness: 0.4,
+    color: 0x113355,
+    metalness: 0.3,
+    roughness: 0.35,
     clearcoat: 1.0,
     clearcoatRoughness: 0.1,
   });
@@ -243,17 +209,16 @@ function buildWalls() {
   ground.receiveShadow = true;
   palaceGroup.add(ground);
   
-  // Inner reflective floor - heller
-  const innerFloorGeom = new THREE.CircleGeometry(palaceRadius * 0.9, 32);
+  const innerFloorGeom = new THREE.CircleGeometry(palaceRadius * 0.85, 32);
   const innerFloorMat = new THREE.MeshPhysicalMaterial({
-    color: 0x4a9ad8,
-    metalness: 0.4,
+    color: 0x2266aa,
+    metalness: 0.5,
     roughness: 0.1,
-    transmission: 0.3,
-    thickness: 0.5,
-    ior: 1.31,
+    transmission: 0.4,
+    thickness: 0.6,
+    ior: 1.33,
     clearcoat: 1,
-    clearcoatRoughness: 0.03,
+    clearcoatRoughness: 0.02,
     side: THREE.DoubleSide,
   });
   const innerFloor = new THREE.Mesh(innerFloorGeom, innerFloorMat);
@@ -264,21 +229,20 @@ function buildWalls() {
 
 buildWalls();
 
-// ── Particle Snow ────────────────────────────────────────────
-const snowCount = 3000;
+const snowCount = 3500;
 const snowGeom = new THREE.BufferGeometry();
 const snowPos = new Float32Array(snowCount * 3);
 const snowVel = new Float32Array(snowCount * 3);
 const snowSize = new Float32Array(snowCount);
 
 for (let i = 0; i < snowCount; i++) {
-  snowPos[i * 3] = (Math.random() - 0.5) * 120;
-  snowPos[i * 3 + 1] = Math.random() * 60 + 10;
-  snowPos[i * 3 + 2] = (Math.random() - 0.5) * 120;
-  snowVel[i * 3] = (Math.random() - 0.5) * 0.3;
-  snowVel[i * 3 + 1] = -0.15 - Math.random() * 0.25;
-  snowVel[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
-  snowSize[i] = 0.15 + Math.random() * 0.35;
+  snowPos[i * 3] = (Math.random() - 0.5) * 130;
+  snowPos[i * 3 + 1] = Math.random() * 70 + 10;
+  snowPos[i * 3 + 2] = (Math.random() - 0.5) * 130;
+  snowVel[i * 3] = (Math.random() - 0.5) * 0.25;
+  snowVel[i * 3 + 1] = -0.12 - Math.random() * 0.2;
+  snowVel[i * 3 + 2] = (Math.random() - 0.5) * 0.25;
+  snowSize[i] = 0.12 + Math.random() * 0.3;
 }
 
 snowGeom.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
@@ -286,10 +250,10 @@ snowGeom.setAttribute('aVelocity', new THREE.BufferAttribute(snowVel, 3));
 snowGeom.setAttribute('aSize', new THREE.BufferAttribute(snowSize, 1));
 
 const snowMat = new THREE.PointsMaterial({
-  size: 1,
+  size: 1.2,
   color: 0xffffff,
   transparent: true,
-  opacity: 0.9,
+  opacity: 0.85,
   sizeAttenuation: true,
   depthWrite: false,
   blending: THREE.AdditiveBlending,
@@ -298,20 +262,18 @@ const snowMat = new THREE.PointsMaterial({
 const snow = new THREE.Points(snowGeom, snowMat);
 scene.add(snow);
 
-// ── Aurora Background ────────────────────────────────────────
-const auroraGeom = new THREE.SphereGeometry(200, 32, 16);
-auroraGeom.scale(1, 0.5, 1);
+const auroraGeom = new THREE.SphereGeometry(220, 32, 16);
+auroraGeom.scale(1, 0.45, 1);
 const auroraMat = new THREE.MeshBasicMaterial({
-  color: 0x6a9ad8,        // Helleres, kräftigeres Blau
+  color: 0x33aacc,
   side: THREE.BackSide,
   transparent: true,
-  opacity: 0.4,           // Sichtbarer
+  opacity: 0.35,
 });
 const aurora = new THREE.Mesh(auroraGeom, auroraMat);
-aurora.position.y = 30;
+aurora.position.y = 40;
 scene.add(aurora);
 
-// ── Animation ────────────────────────────────────────────────
 let time = 0;
 
 function animate() {
@@ -320,7 +282,6 @@ function animate() {
   
   controls.update();
   
-  // Animate snow
   const positions = snowGeom.attributes.position.array;
   const velocities = snowGeom.attributes.aVelocity.array;
   
@@ -330,42 +291,39 @@ function animate() {
     positions[i * 3 + 2] += velocities[i * 3 + 2];
     
     if (positions[i * 3 + 1] < -5) {
-      positions[i * 3 + 1] = 70;
-      positions[i * 3] = (Math.random() - 0.5) * 120;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 120;
+      positions[i * 3 + 1] = 75;
+      positions[i * 3] = (Math.random() - 0.5) * 130;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 130;
     }
     
     const dist = Math.hypot(positions[i * 3], positions[i * 3 + 2]);
-    if (dist > 80) {
+    if (dist > 85) {
       const angle = Math.atan2(positions[i * 3 + 2], positions[i * 3]);
-      positions[i * 3] = Math.cos(angle) * 60;
-      positions[i * 3 + 2] = Math.sin(angle) * 60;
+      positions[i * 3] = Math.cos(angle) * 65;
+      positions[i * 3 + 2] = Math.sin(angle) * 65;
     }
   }
   snowGeom.attributes.position.needsUpdate = true;
   
-  // Subtle palace breathing
   palaceGroup.children.forEach(child => {
     if (child.userData.baseAngle !== undefined) {
-      const sway = Math.sin(time * 0.7 + child.userData.index) * 0.002;
+      const sway = Math.sin(time * 0.6 + child.userData.index) * 0.0015;
       child.rotation.y += sway;
     }
     if (child.isPoints && child.material.blending === THREE.AdditiveBlending) {
-      child.rotation.y += 0.0008;
-      child.material.opacity = 0.85 + Math.sin(time * 2 + (child.userData.index || 0)) * 0.1;
+      child.rotation.y += 0.0006;
+      child.material.opacity = 0.8 + Math.sin(time * 1.8 + (child.userData.index || 0)) * 0.15;
     }
   });
   
-  // Aurora slow rotation
-  aurora.rotation.y += 0.0001;
-  aurora.rotation.x = Math.sin(time * 0.05) * 0.05;
+  aurora.rotation.y += 0.00015;
+  aurora.rotation.x = Math.sin(time * 0.04) * 0.04;
   
   renderer.render(scene, camera);
 }
 
 animate();
 
-// ── Resize & Controls ────────────────────────────────────────
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -374,6 +332,8 @@ window.addEventListener('resize', () => {
 
 const segmentsInput = document.getElementById('segments');
 const heightInput = document.getElementById('height');
+const crystalsInput = document.getElementById('crystals');
+const exposureInput = document.getElementById('exposure');
 
 segmentsInput.addEventListener('input', (e) => {
   wallSegments = parseInt(e.target.value);
@@ -385,7 +345,15 @@ heightInput.addEventListener('input', (e) => {
   buildWalls();
 });
 
-// ── Keyboard: toggle fullscreen ──
+crystalsInput.addEventListener('input', (e) => {
+  crystalDensity = parseInt(e.target.value);
+  buildWalls();
+});
+
+exposureInput.addEventListener('input', (e) => {
+  renderer.toneMappingExposure = parseFloat(e.target.value);
+});
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'f' || e.key === 'F') {
     if (!document.fullscreenElement) {
@@ -396,4 +364,4 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-console.log('❄️ Eispalast initialisiert – Die ersten Wände stehen.');
+console.log('❄️ Eispalast Teil 3 initialisiert – Frostfarben & Beleuchtung optimiert.');
