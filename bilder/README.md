@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Eiskristall: Städtischer Frostgrant
+2026-11-28
+
+![Eiskristall: Städtischer Frostgrant](20261128-195554.svg)
+
 ### Eiskristall: Morgenrost
 2026-11-28
 
