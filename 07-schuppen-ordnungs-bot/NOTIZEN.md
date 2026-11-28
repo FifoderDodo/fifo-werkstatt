@@ -673,3 +673,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 ```
+
+## Teil 75 (28.11.2026 02:37, Nachtschicht)
+Die abgebrochene MetallSortierer-Klasse vervollständigt (DICHTEN, Logik, Tests). Hauptblock um Tests für Kakerlaken-Alle, Fallback und MetallSortierer erweitert. Datei ist jetzt syntaktisch komplett, typisiert und ausführbar.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+```
