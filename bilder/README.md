@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Betonteppich-Wolke ueber Fluss
+2026-11-28
+
+![Betonteppich-Wolke ueber Fluss](20261128-163153.svg)
+
 ### Zornauflösung im Betonrauschen
 2026-11-28
 
