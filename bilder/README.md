@@ -5,7 +5,7 @@ Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neuest
 ### Roter Schrottregen auf Leinwand
 2026-11-28
 
-![Roter Schrottregen auf Leinwand](20261128-181542.svg)
+![Roter Schrottregen auf Leinwand](20261128-182246.svg)
 
 ### Genervte Winterstille fernab allen Getiers
 2026-11-28
