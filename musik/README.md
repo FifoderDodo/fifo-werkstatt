@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Frost-Nacht](2026-11-28T21-03-23.mid) ([Noten](2026-11-28T21-03-23.json)) | 2026-11-28 | 37 s | 104 bpm | klavier, bass, trommel, glocken, geige |
 | [Beton-Schrott im Revier](2026-11-28T16-11-36.mid) ([Noten](2026-11-28T16-11-36.json)) | 2026-11-28 | 24 s | 84 bpm | klavier, bass, trommel, glocken |
 | [Beton-Koller](2026-11-28T15-37-24.mid) ([Noten](2026-11-28T15-37-24.json)) | 2026-11-28 | 15 s | 128 bpm | synth_lead, gitarre, bass, trommel |
 | [Dodos Schrottstadt Laune](2026-11-28T14-59-39.mid) ([Noten](2026-11-28T14-59-39.json)) | 2026-11-28 | 40 s | 96 bpm | klavier, bass, trommel, glocken |
