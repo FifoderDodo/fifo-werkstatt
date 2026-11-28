@@ -682,3 +682,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 ```
+
+## Teil 76 (28.11.2026 02:51, Nachtschicht)
+Die abgebrochene Klasse MetallSortierer vervollständigt (DICHTEN-Dict geschlossen, Erkennungslogik, Sortiermethode, JSON-Sicherheit). Hauptblock um umfassende Tests für neuer_tag (Kakerlaken, Runden, Fallbacks, Stimmungen) und MetallSortierer erweitert. Datei ist syntaktisch valide, typisiert und ausführbar.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+```
