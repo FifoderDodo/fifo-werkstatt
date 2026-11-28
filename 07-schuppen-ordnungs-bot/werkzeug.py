@@ -140,62 +140,89 @@ class MetallSortierer:
         "stahl": 7.85, "eisen": 7.87, "guss": 7.2, "ferro": 7.8,
         "edelstahl": 7.9,
         "kupfer": 8.96, "messing": 8.5, "bronze": 8.8,
-        "blei": 11.34, "zink": 7.13, "zinn": 7.31,
-        "nickel": 8.91
-    }
-
-    # Regeln: Magnetisch, typische Farbe, Kennzeichnungen (Regex)
-    REGELN = {
-        "eisenhaltig": {"magnetisch": True, "farben": ["grau", "schwarz", "rostbraun", "dunkelgrau"]},
-        "edelstahl": {"magnetisch": False, "farben": ["silber", "grau", "glänzend"]},  # Austenitisch nicht magnetisch
-        "aluminium": {"magnetisch": False, "farben": ["silber", "weißgrau", "matt", "hellgrau"]},
-        "kupfer": {"magnetisch": False, "farben": ["rot", "rotbraun", "grünspan", "orange"]},
-        "messing": {"magnetisch": False, "farben": ["gelb", "gold", "gelbbraun"]},
-        "bronze": {"magnetisch": False, "farben": ["braun", "rotbraun", "dunkelgelb"]},
-        "blei": {"magnetisch": False, "farben": ["blaugrau", "schwer", "weißgrau"]},
-        "zink": {"magnetisch": False, "farben": ["blauweiß", "mattgrau"]},
-    }
-
-    # Kennzeichnungen auf Teilen (Regex)
-    KENNZEICHNUNGEN = {
-        "aluminium": [r'\bAL\b', r'\bALU\b', r'AW-\d{4}', r'EN\s?AW'],
-        "edelstahl": [r'\bV2A\b', r'\bV4A\b', r'1\.4\d{3}', r'304', r'316', r'AISI\s?3\d\d'],
-        "stahl": [r'\bST\b', r'\bFE\b', r'S\d{3}', r'DIN\s?\d+'],
-        "kupfer": [r'\bCU\b', r'\bCU-\b', r'E-CU', r'SF-CU'],
-        "messing": [r'\bMS\b', r'\bMESSING\b', r'CUZN'],
-        "titan": [r'\bTI\b', r'TITAN', r'GR\d'],
+        "zink": 7.13, "blei": 11.34, "zinn": 7.31
     }
 
     def __init__(self):
-        self.ergebnis = {
+        self.kategorien = {
+            "leichtmetall": [],
+            "schwerimetall": [],
             "eisenhaltig": [],
-            "edelstahl": [],
-            "aluminium": [],
-            "kupfer": [],
-            "messing": [],
-            "bronze": [],
-            "blei": [],
-            "zink": [],
-            "sonstiges": [],
+            "edelmetall_verdaechtig": [],
             "unbekannt": []
         }
 
-    def _rate_material(self, teil: Dict) -> str:
-        """Schätzt Material-Kategorie basierend auf Dichte, Magnet, Farbe, Zeichen."""
-        gewicht = teil.get("gewicht_g")
-        volumen = teil.get("volumen", 0)
-        # Minimal-Implementation to close method
-        return "sonstiges"
+    _schluesselwoerter = {
+        "leichtmetall": ("alu", "magnesium", "titan"),
+        "schwerimetall": ("kupfer", "messing", "bronze", "zink", "blei", "zinn"),
+        "eisenhaltig": ("stahl", "eisen", "guss", "ferro", "edelstahl"),
+        "edelmetall_verdaechtig": ("gold", "silber", "platin", "palladium")
+    }
 
-    def sortiere(self, teile: List[Dict]) -> Dict:
-        """Öffentliche Methode: sortiert Liste von Teilen."""
-        for teil in teile:
-            kat = self._rate_material(teil)
-            if kat in self.ergebnis:
-                self.ergebnis[kat].append(teil)
+    def _errate_kategorie(self, name: str, gewicht: float, volumen: float) -> str:
+        """Einfache Heuristik: Name + Dichte-Schätzung."""
+        name_l = (name or "").lower()
+        # 1. Namens-Check
+        for kat, woerter in self._schluesselwoerter.items():
+            if any(w in name_l for w in woerter):
+                return kat
+        # 2. Dichte schätzen, falls Daten da
+        if gewicht and volumen and volumen > 0:
+            dichte = gewicht / volumen  # g/cm³ wenn g und cm³
+            # Grobe Grenzen
+            if dichte < 3.5:
+                return "leichtmetall"
+            elif dichte > 8.0:
+                return "schwerimetall"
             else:
-                self.ergebnis["unbekannt"].append(teil)
-        return _json_sicher(self.ergebnis)
+                return "eisenhaltig"
+        return "unbekannt"
+
+    def sortieren(self, teile: List[Dict]) -> Dict:
+        """Hauptmethode: nimmt Liste von Dicts, gibt sortiertes Dict zurück."""
+        # Reset
+        for k in self.kategorien:
+            self.kategorien[k].clear()
+
+        for teil in teile:
+            if not isinstance(teil, dict):
+                continue
+            name = teil.get("name", "Unbekanntes Teil")
+            gewicht = teil.get("gewicht_g")
+            volumen = teil.get("volumen_cm3")
+            kat = self._errate_kategorie(name, gewicht, volumen)
+            # Anreichern
+            eintrag = {
+                "name": name,
+                "gewicht_g": gewicht,
+                "volumen_cm3": volumen,
+                "kategorie": kat
+            }
+            self.kategorien[kat].append(eintrag)
+
+        # JSON-sicher verpacken
+        return _json_sicher({
+            "kategorien": self.kategorien,
+            "gesamt_anzahl": len(teile),
+            "zusammenfassung": {k: len(v) for k, v in self.kategorien.items()}
+        })
 
 
-# Modul-Ende
+# Kleiner Selbsttest, wenn direkt ausgeführt
+if __name__ == "__main__":
+    # Test neuer_tag
+    test_daten = {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {},
+                  "stimmung": 30, "wetter": "sonnig", "kakerlaken_level": 0}
+    print("Test neuer_tag (Runde 1):", neuer_tag(test_daten))
+    test_daten["ki_antwort"] = "think: Sortierlogik prüfen | schrott_suchen: Alu-Ecke | eat: Apfel"
+    print("Test neuer_tag (Runde 2):", neuer_tag(test_daten))
+
+    # Test MetallSortierer
+    sorter = MetallSortierer()
+    probe = [
+        {"name": "Alu-Profil 1m", "gewicht_g": 2700, "volumen_cm3": 1000},
+        {"name": "Kupferrohr Rest", "gewicht_g": 896, "volumen_cm3": 100},
+        {"name": "Rostiger Nagel", "gewicht_g": 10, "volumen_cm3": 1.3},
+        {"name": "Mystery-Block", "gewicht_g": 500, "volumen_cm3": 200}
+    ]
+    print("Test MetallSortierer:", json.dumps(sorter.sortieren(probe), indent=2, ensure_ascii=False))
