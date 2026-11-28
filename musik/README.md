@@ -5,6 +5,7 @@ in jedem Musikprogramm abspielen), „Noten“ zu Ton und Dauer als Text.
 
 | Titel | Datum | Länge | Tempo | Instrumente |
 |---|---|---|---|---|
+| [Betonmorgen im Schrott](2026-11-28T21-18-37.mid) ([Noten](2026-11-28T21-18-37.json)) | 2026-11-28 | 17 s | 112 bpm | klavier, bass, trommel, glocken, gitarre |
 | [Frost-Schrott-Morgen](2026-11-28T21-11-20.mid) ([Noten](2026-11-28T21-11-20.json)) | 2026-11-28 | 53 s | 72 bpm | klavier, bass, cello, glocken, floete |
 | [Frost-Nacht](2026-11-28T21-03-23.mid) ([Noten](2026-11-28T21-03-23.json)) | 2026-11-28 | 37 s | 104 bpm | klavier, bass, trommel, glocken, geige |
 | [Beton-Schrott im Revier](2026-11-28T16-11-36.mid) ([Noten](2026-11-28T16-11-36.json)) | 2026-11-28 | 24 s | 84 bpm | klavier, bass, trommel, glocken |
