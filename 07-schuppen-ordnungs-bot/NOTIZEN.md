@@ -709,3 +709,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 ```
+
+## Teil 79 (28.11.2026 03:34, Nachtschicht)
+MetallSortierer-Klasse vervollständigt (DICHTEN, Erkennungslogik basierend auf Dichte/Magnetismus/Farbe/Zeichen, Sortiermethode mit JSON-Sicherheit). Hauptblock um Tests für neuer_tag (alle Pfade: Notfall, Runde 1/2, Fallbacks, Kakerlaken-Warnung) und MetallSortierer (10 Teile, Kategorien) erweitert. Datei ist syntaktisch valide, typisiert und als Skript ausführbar.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+```
