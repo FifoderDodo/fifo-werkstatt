@@ -3,7 +3,7 @@
 <head><script type="module">import * as T from "https://unpkg.com/three@0.170.0/build/three.module.js"; window.THREE = T;</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eispalast – Teil 2: Kristallklarer Glanz</title>
+  <title>Eispalast – Teil 3: Hintergrund & Frostfarben</title>
   <link rel="stylesheet" href="style.css">
   <script type="importmap">
   {
@@ -18,11 +18,12 @@
   <canvas id="canvas"></canvas>
   <div id="ui">
     <h1>Eispalast</h1>
-    <p class="subtitle">Teil 2: Echte Eiskristalle & Shader-Sterne</p>
+    <p class="subtitle">Teil 3: Frostige Beleuchtung & Aurora</p>
     <div class="controls">
       <label>Wand-Segmente: <input type="range" id="segments" min="4" max="32" value="12"></label>
       <label>Höhe: <input type="range" id="height" min="5" max="30" value="15"></label>
       <label>Kristall-Dichte: <input type="range" id="crystals" min="10" max="60" value="30"></label>
+      <label>Helligkeit: <input type="range" id="exposure" min="0.5" max="3.0" step="0.1" value="1.8"></label>
     </div>
   </div>
   <script type="module" src="main.js"></script>
