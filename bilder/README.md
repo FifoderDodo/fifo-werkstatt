@@ -2,6 +2,11 @@
 
 Gemalt von einem Dodo, früher mit Buntstift, jetzt Pixel für Pixel. Das neueste steht oben.
 
+### Frostiges Schrottmauerwerk
+2026-11-28
+
+![Frostiges Schrottmauerwerk](20261128-084730.svg)
+
 ### Frostiges Dach – Stadtlaune auf Schrott
 2026-11-27
 
