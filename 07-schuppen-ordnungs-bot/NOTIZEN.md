@@ -763,3 +763,12 @@ Test mit 2 Beispielen:
 1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
 ```
+
+## Teil 85 (28.11.2026 05:00, Nachtschicht)
+Den abgebrochenen MetallSortierer fertig implementiert (DICHTEN vervollständigt, Heuristik für Name/Dichte, sortieren-Methode). neuer_tag unverändert gelassen, da Tests liefen. Selbsttest-Block am Ende angehängt.
+
+```
+Test mit 2 Beispielen:
+1. {"gestern": {"think": 12, "eat": 3}, "fehlschlaege": {"schrott_suchen" (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+2. {"gestern": {}, "fehlschlaege": {}, "stimmung": 30, "wetter": ""} (fragte die KI) -> {"notiz": "KI schweigt oder Format unklar. Fallback: Klein anfangen.", "plan": [{"aktion":
+```
